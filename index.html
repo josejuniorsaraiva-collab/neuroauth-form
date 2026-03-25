@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>NEUROAUTH v2.1 — Solicitação Cirúrgica</title>
+<title>NEUROAUTH v3.0 — Solicitação Cirúrgica</title>
 
 <!-- iOS PWA Meta Tags -->
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -246,6 +246,66 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
   .fv{font-size:10px}
 }
 
+/* ── NEUROAUTH DRAFT CONTROL ─────────────────────────────────── */
+.na-audit-strip{
+  padding:9px 18px;font-size:12px;font-weight:600;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  flex-shrink:0;border-radius:0;
+}
+.na-audit-strip.draft{
+  background:#fef3c7;border-bottom:2px solid #f59e0b;color:#92400e;
+}
+.na-audit-strip.oficial{
+  background:#e6f5ed;border-bottom:2px solid #1e7a4a;color:#14532d;
+}
+.na-badge-draft,.na-badge-oficial{
+  padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;
+}
+.na-badge-draft{background:#f59e0b;color:#fff}
+.na-badge-oficial{background:#1e7a4a;color:#fff}
+/* Watermark no preview (overlay sobre pv-main) */
+.na-wm{
+  position:absolute;inset:0;
+  pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+  z-index:50;overflow:hidden;
+}
+.na-wm::after{
+  content:'RASCUNHO\ANÃO REGISTRADO';
+  white-space:pre;
+  font-size:78px;font-weight:900;
+  color:rgba(220,38,38,.13);
+  transform:rotate(-35deg) translateY(-8%);
+  text-align:center;line-height:1.05;
+  letter-spacing:3px;font-family:Arial,sans-serif;
+  text-transform:uppercase;user-select:none;
+}
+.pv-main{position:relative}
+/* Watermark na janela de impressão */
+.na-print-wm{
+  position:fixed;top:0;left:0;width:100vw;height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;z-index:9999;
+}
+.na-print-wm::after{
+  content:'RASCUNHO\ANÃO REGISTRADO';
+  white-space:pre;
+  font-size:96px;font-weight:900;
+  color:rgba(220,38,38,.13);
+  transform:rotate(-35deg);
+  text-align:center;line-height:1.05;
+  letter-spacing:3px;font-family:Arial,sans-serif;text-transform:uppercase;
+}
+.na-print-header{
+  font-size:10px;font-weight:700;
+  padding:5px 10px;margin-bottom:8px;
+  text-align:center;display:block;
+}
+.na-print-header.draft{background:#fef3c7;color:#92400e;border-bottom:2px solid #f59e0b}
+.na-print-header.oficial{background:#e6f5ed;color:#14532d;border-bottom:2px solid #1e7a4a}
+/* ── fim NEUROAUTH DRAFT CONTROL CSS ─────────────────────────── */
+
 /* MINI REVIEW TILES */
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px;margin-top:10px}
 .tile{background:var(--bp);border-radius:8px;padding:11px}
@@ -284,9 +344,78 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 .sb-manual-row input[type=text]{font-size:11px;padding:4px 7px}
 .sb-manual-row input[type=number]{font-size:11px;padding:4px 5px;width:52px}
 @media(max-width:700px){.pv-sidebar{width:100%;max-width:100%}.pv-layout{flex-direction:column}}
+
+/* ═══════ NEUROAUTH — AUTH LAYER v3.0 ═══════ */
+#screen-auth,#screen-presala{
+  position:fixed;inset:0;z-index:9990;
+  background:linear-gradient(135deg,#0f2540 0%,#1a3f6f 60%,#1e5a9c 100%);
+  display:none;align-items:center;justify-content:center;
+  font-family:'Segoe UI',Arial,sans-serif;
+}
+.na-auth-card{
+  background:#fff;border-radius:20px;padding:40px 48px;max-width:400px;width:92%;
+  text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+.na-auth-logo{font-size:52px;font-weight:900;color:#1a3f6f;margin-bottom:8px;letter-spacing:-2px}
+.na-auth-title{font-size:22px;font-weight:700;color:#1e2432;margin-bottom:4px}
+.na-auth-sub{font-size:13px;color:#8a97a8;margin-bottom:28px;line-height:1.4}
+#na-signin-btn{display:flex;justify-content:center;margin-bottom:12px}
+.na-loading,.na-error{text-align:center;color:#fff;font-size:15px;padding:40px}
+.na-spinner{width:40px;height:40px;border:4px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:na-spin 0.8s linear infinite;margin:0 auto 16px}
+@keyframes na-spin{to{transform:rotate(360deg)}}
+.na-presala-card{
+  background:#fff;border-radius:20px;padding:36px 40px;max-width:520px;width:95%;
+  text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+.na-presala-header{margin-bottom:20px}
+.na-avatar{width:64px;height:64px;border-radius:50%;border:3px solid #1a3f6f;margin-bottom:12px}
+.na-avatar-ph{width:64px;height:64px;border-radius:50%;background:#1a3f6f;color:#fff;
+  font-size:28px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  margin:0 auto 12px}
+.na-presala-header h2{font-size:22px;font-weight:700;color:#1e2432;margin-bottom:4px}
+.na-hospital{font-size:13px;color:#8a97a8;margin-top:2px}
+.na-presala-sub{font-size:14px;color:#4a5568;margin-bottom:18px;font-weight:500}
+.na-profile-cards{display:flex;gap:12px;justify-content:center;margin-bottom:20px;flex-wrap:wrap}
+.na-profile-card{
+  border:2px solid #d1d9e3;border-radius:12px;padding:16px 20px;cursor:pointer;
+  width:160px;transition:all .18s ease;background:#f4f6f9;
+}
+.na-profile-card:hover{border-color:#1a3f6f;background:#e8f0f9}
+.na-profile-card.active{border-color:#1a3f6f;background:#e8f0f9;box-shadow:0 0 0 3px rgba(26,63,111,.15)}
+.na-card-icon{font-size:28px;margin-bottom:6px}
+.na-card-title{font-size:14px;font-weight:700;color:#1e2432;margin-bottom:4px}
+.na-card-desc{font-size:11px;color:#8a97a8;line-height:1.3}
+.na-lgpd-block{
+  background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px 14px;
+  text-align:left;margin-bottom:16px;
+}
+.na-lgpd-label{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:12px;color:#4a5568;line-height:1.5}
+.na-lgpd-label input{flex-shrink:0;margin-top:2px;width:16px;height:16px;cursor:pointer}
+.na-enter-btn{
+  width:100%;padding:14px;background:#1a3f6f;color:#fff;border:none;border-radius:10px;
+  font-size:16px;font-weight:700;cursor:pointer;transition:all .18s;margin-bottom:10px;
+}
+.na-enter-btn:disabled{background:#d1d9e3;color:#8a97a8;cursor:not-allowed}
+.na-enter-btn:not(:disabled):hover{background:#1f4e79;transform:translateY(-1px)}
+.na-logout-link{background:none;border:none;color:#8a97a8;font-size:12px;cursor:pointer;text-decoration:underline}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+<!-- ═══════ AUTH OVERLAY ═══════ -->
+<div id="screen-auth" style="display:none;position:fixed;inset:0;z-index:9990;background:linear-gradient(135deg,#0f2540,#1a3f6f 60%,#1e5a9c);align-items:center;justify-content:center;">
+  <div class="na-auth-card">
+    <div class="na-auth-logo">N</div>
+    <div class="na-auth-title">NEUROAUTH</div>
+    <div class="na-auth-sub">Sistema de Autorização Cirúrgica<br>Neurocirurgia — Unimed Cariri</div>
+    <div id="na-signin-btn"></div>
+    <p style="font-size:11px;color:#8a97a8;margin-top:8px">Acesso restrito a profissionais autorizados</p>
+  </div>
+</div>
+
+<!-- ═══════ PRE-SALA OVERLAY ═══════ -->
+<div id="screen-presala" style="display:none;position:fixed;inset:0;z-index:9990;background:linear-gradient(135deg,#0f2540,#1a3f6f 60%,#1e5a9c);align-items:center;justify-content:center;overflow-y:auto;padding:20px 0;"></div>
 
 <!-- TOPBAR -->
 <div class="topbar">
@@ -294,7 +423,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
     <div class="tb-logo">N</div>
     <div>
       <div class="tb-title">NEUROAUTH</div>
-      <div class="tb-sub">Sistema de Autorização Cirúrgica — v2.1</div>
+      <div class="tb-sub">Sistema de Autorização Cirúrgica — v3.0</div>
     </div>
   </div>
   <div class="tb-right">
@@ -331,6 +460,10 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <h2>📋 Builder Cirúrgico — Unimed Cariri</h2>
       <button class="mo-x" onclick="closeModal('pvModal')">✕</button>
     </div>
+    <div id="na-audit-strip" class="na-audit-strip draft">
+      <span class="na-badge-draft" id="na-badge">RASCUNHO</span>
+      <span id="na-audit-msg">⚠️ Documento não registrado — revise e confirme o envio para registrar oficialmente</span>
+    </div>
     <div class="pv-layout">
       <!-- SIDEBAR ESQUERDA: Procedimentos / OPME / Justificativa -->
       <div class="pv-sidebar">
@@ -355,6 +488,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       </div>
       <!-- MAIN DIREITA: Guias -->
       <div class="pv-main">
+        <div id="na-wm" class="na-wm"></div>
         <div class="ptabs">
           <div class="ptab active" onclick="showPTab('pv-sadt',this)">Guia SADT</div>
           <div class="ptab" onclick="showPTab('pv-opme',this)">Guia OPME</div>
@@ -688,7 +822,304 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 /* ──────────────────────────────────────────────
    CONFIG
 ────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   NEUROAUTH — AUTH LAYER v3.0
+   Google OAuth + Pre-sala + Profile Loading
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── CONFIG ──────────────────────────────────────────────────────── */
+const NA_CLIENT_ID   = 'SEU_GOOGLE_CLIENT_ID';       // ← substituir pelo OAuth Client ID do Google Cloud Console
+const NA_PROFILE_WH  = 'SEU_MAKE_PROFILE_WEBHOOK_URL'; // ← URL do webhook NEUROAUTH_PROFILE_READER no Make.com
+const NA_SESSION_TTL = 8 * 60 * 60 * 1000;           // 8 horas em ms
+
+/* ── SESSION HELPER ─────────────────────────────────────────────── */
+function naGetSessionField(field){
+  try{
+    const sess=JSON.parse(sessionStorage.getItem('na_session')||'{}');
+    if(field==='email')return sess.email||'';
+    if(field==='name')return sess.name||'';
+    const perfil=sess.perfil||{};
+    return String(perfil[field]||'');
+  }catch(e){return '';}
+}
+
+/* ── GOOGLE IDENTITY INIT ───────────────────────────────────────── */
+function naInitGoogle(){
+  if(typeof google==='undefined'||!google.accounts){
+    setTimeout(naInitGoogle,300);return;
+  }
+  google.accounts.id.initialize({
+    client_id:NA_CLIENT_ID,
+    callback:naHandleLogin,
+    auto_select:true,
+    cancel_on_tap_outside:false
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('na-signin-btn'),
+    {theme:'outline',size:'large',text:'signin_with',locale:'pt-BR',width:280}
+  );
+  google.accounts.id.prompt();
+}
+
+/* ── LOGIN HANDLER (Google JWT callback) ────────────────────────── */
+async function naHandleLogin(response){
+  let payload;
+  try{
+    const parts=response.credential.split('.');
+    payload=JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+  }catch(e){
+    console.error('[NEUROAUTH] JWT parse error',e);return;
+  }
+  const {email,name,picture}=payload;
+  const sa=document.getElementById('screen-auth');
+  if(sa) sa.innerHTML=`<div class="na-loading">
+    <div class="na-spinner"></div>
+    <p style="color:#fff">Carregando perfil de <strong>${name}</strong>…</p>
+  </div>`;
+  try{
+    const perfil=await naFetchPerfil(email);
+    const sess={email,name,picture:picture||'',perfil,expires:Date.now()+NA_SESSION_TTL};
+    sessionStorage.setItem('na_session',JSON.stringify(sess));
+    naRenderPresala(perfil,sess);
+  }catch(err){
+    if(sa) sa.innerHTML=`<div class="na-loading">
+      <div style="font-size:48px;margin-bottom:16px">🚫</div>
+      <p style="color:#fff;font-size:16px;font-weight:700;margin-bottom:8px">Acesso Negado</p>
+      <p style="color:rgba(255,255,255,.75);font-size:13px;margin-bottom:24px;max-width:320px;text-align:center">${err.message}</p>
+      <button onclick="naLogout()" style="padding:10px 28px;background:#fff;color:#1a3f6f;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px">Trocar conta Google</button>
+    </div>`;
+  }
+}
+
+/* ── PROFILE FETCH (Make.com webhook) ───────────────────────────── */
+async function naFetchPerfil(email){
+  /* PRODUÇÃO — sem fallback para perfil fake. Toda falha bloqueia acesso. */
+  if(!NA_PROFILE_WH||NA_PROFILE_WH==='SEU_MAKE_PROFILE_WEBHOOK_URL'){
+    throw new Error('Sistema não configurado. Contate o administrador do NEUROAUTH.');
+  }
+  let resp;
+  try{
+    resp=await fetch(`${NA_PROFILE_WH}?email=${encodeURIComponent(email)}`,{cache:'no-store'});
+  }catch(netErr){
+    throw new Error('Falha de rede ao verificar perfil. Verifique sua conexão e tente novamente.');
+  }
+  if(resp.status===404){
+    throw new Error(`Acesso negado. O email ${email} não está cadastrado no NEUROAUTH.`);
+  }
+  if(!resp.ok){
+    throw new Error(`Erro ao verificar acesso (HTTP ${resp.status}). Contate o administrador.`);
+  }
+  let perfil;
+  try{ perfil=await resp.json(); }
+  catch(parseErr){ throw new Error('Resposta inválida do servidor de perfis. Contate o administrador.'); }
+
+  /* Perfil não encontrado / objeto vazio */
+  if(!perfil||!perfil.user_email){
+    throw new Error(`Acesso negado. O email ${email} não possui perfil cadastrado no NEUROAUTH.`);
+  }
+  /* Campo ativo — aceita boolean true ou strings "TRUE" / "1" / "true" */
+  const ativo=perfil.ativo;
+  const isAtivo=ativo===true||String(ativo).toUpperCase()==='TRUE'||String(ativo)==='1';
+  if(!isAtivo){
+    throw new Error('Conta inativa. Contate o administrador para reativar o acesso.');
+  }
+  return perfil;
+}
+
+/* ── RENDER PRE-SALA ────────────────────────────────────────────── */
+function naRenderPresala(perfil,sess){
+  const sa=document.getElementById('screen-auth');
+  const sp=document.getElementById('screen-presala');
+  if(sa)sa.style.display='none';
+
+  const nome=perfil?.medico_nome||sess?.name||'Usuário';
+  const tipo=perfil?.perfil_tipo||'cirurgiao';
+  const hospital=perfil?.hospital_padrao||'';
+  const avatar=sess?.picture
+    ?`<img src="${sess.picture}" class="na-avatar" alt="foto" onerror="this.outerHTML='<div class=\'na-avatar-ph\'>${nome.charAt(0).toUpperCase()}</div>'">`
+    :`<div class="na-avatar-ph">${nome.charAt(0).toUpperCase()}</div>`;
+
+  const cardCirurgiao=`<div class="na-profile-card${tipo==='cirurgiao'?' active':''}" onclick="naSelectProfile('cirurgiao',this)">
+    <div class="na-card-icon">🧑‍⚕️</div>
+    <div class="na-card-title">Cirurgião</div>
+    <div class="na-card-desc">Acesso completo ao formulário e envio direto</div>
+  </div>`;
+  const cardSecretaria=`<div class="na-profile-card${tipo==='secretaria'?' active':''}" onclick="naSelectProfile('secretaria',this)">
+    <div class="na-card-icon">👩‍💼</div>
+    <div class="na-card-title">Secretaria</div>
+    <div class="na-card-desc">Preenchimento e envio para revisão do médico</div>
+  </div>`;
+
+  sp.innerHTML=`
+    <div class="na-presala-card">
+      <div class="na-presala-header">
+        ${avatar}
+        <h2>Olá, ${nome.split(' ')[0]}!</h2>
+        ${hospital?`<p class="na-hospital">🏥 ${hospital}</p>`:''}
+      </div>
+      <p class="na-presala-sub">Como você está acessando hoje?</p>
+      <div class="na-profile-cards">
+        ${cardCirurgiao}
+        ${cardSecretaria}
+      </div>
+      <div class="na-lgpd-block">
+        <label class="na-lgpd-label">
+          <input type="checkbox" id="na-lgpd-chk" onchange="toggleEnterBtn()">
+          <span>Li e concordo com o tratamento de dados conforme a <strong>LGPD (Lei 13.709/18)</strong>. Os dados inseridos destinam-se exclusivamente à solicitação de autorização cirúrgica junto à operadora de saúde.</span>
+        </label>
+      </div>
+      <button id="na-enter-btn" class="na-enter-btn" disabled onclick="naEnterForm()">
+        Entrar no sistema →
+      </button>
+      <button class="na-logout-link" onclick="naLogout()">Sair / trocar conta Google</button>
+    </div>`;
+
+  sp.style.display='flex';
+  window._naSelectedProfile=Object.assign({},perfil);
+  window._naSess=sess;
+}
+
+/* ── SELECT PROFILE TYPE ────────────────────────────────────────── */
+function naSelectProfile(tipo,el){
+  document.querySelectorAll('.na-profile-card').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  if(window._naSelectedProfile)window._naSelectedProfile._selectedTipo=tipo;
+}
+
+/* ── TOGGLE ENTER BUTTON (LGPD gate) ───────────────────────────── */
+function toggleEnterBtn(){
+  const chk=document.getElementById('na-lgpd-chk');
+  const btn=document.getElementById('na-enter-btn');
+  if(chk&&btn)btn.disabled=!chk.checked;
+}
+
+/* ── ENTER FORM ─────────────────────────────────────────────────── */
+function naEnterForm(){
+  const sp=document.getElementById('screen-presala');
+  if(sp)sp.style.display='none';
+  const perfil=window._naSelectedProfile||{};
+  const sess=window._naSess||{};
+  if(perfil._selectedTipo)perfil.perfil_tipo=perfil._selectedTipo;
+  // Persist updated profile tipo in session
+  try{
+    const raw=sessionStorage.getItem('na_session');
+    if(raw){const s=JSON.parse(raw);s.perfil=perfil;sessionStorage.setItem('na_session',JSON.stringify(s));}
+  }catch(e){}
+  naPreencherFormulario(perfil);
+  naUpdateTopbar(sess,perfil);
+  naLogLGPD(sess.email,perfil.perfil_tipo);
+  // Init app (moved from DOMContentLoaded)
+  restoreDraft();
+  if(!document.querySelectorAll('[id^="or"]').length)addOpme();
+  goTab(0);
+}
+
+/* ── AUTO-FILL FORM ─────────────────────────────────────────────── */
+function naPreencherFormulario(perfil){
+  if(!perfil)return;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val;};
+  if(perfil.medico_nome)   set('medico_solicitante',perfil.medico_nome);
+  if(perfil.crm)           set('crm',perfil.crm);
+  if(perfil.cbo)           set('cbo',perfil.cbo);
+  const tel=perfil.telefone_secretaria||perfil.tel_medico||'';
+  if(tel)                  set('tel_medico',tel);
+  if(perfil.hospital_padrao) set('hospital',perfil.hospital_padrao);
+  if(perfil.convenios_habilitados){
+    const primeiroConvenio=(perfil.convenios_habilitados.split(',')[0]||'').trim();
+    if(primeiroConvenio)set('convenio',primeiroConvenio);
+  }
+}
+
+/* ── UPDATE TOPBAR BADGE ────────────────────────────────────────── */
+function naUpdateTopbar(sess,perfil){
+  const badge=document.querySelector('.badge');
+  if(!badge)return;
+  const nome=perfil?.medico_nome||sess?.name||'Usuário';
+  const tipo=perfil?.perfil_tipo||'';
+  const icon=tipo==='secretaria'?'👩‍💼':'🧑‍⚕️';
+  badge.textContent=`${icon} ${nome}`;
+  badge.title=`${sess?.email||''} · ${tipo} · Clique para sair`;
+  badge.style.cursor='pointer';
+  badge.onclick=naLogout;
+}
+
+/* ── LOGOUT ─────────────────────────────────────────────────────── */
+function naLogout(){
+  sessionStorage.removeItem('na_session');
+  sessionStorage.removeItem('na_lgpd_log');
+  try{
+    if(typeof google!=='undefined'&&google.accounts)
+      google.accounts.id.disableAutoSelect();
+  }catch(e){}
+  location.reload();
+}
+
+/* ── LGPD CONSENT LOG ───────────────────────────────────────────── */
+function naLogLGPD(email,perfil_tipo){
+  try{
+    sessionStorage.setItem('na_lgpd_log',JSON.stringify({
+      event:'LGPD_CONSENT',
+      email:email||'',
+      perfil_tipo:perfil_tipo||'',
+      timestamp:new Date().toISOString(),
+      ua:navigator.userAgent.substring(0,120)
+    }));
+  }catch(e){}
+}
+
+/* ── CHECK SESSION (entry point) ────────────────────────────────── */
+function naCheckSession(){
+  try{
+    const raw=sessionStorage.getItem('na_session');
+    if(raw){
+      const sess=JSON.parse(raw);
+      if(sess.expires&&Date.now()<sess.expires){
+        naRenderPresala(sess.perfil,sess);
+        return;
+      }
+    }
+  }catch(e){}
+  // No valid session — show auth screen
+  const sa=document.getElementById('screen-auth');
+  if(sa)sa.style.display='flex';
+  naInitGoogle();
+}
+
 const WH = "https://hook.us2.make.com/yerhrppm26aylw9jj2efmapq6ny8jlif";
+
+/* ══ NEUROAUTH DRAFT CONTROL — estado global ══════════════════ */
+let guiaRegistrada   = false;
+let envioConfirmadoEm = '';
+let envioBillingId   = '';
+let envioUserEmail   = '';
+
+function naUpdateAuditUI(){
+  const strip = document.getElementById('na-audit-strip');
+  const badge = document.getElementById('na-badge');
+  const msg   = document.getElementById('na-audit-msg');
+  const wm    = document.getElementById('na-wm');
+  if(!strip) return;
+  if(guiaRegistrada){
+    strip.className = 'na-audit-strip oficial';
+    if(badge){ badge.className='na-badge-oficial'; badge.textContent='REGISTRADO'; }
+    if(msg){
+      const ts  = envioConfirmadoEm
+        ? new Date(envioConfirmadoEm).toLocaleString('pt-BR') : '';
+      const usr = envioUserEmail || naGetSessionField('email') || '';
+      msg.textContent = '✅ Documento registrado'
+        + (ts  ? ' em ' + ts  : '')
+        + (usr ? ' · '  + usr : '');
+    }
+    if(wm) wm.style.display = 'none';
+  } else {
+    strip.className = 'na-audit-strip draft';
+    if(badge){ badge.className='na-badge-draft'; badge.textContent='RASCUNHO'; }
+    if(msg) msg.textContent =
+      '⚠️ Documento não registrado — revise e confirme o envio para registrar oficialmente';
+    if(wm) wm.style.display = '';
+  }
+}
+/* ══ fim NEUROAUTH DRAFT CONTROL ══════════════════════════════ */
 
 const COLUNA_PROCS = [
   "Microdiscectomia lombar","Laminectomia descompressiva lombar",
@@ -1071,7 +1502,18 @@ function collect(){
     status_inicial:g('status_inicial'),
     obs_finais:g('obs_finais'),
     data_solicitacao:new Date().toLocaleDateString('pt-BR'),
-    timestamp_iso:new Date().toISOString()
+    timestamp_iso:new Date().toISOString(),
+    // ── AUTH / PROFILE (naAuth v3.0) ──
+    user_email:           naGetSessionField('email'),
+    perfil_tipo:          naGetSessionField('perfil_tipo'),
+    medico_nome:          naGetSessionField('medico_nome'),
+    email_secretaria:     naGetSessionField('email_secretaria'),
+    email_cirurgiao:      naGetSessionField('email_cirurgiao'),
+    telefone_secretaria:  naGetSessionField('telefone_secretaria'),
+    whatsapp_secretaria:  naGetSessionField('whatsapp_secretaria'),
+    calendario_id:        naGetSessionField('calendario_id'),
+    convenios_habilitados:naGetSessionField('convenios_habilitados'),
+    hospital_padrao:      naGetSessionField('hospital_padrao')
   };
 }
 
@@ -1699,6 +2141,7 @@ function openPreview(){
   populateSidebar(d);
   // updateGuiaFromSidebar faz render definitivo de SADT+OPME com dados reais da sidebar
   updateGuiaFromSidebar();
+  naUpdateAuditUI();
   openModal('pvModal');
 }
 
@@ -2048,6 +2491,27 @@ function updateGuiaFromSidebar(){
   },null,2);
 }
 
+/* ── naGetPrintHeader — retorna cabeçalho de auditoria para impressão ── */
+function naGetPrintHeader(which){
+  const ts  = envioConfirmadoEm
+    ? new Date(envioConfirmadoEm).toLocaleString('pt-BR') : '';
+  const usr = envioUserEmail || naGetSessionField('email') || '';
+  const tipo = which ? which.toUpperCase() : 'GUIA';
+  if(guiaRegistrada){
+    return `<div class="na-print-header oficial">`
+      + `✅ DOCUMENTO OFICIAL REGISTRADO — ${tipo}`
+      + (ts  ? ` — ${ts}`  : '')
+      + (usr ? ` · ${usr}` : '')
+      + ` · NEUROAUTH v3.0</div>`;
+  } else {
+    const now = new Date().toLocaleString('pt-BR');
+    return `<div class="na-print-header draft">`
+      + `⚠️ RASCUNHO — NÃO REGISTRADO — ${tipo}`
+      + ` — Impresso em ${now}`
+      + ` — Envio ainda não confirmado no NEUROAUTH</div>`;
+  }
+}
+
 function printGuia(which){
   const html = which==='sadt'
     ? document.getElementById('sadt-render').innerHTML
@@ -2086,9 +2550,14 @@ function printGuia(which){
         body{margin:6mm}
         .guia-wrap{page-break-inside:avoid;margin-bottom:0}
         @page{margin:10mm;size:A4}
+        .na-print-wm{position:fixed;top:0;left:0;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9999}
+        .na-print-wm::after{content:'RASCUNHO\\ANÃO REGISTRADO';white-space:pre;font-size:96px;font-weight:900;color:rgba(220,38,38,.13);transform:rotate(-35deg);text-align:center;line-height:1.05;letter-spacing:3px;font-family:Arial,sans-serif;text-transform:uppercase}
+        .na-print-header{display:block;font-size:10px;font-weight:700;padding:5px 10px;margin-bottom:8px;text-align:center}
+        .na-print-header.draft{background:#fef3c7;color:#92400e;border-bottom:2px solid #f59e0b}
+        .na-print-header.oficial{background:#e6f5ed;color:#14532d;border-bottom:2px solid #1e7a4a}
       }
     </style>
-    </head><body>${html}</body></html>`);
+    </head><body>${naGetPrintHeader(which)}${guiaRegistrada?'':'<div class=\"na-print-wm\"></div>'}${html}</body></html>`);
   w.document.close();
   setTimeout(()=>w.print(),600);
 }
@@ -2152,6 +2621,11 @@ async function confirmedSend(){
       closeModal('pvModal');
       toast('🎉 Enviado! Documento sendo gerado no Make.com…','ok');
       localStorage.removeItem('neuroauth_draft');
+      /* NEUROAUTH DRAFT CONTROL — marcar guia como oficialmente registrada */
+      guiaRegistrada    = true;
+      envioConfirmadoEm = new Date().toISOString();
+      envioUserEmail    = naGetSessionField('email') || '';
+      naUpdateAuditUI();
     } else {
       throw new Error('HTTP '+r.status);
     }
@@ -2264,9 +2738,8 @@ document.addEventListener('keydown',e=>{
    INIT
 ────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded',()=>{
-  restoreDraft();
-  if(!document.querySelectorAll('[id^="or"]').length)addOpme();
-  goTab(0);
+  // Auth layer handles restoreDraft/addOpme/goTab(0) via naEnterForm()
+  naCheckSession();
 });
 </script>
 
