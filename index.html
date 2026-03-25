@@ -231,7 +231,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
   vertical-align:bottom}
 .guia-num{font-size:9px;font-weight:700}
 .box-list{list-style:none;padding:0}
-.fblank{in-height:28px;display:block;border-bottom:1px solid #aaa;margin:2px 0;font-size:11px;font-weight:700}
+.fblank{min-height:28px;display:block;border-bottom:1px solid #aaa;margin:2px 0;font-size:11px;font-weight:700}
 .sig-area{min-height:28px;border-bottom:1px solid #555;display:block}
 .grand-total{font-weight:700;background:#f0f0f0}
 
@@ -1150,6 +1150,53 @@ const ITENS_POR_PAGINA_SADT=5;
 const ITENS_POR_PAGINA_OPME=5;
 
 /* ──────────────────────────────────────────────
+   OPME — NORMALIZAÇÃO CANÔNICA
+   Aceita qualquer estrutura de origem (perfil, formulário, manual, webhook)
+   e retorna objeto com campos garantidos e consistentes.
+────────────────────────────────────────────── */
+function normalizeOpmeItem(o){
+  if(!o)return null;
+  const safeStr=v=>(v!=null?String(v):'').trim();
+  const safeNum=v=>{const n=Number(safeStr(v));return(!isNaN(n)&&n>0)?n:1;};
+
+  const descricao=safeStr(o.descricao||o.desc||o.nome||o.name||o.descricao_material||o.materialName||o.material||'');
+  if(!descricao)return null;
+
+  return {
+    descricao,
+    qtd     : safeNum(o.qtd||o.qtde||o.quantidade||o.quantidade_solicitada||o.quantity||o.qnt||1),
+    tabela  : safeStr(o.tabela||o.tabelaCodigo||o.table_code||''),
+    codigo  : safeStr(o.codigo||o.cod||o.cod_material||o.codigo_material||o.materialCode||o.codMaterial||o.code||''),
+    opcao   : safeStr(o.opcao||o.opcaoMaterial||o.option||''),
+    valorUnitario : safeStr(o.valorUnitario||o.valor_unitario||o.vl_unitario||o.valor||o.unitPrice||o.price||o.vl||''),
+    anvisa  : safeStr(o.anvisa||o.registro_anvisa||o.registroAnvisa||o.anvisaCode||o.reg_anvisa||''),
+    fabricante : safeStr(o.fabricante||o.ref_fabricante||o.refFabricante||o.empresa||o.fornecedor||o.manufacturer||o.supplier||o.emp||''),
+    af      : safeStr(o.af||o.autorizacao_funcionamento||o.autorizacaoFuncionamento||o.num_af||o.numAF||''),
+    referencia : safeStr(o.referencia||o.ref||o.reference||''),
+    nomeFornecedor : safeStr(o.nomeFornecedor||o.nome_fornecedor||o.empresa||o.fabricante||''),
+    observacao : safeStr(o.observacao||o.obs||o.observation||o.unidade||o.unit||''),
+    tipo    : safeStr(o.tipo||'automatico')
+  };
+}
+
+/* ──────────────────────────────────────────────
+   OPME — RESOLUÇÃO DE ORIGEM EFETIVA
+   Prioridade: sidebar selecionados → formulário (tab OPME)
+────────────────────────────────────────────── */
+function getEffectiveOpmeItems(d, selOpmes){
+  // Prioridade 1: itens selecionados na sidebar (perfil automático + manual)
+  if(selOpmes&&selOpmes.length){
+    const fromSidebar=[];
+    selOpmes.forEach(o=>{const n=normalizeOpmeItem(o);if(n)fromSidebar.push(n);});
+    if(fromSidebar.length)return fromSidebar;
+  }
+  // Prioridade 2: itens digitados no formulário (tab OPME)
+  const fromForm=[];
+  (d.opme_items||[]).forEach(o=>{const n=normalizeOpmeItem(o);if(n)fromForm.push(n);});
+  return fromForm;
+}
+
+/* ──────────────────────────────────────────────
    RENDER SADT GUIA (faithful to Unimed template)
 ────────────────────────────────────────────── */
 function renderSADT(d,procs){
@@ -1466,22 +1513,23 @@ function renderOPME(d){
   const rowsHtml=Array.from({length:ITENS_POR_PAGINA_OPME},(_,i)=>{
     const item=pg[i];
     const r=String(pi*ITENS_POR_PAGINA_OPME+i+1).padStart(2,'0');
+    const desc=item&&item.descricao?item.descricao:'';
     return `<tr>
           <td style="font-weight:700">${r}</td>
-          <td></td>
-          <td></td>
-          <td><span style="font-size:10px;font-weight:700">${item&&item.descricao?item.descricao:''}</span></td>
-          <td></td>
+          <td style="font-size:8px">${item&&item.tabela?item.tabela:''}</td>
+          <td style="font-size:8px">${item&&item.codigo?item.codigo:''}</td>
+          <td><span style="font-size:10px;font-weight:700">${desc}</span></td>
+          <td style="font-size:8px">${item&&item.opcao?item.opcao:''}</td>
           <td style="font-weight:700">${item&&item.qtd?item.qtd:''}</td>
-          <td></td>
+          <td style="font-size:8px">${item&&item.valorUnitario?item.valorUnitario:''}</td>
           <td></td>
           <td></td>
         </tr>
         <tr style="height:12px">
           <td></td>
-          <td colspan="2" style="font-size:8px;color:#555">${item&&item.descricao?'Reg. ANVISA:':''}</td>
-          <td colspan="3" style="font-size:8px;color:#555">${item&&item.descricao?'Ref. fabricante:':''}</td>
-          <td colspan="3" style="font-size:8px;color:#555">${item&&item.descricao?'Nº AF:':''}</td>
+          <td colspan="2" style="font-size:8px;color:#555">${desc?('Reg. ANVISA: '+(item.anvisa||'')):''}</td>
+          <td colspan="3" style="font-size:8px;color:#555">${desc?('Ref. fabricante: '+(item.fabricante||'')):''}</td>
+          <td colspan="3" style="font-size:8px;color:#555">${desc?('Nº AF: '+(item.af||'')):''}</td>
         </tr>`;
   }).join('');
   return `
@@ -1645,10 +1693,11 @@ function renderOPME(d){
 ────────────────────────────────────────────── */
 function openPreview(){
   const d=collect();
+  // Renderiza SADT com placeholder vazio (sidebar ainda não está montada)
   document.getElementById('sadt-render').innerHTML=renderSADT(d,[]);
-  document.getElementById('opme-render').innerHTML=renderOPME(d);
-  document.getElementById('dados-render').textContent=JSON.stringify(d,null,2);
+  // Monta sidebar com perfil + itens de formulário
   populateSidebar(d);
+  // updateGuiaFromSidebar faz render definitivo de SADT+OPME com dados reais da sidebar
   updateGuiaFromSidebar();
   openModal('pvModal');
 }
@@ -1679,7 +1728,27 @@ function populateSidebar(d){
 
   if(!profile){
     sbProcs.innerHTML='<div class="sb-head">Procedimentos</div><div style="color:var(--s4);font-size:12px;padding:4px">Perfil cirúrgico não configurado para este procedimento.<br>OPME e códigos já preenchidos no formulário.</div>';
-    sbOpmes.innerHTML='<div class="sb-head">OPME</div><div style="color:var(--s4);font-size:12px;padding:4px">Sem perfil de OPME configurado para este procedimento.</div>';
+    // Quando não há perfil, popula sidebar com itens OPME do formulário para permitir interação
+    const formOpmes=d.opme_items||[];
+    let noProfileOh=`<div class="sb-head">OPME do Formulário</div>`;
+    if(formOpmes.length){
+      formOpmes.forEach((o,i)=>{
+        const norm=normalizeOpmeItem(o);
+        if(!norm)return;
+        noProfileOh+=`<div class="sb-item opcional">
+          <input type="checkbox" class="sb-cb" id="sp_opme_fp${i}" checked onchange="updateGuiaFromSidebar()">
+          <div class="sb-info">
+            <span class="sb-desc">${norm.descricao}</span>
+            <span class="sb-qtd" style="display:inline-flex;align-items:center;gap:3px">×<input type="number" id="sp_opme_fp${i}_qtd" value="${norm.qtd}" min="1" max="99" style="width:42px;font-size:12px;padding:1px 4px;border:1px solid var(--s3);border-radius:3px;text-align:center" oninput="updateGuiaFromSidebar()"></span>
+            ${norm.fabricante?`<span class="sb-badge o" style="margin-top:2px;font-size:8px">${norm.fabricante}</span>`:''}
+          </div>
+        </div>`;
+      });
+    } else {
+      noProfileOh+=`<div style="color:var(--s4);font-size:12px;padding:4px">Sem perfil e sem OPME digitada no formulário.</div>`;
+    }
+    noProfileOh+=`<button class="add-row" style="margin-top:8px;font-size:11px;padding:6px 10px" onclick="addOpmeToSidebar()">+ OPME manual</button>`;
+    sbOpmes.innerHTML=noProfileOh;
     if(sbJust)sbJust.value=d.indicacao_clinica||'';
     return;
   }
@@ -1759,6 +1828,7 @@ function addOpmeToSidebar(){
     <button onclick="document.getElementById('sp_manual_${n}').remove();updateGuiaFromSidebar()" style="background:none;border:none;color:var(--r1);cursor:pointer;font-size:14px;flex-shrink:0">✕</button>`;
   const addBtn=container.querySelector('.add-row');
   container.insertBefore(div,addBtn);
+  updateGuiaFromSidebar();
 }
 
 function addProcToSidebar(){
@@ -1912,7 +1982,7 @@ function getSelectedOpmesFull(){
       }
     });
   }
-  // Manuais — [id$=""] matches nothing per CSS spec; use plain prefix selector
+  // Manuais — via [id^="sp_opme_m"] (sem [id$=""] que não casa com string vazia)
   document.querySelectorAll('[id^="sp_opme_m"]').forEach(cb=>{
     if(cb.id.endsWith('_name')||cb.id.endsWith('_qtd'))return;
     if(cb.tagName!=='INPUT'||cb.type!=='checkbox')return;
@@ -1921,6 +1991,21 @@ function getSelectedOpmesFull(){
       const name=document.getElementById('sp_opme_m'+n+'_name')?.value||'';
       const qtd=parseInt(document.getElementById('sp_opme_m'+n+'_qtd')?.value)||1;
       if(name.trim())items.push({nome:name,qtd,tipo:'manual'});
+    }
+  });
+  // Itens de formulário no sidebar (sem perfil) — via [id^="sp_opme_fp"]
+  document.querySelectorAll('[id^="sp_opme_fp"]').forEach(cb=>{
+    if(cb.id.endsWith('_qtd'))return;
+    if(cb.tagName!=='INPUT'||cb.type!=='checkbox')return;
+    if(cb.checked){
+      const n=cb.id.replace('sp_opme_fp','');
+      const qtdEl=document.getElementById('sp_opme_fp'+n+'_qtd');
+      const qtd=qtdEl?Math.max(1,parseInt(qtdEl.value)||1):1;
+      // recupera descricao do label vizinho
+      const info=cb.closest('.sb-item');
+      const descEl=info?info.querySelector('.sb-desc'):null;
+      const name=descEl?descEl.textContent.trim():'';
+      if(name)items.push({nome:name,qtd,tipo:'automatico'});
     }
   });
   return items;
@@ -1932,16 +2017,10 @@ function updateGuiaFromSidebar(){
   const selProcs=getSelectedProcs();
   const justEl=document.getElementById('sb-justificativa');
   const just=justEl?justEl.value:d.indicacao_clinica;
-  // Unificar automáticos (perfil) + manuais em array final com estrutura normalizada
-  const opmeAutomaticos=[];
-  const opmeManuais=[];
-  selOpmes.forEach(o=>{
-    const item={descricao:(o.nome||o.descricao||'').trim(),qtd:Math.max(1,o.qtd||1)};
-    if(!item.descricao)return;
-    if(o.tipo==='manual')opmeManuais.push(item);
-    else opmeAutomaticos.push(item);
-  });
-  const opmeFinal=[...opmeAutomaticos,...opmeManuais];
+
+  // Normalização canônica única — usa getEffectiveOpmeItems (sidebar > formulário)
+  const opmeFinal=getEffectiveOpmeItems(d, selOpmes);
+
   const enriched={
     ...d,
     indicacao_clinica:just,
@@ -1953,10 +2032,10 @@ function updateGuiaFromSidebar(){
   const procedimentos_formatados=selProcs.length
     ? selProcs.map((p,i)=>`${i+1}. ${p.codigo} – ${p.descricao}`).join('\n')
     : `1. ${d.cod_cbhpm||''} – ${d.procedimento||''}`;
-  const opmes_formatadas=selOpmes.length
-    ? selOpmes.map((o,i)=>`${i+1}. ${o.nome} (qtd: ${o.qtd||1})`).join('\n')
+  const opmes_formatadas=opmeFinal.length
+    ? opmeFinal.map((o,i)=>`${i+1}. ${o.descricao} (qtd: ${o.qtd||1})`).join('\n')
     : '';
-  document.getElementById('sadt-render').innerHTML=renderSADT(d,selProcs);
+  document.getElementById('sadt-render').innerHTML=renderSADT(enriched,selProcs);
   document.getElementById('opme-render').innerHTML=renderOPME(enriched);
   document.getElementById('dados-render').textContent=JSON.stringify({
     ...enriched,
@@ -1965,7 +2044,7 @@ function updateGuiaFromSidebar(){
     opmes_selecionados:selOpmes,
     procedimentos_formatados,
     opmes_formatadas,
-    neuroauth_version:'2.1.1'
+    neuroauth_version:'2.1.2'
   },null,2);
 }
 
@@ -1976,17 +2055,38 @@ function printGuia(which){
   const w=window.open('','_blank');
   w.document.write(`<html><head><title>Guia ${which.toUpperCase()} – NEUROAUTH</title>
     <style>
-      body{margin:10px;font-family:Arial,sans-serif}
-      table{border-collapse:collapse;width:100%}
-      td,th{border:1px solid #000;padding:1px 3px;font-size:9px;vertical-align:top}
-      .fn{font-size:7px;display:block;margin-bottom:1px}
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{margin:10px;font-family:Arial,Helvetica,sans-serif;font-size:9px;color:#000;background:#fff}
+      /* Layout geral */
+      .guia-wrap{background:#fff;font-family:Arial,Helvetica,sans-serif;font-size:9px;color:#000;width:100%;margin-bottom:24px}
+      .guia-wrap *{box-sizing:border-box}
+      .guia-table{width:100%;border-collapse:collapse;min-width:600px}
+      .guia-table td,.guia-table th{border:1px solid #000;padding:1px 3px;vertical-align:top}
+      .guia-table td.nb{border:none}
+      /* Campos */
+      .fn{font-size:7px;color:#000;display:block;margin-bottom:1px;font-weight:normal}
       .fv{font-size:10px;font-weight:700;min-height:12px;display:block}
       .fv.sm{font-size:9px}
-      .sh{background:#d0d0d0;font-weight:700;font-size:8px;padding:2px 4px}
-      .logo-u{background:#1f4e79;color:#fff;padding:2px 6px;font-weight:900;font-style:italic}
-      .sig-area{min-height:24px;display:block;border-bottom:1px solid #555}
-      .opme-tbl td,.opme-tbl th{font-size:8px}
-      .logo-uni{display:flex;align-items:center;gap:4px}
+      /* Cabeçalho seção */
+      .sh{background:#d8d8d8;font-weight:700;font-size:8px;padding:2px 4px}
+      /* Logo */
+      .logo-cell{padding:4px 6px;vertical-align:middle;width:140px}
+      .logo-uni{display:flex;align-items:center;gap:5px}
+      .logo-u{width:48px;height:22px;background:#1f4e79;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;font-style:italic;border-radius:2px}
+      .logo-cariri{font-size:9px;font-weight:700;color:#000}
+      .guia-title-cell{text-align:center;font-weight:700;font-size:11px;padding:4px}
+      /* Assinatura */
+      .sig-area{min-height:28px;display:block;border-bottom:1px solid #555}
+      /* OPME */
+      .opme-tbl{width:100%;border-collapse:collapse;font-size:8px}
+      .opme-tbl td,.opme-tbl th{border:1px solid #000;padding:1px 3px;vertical-align:top}
+      .opme-tbl .th{background:#e8e8e8;font-weight:700;font-size:7.5px}
+      /* Impressão */
+      @media print{
+        body{margin:6mm}
+        .guia-wrap{page-break-inside:avoid;margin-bottom:0}
+        @page{margin:10mm;size:A4}
+      }
     </style>
     </head><body>${html}</body></html>`);
   w.document.close();
@@ -2023,8 +2123,10 @@ async function confirmedSend(){
   const procedimentos_formatados=selProcs.length
     ? selProcs.map((p,i)=>`${i+1}. ${p.codigo} – ${p.descricao}`).join('\n')
     : `1. ${d.cod_cbhpm||''} – ${d.procedimento||''}`;
-  const opmes_formatadas=selOpmes.length
-    ? selOpmes.map((o,i)=>`${i+1}. ${o.nome} (qtd: ${o.qtd||1})`).join('\n')
+  // Normalizar OPME antes de enviar — mesma lógica da guia
+  const opmeFinalSend=getEffectiveOpmeItems(d,selOpmes);
+  const opmes_formatadas=opmeFinalSend.length
+    ? opmeFinalSend.map((o,i)=>`${i+1}. ${o.descricao} (qtd: ${o.qtd||1})`).join('\n')
     : `${d.opme_1||''}\n${d.opme_2||''}\n${d.opme_3||''}`.trim();
   const payload={
     ...d,
@@ -2034,12 +2136,13 @@ async function confirmedSend(){
     profile_id:profileId,
     procedimentos_selecionados:selProcs,
     opmes_selecionados:selOpmes,
+    opme_items:opmeFinalSend,
     procedimentos_formatados,
     opmes_formatadas,
-    opme_1:selOpmes[0]?.nome||d.opme_1,
-    opme_2:selOpmes[1]?.nome||d.opme_2,
-    opme_3:selOpmes[2]?.nome||d.opme_3,
-    neuroauth_version:'2.1.1',
+    opme_1:opmeFinalSend[0]?.descricao||d.opme_1,
+    opme_2:opmeFinalSend[1]?.descricao||d.opme_2,
+    opme_3:opmeFinalSend[2]?.descricao||d.opme_3,
+    neuroauth_version:'2.1.2',
     timestamp:new Date().toISOString()
   };
   try{
