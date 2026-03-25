@@ -1829,7 +1829,7 @@ function loadFavProcs(){
       });
     if(!exists){
       addProcToSidebar();
-      const items=document.querySelectorAll('[id^="sp_proc_m"][id$=""]');
+      const items=document.querySelectorAll('[id^="sp_proc_m"]');
       const last=Array.from(items).filter(el=>!el.id.endsWith('_cod')&&!el.id.endsWith('_desc')).pop();
       if(last){
         const n=last.id.replace('sp_proc_m','');
@@ -1912,9 +1912,10 @@ function getSelectedOpmesFull(){
       }
     });
   }
-  // Manuais
-  document.querySelectorAll('[id^="sp_opme_m"][id$=""]').forEach(cb=>{
+  // Manuais — [id$=""] matches nothing per CSS spec; use plain prefix selector
+  document.querySelectorAll('[id^="sp_opme_m"]').forEach(cb=>{
     if(cb.id.endsWith('_name')||cb.id.endsWith('_qtd'))return;
+    if(cb.tagName!=='INPUT'||cb.type!=='checkbox')return;
     if(cb.checked){
       const n=cb.id.replace('sp_opme_m','');
       const name=document.getElementById('sp_opme_m'+n+'_name')?.value||'';
@@ -1931,11 +1932,21 @@ function updateGuiaFromSidebar(){
   const selProcs=getSelectedProcs();
   const justEl=document.getElementById('sb-justificativa');
   const just=justEl?justEl.value:d.indicacao_clinica;
+  // Unificar automáticos (perfil) + manuais em array final com estrutura normalizada
+  const opmeAutomaticos=[];
+  const opmeManuais=[];
+  selOpmes.forEach(o=>{
+    const item={descricao:(o.nome||o.descricao||'').trim(),qtd:Math.max(1,o.qtd||1)};
+    if(!item.descricao)return;
+    if(o.tipo==='manual')opmeManuais.push(item);
+    else opmeAutomaticos.push(item);
+  });
+  const opmeFinal=[...opmeAutomaticos,...opmeManuais];
   const enriched={
     ...d,
     indicacao_clinica:just,
     justificativa_opme:just,
-    opme_items:selOpmes.map(o=>({descricao:o.nome||o.descricao||'',empresa:'',qtd:o.qtd||1,unidade:'un'}))
+    opme_items:opmeFinal
   };
   const activeProfile=SURGICAL_PROFILES[d.procedimento];
   const profileId=activeProfile?.sp_id||d.procedimento||'MANUAL';
