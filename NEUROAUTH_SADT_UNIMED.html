@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>SP/SADT Unimed — NEUROAUTH</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   NEUROAUTH — Template SP/SADT Unimed
+   Base: engenharia reversa forense do PDF original
+   Página: A4 Landscape 297mm × 210mm | Borda dupla 0.38pt
+   Fontes: Arial Bold 5.2pt (labels) | Arial Regular 5.2pt (conteúdo)
+   Seções: Arial Bold 9.4pt | Sequência: Times NR Bold 11.4pt
+   ═══════════════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+
+body {
+  width: 297mm;
+  min-height: 210mm;
+  margin: 0 auto;
+  padding: 0;
+  background: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.page {
+  width: 297mm;
+  height: 210mm;
+  padding: 3.5mm 7.4mm 3.5mm 7.4mm;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* Borda dupla concêntrica característica do SADT */
+.form-wrap {
+  border: 0.5px solid #000;
+  outline: 0.5px solid #000;
+  outline-offset: -1.5px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+:root {
+  --c-black:   #000000;
+  --c-dark:    #333333;
+  --c-mid:     #808080;
+  --c-section: #e0e0e0;
+  --c-white:   #ffffff;
+  --border:    0.5px solid #000;
+  --font-label: 5.2pt;
+  --font-sub:   4.2pt;
+  --font-sec:   9.4pt;
+  --font-seq:   11.4pt;
+}
+
+/* ════════ CABEÇALHO ════════ */
+.header {
+  display: flex;
+  align-items: stretch;
+  border-bottom: var(--border);
+  flex-shrink: 0;
+  min-height: 14mm;
+}
+.header-logo {
+  width: 24mm;
+  border-right: var(--border);
+  padding: 1mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+.logo-box {
+  border: 0.5px solid #000;
+  padding: 0.8mm 1mm;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0.4mm;
+}
+.logo-svg { height: 5.5mm; width: auto; }
+.logo-city {
+  font-size: 10.1pt;
+  color: var(--c-mid);
+  font-weight: normal;
+}
+.header-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.8mm 2mm;
+  border-right: var(--border);
+}
+.header-title-main {
+  font-size: 9.4pt;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--c-black);
+  line-height: 1.25;
+}
+.header-right {
+  width: 48mm;
+  flex-shrink: 0;
+  padding: 0.5mm 0.8mm;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4mm;
+}
+.proc-label {
+  font-size: 5.2pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  text-align: right;
+}
+.guia-prestador-label {
+  font-size: 4.2pt;
+  font-weight: bold;
+  color: var(--c-dark);
+}
+.guia-prestador-val {
+  font-size: 5.2pt;
+  color: var(--c-mid);
+}
+.seq-number {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11.4pt;
+  font-weight: bold;
+  text-align: right;
+  color: var(--c-black);
+  margin-top: auto;
+}
+
+/* ════════ LINHAS GENÉRICAS ════════ */
+.field-row {
+  display: flex;
+  border-bottom: var(--border);
+  flex-shrink: 0;
+}
+.field-cell {
+  display: flex;
+  flex-direction: column;
+  padding: 0.4mm 0.8mm;
+  border-right: var(--border);
+  min-width: 0;
+  overflow: hidden;
+}
+.field-cell:last-child { border-right: none; }
+.field-label {
+  font-size: 5.2pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  white-space: nowrap;
+  line-height: 1.1;
+  margin-bottom: 0.2mm;
+}
+.field-label-sm {
+  font-size: 4.2pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  white-space: nowrap;
+  line-height: 1.1;
+}
+.field-value {
+  font-size: 5.2pt;
+  color: var(--c-black);
+  min-height: 3.5mm;
+  border-bottom: 0.3px solid #999;
+  line-height: 1.3;
+}
+.field-chars {
+  font-size: 5.2pt;
+  color: var(--c-mid);
+  letter-spacing: 0.3pt;
+  min-height: 3mm;
+  font-family: 'Courier New', monospace;
+}
+
+/* ════════ HEADERS DE SEÇÃO ════════ */
+.section-header {
+  background: var(--c-section);
+  font-size: 9.4pt;
+  font-weight: bold;
+  color: var(--c-black);
+  padding: 0.4mm 1mm;
+  border-bottom: var(--border);
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+.section-header-sm {
+  background: var(--c-section);
+  font-size: 7pt;
+  font-weight: bold;
+  color: var(--c-black);
+  padding: 0.3mm 1mm;
+  border-bottom: var(--border);
+  flex-shrink: 0;
+}
+
+/* ════════ TABELA PROCEDIMENTOS SOLICITADOS ════════ */
+.proc-table { flex-shrink: 0; border-bottom: var(--border); }
+.proc-header { display: flex; background: var(--c-section); border-bottom: var(--border); }
+.th {
+  font-size: 4.2pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  padding: 0.3mm 0.5mm;
+  border-right: var(--border);
+  line-height: 1.2;
+}
+.th:last-child { border-right: none; }
+.proc-row { display: flex; border-bottom: 0.3px solid #bbb; min-height: 4.5mm; }
+.proc-row:last-child { border-bottom: none; }
+.td {
+  font-size: 5.2pt;
+  color: var(--c-black);
+  padding: 0.3mm 0.5mm;
+  border-right: var(--border);
+  line-height: 1.3;
+  overflow: hidden;
+}
+.td:last-child { border-right: none; }
+.td-num { text-align: right; }
+
+/* Colunas tabela procedimentos solicitados */
+.pc-idx  { width: 5mm;  flex-shrink: 0; }
+.pc-tab  { width: 9mm;  flex-shrink: 0; }
+.pc-cod  { width: 22mm; flex-shrink: 0; }
+.pc-desc { flex: 1;     min-width: 0; }
+.pc-qts  { width: 12mm; flex-shrink: 0; }
+.pc-qta  { width: 12mm; flex-shrink: 0; }
+
+/* ════════ TABELA EXECUÇÃO ════════ */
+/* Colunas tabela execução */
+.ex-idx  { width: 5mm;  flex-shrink: 0; font-size: 4.2pt; font-weight: bold; padding: 0.3mm 0.5mm; }
+.ex-dat  { width: 22mm; flex-shrink: 0; }
+.ex-hi   { width: 10mm; flex-shrink: 0; }
+.ex-hf   { width: 10mm; flex-shrink: 0; }
+.ex-tab  { width: 8mm;  flex-shrink: 0; }
+.ex-cod  { width: 22mm; flex-shrink: 0; }
+.ex-desc { flex: 1;     min-width: 0; }
+.ex-qtd  { width: 9mm;  flex-shrink: 0; }
+.ex-via  { width: 7mm;  flex-shrink: 0; }
+.ex-tec  { width: 7mm;  flex-shrink: 0; }
+.ex-fat  { width: 13mm; flex-shrink: 0; }
+.ex-vu   { width: 18mm; flex-shrink: 0; }
+.ex-vt   { width: 18mm; flex-shrink: 0; }
+
+/* ════════ TABELA PROFISSIONAIS ════════ */
+.pf-seq  { width: 10mm; flex-shrink: 0; }
+.pf-grau { width: 12mm; flex-shrink: 0; }
+.pf-cod  { width: 24mm; flex-shrink: 0; }
+.pf-nome { flex: 1;     min-width: 0; }
+.pf-con  { width: 10mm; flex-shrink: 0; }
+.pf-nr   { width: 26mm; flex-shrink: 0; }
+.pf-uf   { width: 7mm;  flex-shrink: 0; }
+.pf-cbo  { width: 16mm; flex-shrink: 0; }
+
+/* ════════ RODAPÉ PRETO ════════ */
+.footer-black {
+  display: flex;
+  flex-shrink: 0;
+  background: #000;
+  margin-top: auto;
+}
+.footer-sig {
+  flex: 1;
+  border-right: 0.5px solid #555;
+  padding: 0.4mm 1mm;
+  display: flex;
+  flex-direction: column;
+}
+.footer-sig:last-child { border-right: none; }
+.footer-sig-label {
+  font-size: 4.2pt;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 2.5mm;
+}
+
+/* ════════ TOTAIS ════════ */
+.totals-row {
+  display: flex;
+  border-top: var(--border);
+  border-bottom: var(--border);
+  flex-shrink: 0;
+}
+.total-cell {
+  flex: 1;
+  border-right: var(--border);
+  padding: 0.3mm 0.5mm;
+  display: flex;
+  flex-direction: column;
+}
+.total-cell:last-child { border-right: none; }
+.total-label {
+  font-size: 4.2pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  line-height: 1.2;
+}
+.total-value {
+  font-size: 5.2pt;
+  color: var(--c-black);
+  text-align: right;
+  min-height: 3mm;
+  border-bottom: 0.3px solid #999;
+  margin-top: 0.5mm;
+}
+
+@media print {
+  body { background: white; margin: 0; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: avoid; }
+}
+@media screen {
+  body { background: #d0d0d0; padding: 8mm; }
+  .page { box-shadow: 0 2px 12px rgba(0,0,0,0.3); margin-bottom: 10mm; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="form-wrap">
+
+  <!-- ════════ CABEÇALHO ════════ -->
+  <div class="header">
+    <div class="header-logo">
+      <div class="logo-box">
+        <svg class="logo-svg" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="8" width="18" height="18" fill="#00743B"/>
+          <rect x="6" y="2" width="6" height="6" fill="#00743B"/>
+          <rect x="6" y="26" width="6" height="6" fill="#00743B"/>
+          <text x="24" y="22" font-family="Arial" font-weight="bold" font-size="16" fill="#00743B">Unimed</text>
+          <text x="24" y="34" font-family="Arial" font-size="9" fill="#00743B">Cooperativa Médica</text>
+        </svg>
+      </div>
+      <span class="logo-city">Cariri</span>
+    </div>
+    <div class="header-title">
+      <div class="header-title-main">
+        GUIA DE SERVIÇO PROFISSIONAL / SERVIÇO AUXILIAR DE<br>
+        DIAGNÓSTICO E TERAPIA – SP/SADT
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="proc-label">{{PROCEDIMENTO_NOME}}</span>
+      <span class="guia-prestador-label">2- Nº Guia no Prestador</span>
+      <span class="guia-prestador-val">{{GUIA_PRESTADOR}}</span>
+      <div class="seq-number">{{NUMERO_SEQUENCIA}}</div>
+    </div>
+  </div>
+
+  <!-- ════════ IDENTIFICAÇÃO DA GUIA ════════ -->
+  <div class="field-row" style="min-height:6mm">
+    <div class="field-cell" style="width:15mm">
+      <span class="field-label">1 - Registro ANS</span>
+      <span class="field-chars">{{REGISTRO_ANS}}</span>
+    </div>
+    <div class="field-cell" style="flex:1">
+      <span class="field-label">3 – Número da Guia Principal</span>
+      <span class="field-chars">{{GUIA_PRINCIPAL}}</span>
+    </div>
+    <div class="field-cell" style="width:24mm">
+      <span class="field-label">4 - Data da Autorização</span>
+      <span class="field-chars">{{DATA_AUTORIZACAO}}</span>
+    </div>
+    <div class="field-cell" style="width:20mm">
+      <span class="field-label">5 - Senha</span>
+      <span class="field-chars">{{SENHA}}</span>
+    </div>
+    <div class="field-cell" style="width:24mm">
+      <span class="field-label">6 - Data de Validade da Senha</span>
+      <span class="field-chars">{{VALIDADE_SENHA}}</span>
+    </div>
+    <div class="field-cell" style="flex:1">
+      <span class="field-label">7 - Número da Guia Atribuído pela Operadora</span>
+      <span class="field-chars">{{GUIA_OPERADORA}}</span>
+    </div>
+  </div>
+
+  <!-- ════════ DADOS DO BENEFICIÁRIO ════════ -->
+  <div class="section-header">Dados do Beneficiário</div>
+  <div class="field-row" style="min-height:6mm">
+    <div class="field-cell" style="flex:1.2">
+      <span class="field-label">8 - Número da Carteira</span>
+      <span class="field-chars">{{NUMERO_CARTEIRA}}</span>
+    </div>
+    <div class="field-cell" style="width:22mm">
+      <span class="field-label">9 - Validade da Carteira</span>
+      <span class="field-chars">{{VALIDADE_CARTEIRA}}</span>
+    </div>
+    <div class="field-cell" style="flex:3">
+      <span class="field-label">10 - Nome</span>
+      <span class="field-value">{{NOME_PACIENTE}}</span>
+    </div>
+    <div class="field-cell" style="width:28mm">
+      <span class="field-label">11 - Cartão Nacional de Saúde</span>
+      <span class="field-chars">{{CNS_BENEFICIARIO}}</span>
+    </div>
+    <div class="field-cell" style="width:14mm">
+      <span class="field-label">12 - Atend. RN</span>
+      <span class="field-chars">{{ATENDIMENTO_RN}}</span>
+    </div>
+  </div>
+
+  <!-- ════════ DADOS DO SOLICITANTE ════════ -->
+  <div class="section-header">Dados do Solicitante</div>
+  <div class="field-row" style="min-height:5.5mm">
+    <div class="field-cell" style="width:30mm">
+      <span class="field-label">13 - Código na Operadora</span>
+      <span class="field-chars">{{CODIGO_OPERADORA_SOL}}</span>
+    </div>
+    <div class="field-cell" style="flex:1">
+      <span class="field-label">14 - Nome do Contratado</span>
+      <span class="field-value">{{NOME_CONTRATADO_SOL}}</span>
+    </div>
+  </div>
+  <div class="field-row" style="min-height:5.5mm">
+    <div class="field-cell" style="flex:2">
+      <span class="field-label">15 - Nome do Profissional Solicitante</span>
+      <span class="field-value">{{NOME_SOLICITANTE}}</span>
+    </div>
+    <div class="field-cell" style="width:14mm">
+      <span class="field-label">16 - Conselho</span>
+      <span class="field-chars" style="font-size:4.9pt">{{CONSELHO}}</span>
+    </div>
+    <div class="field-cell" style="width:28mm">
+      <span class="field-label">17 - Número no Conselho</span>
+      <span class="field-chars">{{NUMERO_CONSELHO}}</span>
+    </div>
+    <div class="field-cell" style="width:10mm">
+      <span class="field-label">18 – UF</span>
+      <span class="field-chars">{{UF_CONSELHO}}</span>
+    </div>
+    <div class="field-cell" style="width:18mm">
+      <span class="field-label">19 - Código CBO</span>
+      <span class="field-chars">{{CODIGO_CBO}}</span>
+    </div>
+    <div class="field-cell" style="flex:1">
+      <span class="field-label">20 - Assinatura do Profissional Solicitante</span>
+      <div style="border-bottom:0.3px solid #999;margin-top:2.5mm;height:1mm"></div>
+    </div>
+  </div>
+
+  <!-- ════════ DADOS DA SOLICITAÇÃO ════════ -->
+  <div class="section-header-sm">Dados da Solicitação / Procedimentos e Exames Solicitados</div>
+  <div class="field-row" style="min-height:5.5mm">
+    <div class="field-cell" style="width:18mm">
+      <span class="field-label" style="font-size:4.2pt">21 - Caráter do Atendimento</span>
+      <span class="field-chars">{{CARATER_ATENDIMENTO}}</span>
+    </div>
+    <div class="field-cell" style="width:24mm">
+      <span class="field-label">22 - Data da Solicitação</span>
+      <span class="field-chars">{{DATA_SOLICITACAO}}</span>
+    </div>
+    <div class="field-cell" style="flex:1">
+      <span class="field-label">23 - Indicação Clínica</span>
+      <span class="field-value">{{INDICACAO_CLINICA}}</span>
+    </div>
+  </div>
+
+  <!-- Tabela procedimentos solicitados (5 linhas) -->
+  <div class="proc-table">
+    <div class="proc-header">
+      <div class="th pc-idx">&nbsp;</div>
+      <div class="th pc-tab">24-Tabela</div>
+      <div class="th pc-cod">25- Código do Procedimento</div>
+      <div class="th pc-desc">26 - Descrição</div>
+      <div class="th pc-qts">27-Qtde. Solic.</div>
+      <div class="th pc-qta">28-Qtde. Aut.</div>
+    </div>
+    <div class="proc-row">
+      <div class="td pc-idx" style="font-weight:bold;font-size:4.2pt">1-</div>
+      <div class="td pc-tab">{{PROC_SOL_01_TAB}}</div>
+      <div class="td pc-cod">{{PROC_SOL_01_COD}}</div>
+      <div class="td pc-desc">{{PROC_SOL_01_DESC}}</div>
+      <div class="td pc-qts td-num">{{PROC_SOL_01_QTDS}}</div>
+      <div class="td pc-qta td-num">{{PROC_SOL_01_QTDA}}</div>
+    </div>
+    <div class="proc-row">
+      <div class="td pc-idx" style="font-weight:bold;font-size:4.2pt">2-</div>
+      <div class="td pc-tab">{{PROC_SOL_02_TAB}}</div>
+      <div class="td pc-cod">{{PROC_SOL_02_COD}}</div>
+      <div class="td pc-desc">{{PROC_SOL_02_DESC}}</div>
+      <div class="td pc-qts td-num">{{PROC_SOL_02_QTDS}}</div>
+      <div class="td pc-qta td-num">{{PROC_SOL_02_QTDA}}</div>
+    </div>
+    <div class="proc-row">
+      <div class="td pc-idx" style="font-weight:bold;font-size:4.2pt">3-</div>
+      <div class="td pc-tab">{{PROC_SOL_03_TAB}}</div>
+      <div class="td pc-cod">{{PROC_SOL_03_COD}}</div>
+      <div class="td pc-desc">{{PROC_SOL_03_DESC}}</div>
+      <div class="td pc-qts td-num">{{PROC_SOL_03_QTDS}}</div>
+      <div class="td pc-qta td-num">{{PROC_SOL_03_QTDA}}</div>
+    </div>
+    <div class="proc-row">
+      <div class="td pc-idx" style="font-weight:bold;font-size:4.2pt">4-</div>
+      <div class="td pc-tab">{{PROC_SOL_04_TAB}}</div>
+      <div class="td pc-cod">{{PROC_SOL_04_COD}}</div>
+      <div class="td pc-desc">{{PROC_SOL_04_DESC}}</div>
+      <div class="td pc-qts td-num">{{PROC_SOL_04_QTDS}}</div>
+      <div class="td pc-qta td-num">{{PROC_SOL_04_QTDA}}</div>
+    </div>
+    <div class="proc-row" style="border-bottom:none">
+      <div class="td pc-idx" style="font-weight:bold;font-size:4.2pt">5-</div>
+      <div class="td pc-tab">{{PROC_SOL_05_TAB}}</div>
+      <div class="td pc-cod">{{PROC_SOL_05_COD}}</div>
+      <div class="td pc-desc">{{PROC_SOL_05_DESC}}</div>
+      <div class="td pc-qts td-num">{{PROC_SOL_05_QTDS}}</div>
+      <div class="td pc-qta td-num">{{PROC_SOL_05_QTDA}}</div>
+    </div>
+  </div>
+
+  <!-- ════════ DADOS DO CONTRATADO EXECUTANTE ════════ -->
+  <div class="section-header-sm">Dados do Contratado Executante</div>
+  <div class="field-row" style="min-height:5mm">
+    <div class="field-cell" style="width:30mm">
+      <span class="field-label">29 - Código na Operadora</span>
+      <span class="field-chars">{{CODIGO_OPERADORA_EXE}}</span>
+    </div>
+    <div class="field-cell" style="flex:1">
+      <span class="field-label">30 - Nome do Contratado</span>
+      <span class="field-value">{{NOME_CONTRATADO_EXE}}</span>
+    </div>
+    <div class="field-cell" style="width:22mm">
+      <span class="field-label">31 - Código CNES</span>
+      <span class="field-chars">{{CNES}}</span>
+    </div>
+  </div>
+
+  <!-- ════════ DADOS DO ATENDIMENTO ════════ -->
+  <div class="section-header-sm">Dados do Atendimento</div>
+  <div class="field-row" style="min-height:5mm">
+    <div class="field-cell" style="width:22mm">
+      <span class="field-label" style="font-size:4.2pt">32 - Tipo de Atendimento</span>
+      <span class="field-chars">{{TIPO_ATENDIMENTO}}</span>
+    </div>
+    <div class="field-cell" style="flex:2">
+      <span class="field-label" style="font-size:4.2pt">33 - Indicação de Acidente (acidente ou doença relacionada)</span>
+      <span class="field-chars">{{INDICACAO_ACIDENTE}}</span>
+    </div>
+    <div class="field-cell" style="width:24mm">
+      <span class="field-label" style="font-size:4.2pt">34 - Tipo de Consulta</span>
+      <span class="field-chars">{{TIPO_CONSULTA}}</span>
+    </div>
+    <div class="field-cell" style="flex:2">
+      <span class="field-label" style="font-size:4.2pt">35 - Motivo de Encerramento do Atendimento</span>
+      <span class="field-chars">{{MOTIVO_ENCERRAMENTO}}</span>
+    </div>
+  </div>
+
+  <!-- ════════ DADOS DA EXECUÇÃO ════════ -->
+  <div class="section-header-sm">Dados da Execução / Procedimentos e Exames Realizados</div>
+
+  <!-- Header execução -->
+  <div style="display:flex;background:var(--c-section);border-bottom:var(--border);flex-shrink:0;">
+    <div class="th ex-idx">&nbsp;</div>
+    <div class="th ex-dat">36-Data</div>
+    <div class="th ex-hi">37-Hora Inicial</div>
+    <div class="th ex-hf">38-Hora Final</div>
+    <div class="th ex-tab">39-Tabela</div>
+    <div class="th ex-cod">40-Código do Procedimento</div>
+    <div class="th ex-desc">41-Descrição</div>
+    <div class="th ex-qtd">42 - Qtde.</div>
+    <div class="th ex-via">43-Via</div>
+    <div class="th ex-tec">44-Tec.</div>
+    <div class="th ex-fat">45- Fator Red./Acresc.</div>
+    <div class="th ex-vu">46-Valor Unitário (R$)</div>
+    <div class="th ex-vt" style="border-right:none">47-Valor Total (R$)</div>
+  </div>
+
+  <!-- 5 linhas de execução -->
+  <div style="flex-shrink:0;border-bottom:var(--border);">
+    <!-- row 1 -->
+    <div style="display:flex;border-bottom:0.3px solid #bbb;min-height:4mm;">
+      <div class="td ex-idx" style="font-weight:bold;font-size:4.2pt;border-right:var(--border);">1-</div>
+      <div class="td ex-dat">{{EXEC_01_DATA}}</div>
+      <div class="td ex-hi">{{EXEC_01_HI}}</div>
+      <div class="td ex-hf">{{EXEC_01_HF}}</div>
+      <div class="td ex-tab">{{EXEC_01_TAB}}</div>
+      <div class="td ex-cod">{{EXEC_01_COD}}</div>
+      <div class="td ex-desc">{{EXEC_01_DESC}}</div>
+      <div class="td ex-qtd td-num">{{EXEC_01_QTD}}</div>
+      <div class="td ex-via">{{EXEC_01_VIA}}</div>
+      <div class="td ex-tec">{{EXEC_01_TEC}}</div>
+      <div class="td ex-fat td-num">{{EXEC_01_FAT}}</div>
+      <div class="td ex-vu td-num">{{EXEC_01_VU}}</div>
+      <div class="td ex-vt td-num" style="border-right:none">{{EXEC_01_VT}}</div>
+    </div>
+    <!-- row 2 -->
+    <div style="display:flex;border-bottom:0.3px solid #bbb;min-height:4mm;">
+      <div class="td ex-idx" style="font-weight:bold;font-size:4.2pt;border-right:var(--border);">2-</div>
+      <div class="td ex-dat">{{EXEC_02_DATA}}</div>
+      <div class="td ex-hi">{{EXEC_02_HI}}</div>
+      <div class="td ex-hf">{{EXEC_02_HF}}</div>
+      <div class="td ex-tab">{{EXEC_02_TAB}}</div>
+      <div class="td ex-cod">{{EXEC_02_COD}}</div>
+      <div class="td ex-desc">{{EXEC_02_DESC}}</div>
+      <div class="td ex-qtd td-num">{{EXEC_02_QTD}}</div>
+      <div class="td ex-via">{{EXEC_02_VIA}}</div>
+      <div class="td ex-tec">{{EXEC_02_TEC}}</div>
+      <div class="td ex-fat td-num">{{EXEC_02_FAT}}</div>
+      <div class="td ex-vu td-num">{{EXEC_02_VU}}</div>
+      <div class="td ex-vt td-num" style="border-right:none">{{EXEC_02_VT}}</div>
+    </div>
+    <!-- row 3 -->
+    <div style="display:flex;border-bottom:0.3px solid #bbb;min-height:4mm;">
+      <div class="td ex-idx" style="font-weight:bold;font-size:4.2pt;border-right:var(--border);">3-</div>
+      <div class="td ex-dat">{{EXEC_03_DATA}}</div>
+      <div class="td ex-hi">{{EXEC_03_HI}}</div>
+      <div class="td ex-hf">{{EXEC_03_HF}}</div>
+      <div class="td ex-tab">{{EXEC_03_TAB}}</div>
+      <div class="td ex-cod">{{EXEC_03_COD}}</div>
+      <div class="td ex-desc">{{EXEC_03_DESC}}</div>
+      <div class="td ex-qtd td-num">{{EXEC_03_QTD}}</div>
+      <div class="td ex-via">{{EXEC_03_VIA}}</div>
+      <div class="td ex-tec">{{EXEC_03_TEC}}</div>
+      <div class="td ex-fat td-num">{{EXEC_03_FAT}}</div>
+      <div class="td ex-vu td-num">{{EXEC_03_VU}}</div>
+      <div class="td ex-vt td-num" style="border-right:none">{{EXEC_03_VT}}</div>
+    </div>
+    <!-- row 4 -->
+    <div style="display:flex;border-bottom:0.3px solid #bbb;min-height:4mm;">
+      <div class="td ex-idx" style="font-weight:bold;font-size:4.2pt;border-right:var(--border);">4-</div>
+      <div class="td ex-dat">{{EXEC_04_DATA}}</div>
+      <div class="td ex-hi">{{EXEC_04_HI}}</div>
+      <div class="td ex-hf">{{EXEC_04_HF}}</div>
+      <div class="td ex-tab">{{EXEC_04_TAB}}</div>
+      <div class="td ex-cod">{{EXEC_04_COD}}</div>
+      <div class="td ex-desc">{{EXEC_04_DESC}}</div>
+      <div class="td ex-qtd td-num">{{EXEC_04_QTD}}</div>
+      <div class="td ex-via">{{EXEC_04_VIA}}</div>
+      <div class="td ex-tec">{{EXEC_04_TEC}}</div>
+      <div class="td ex-fat td-num">{{EXEC_04_FAT}}</div>
+      <div class="td ex-vu td-num">{{EXEC_04_VU}}</div>
+      <div class="td ex-vt td-num" style="border-right:none">{{EXEC_04_VT}}</div>
+    </div>
+    <!-- row 5 -->
+    <div style="display:flex;min-height:4mm;">
+      <div class="td ex-idx" style="font-weight:bold;font-size:4.2pt;border-right:var(--border);">5-</div>
+      <div class="td ex-dat">{{EXEC_05_DATA}}</div>
+      <div class="td ex-hi">{{EXEC_05_HI}}</div>
+      <div class="td ex-hf">{{EXEC_05_HF}}</div>
+      <div class="td ex-tab">{{EXEC_05_TAB}}</div>
+      <div class="td ex-cod">{{EXEC_05_COD}}</div>
+      <div class="td ex-desc">{{EXEC_05_DESC}}</div>
+      <div class="td ex-qtd td-num">{{EXEC_05_QTD}}</div>
+      <div class="td ex-via">{{EXEC_05_VIA}}</div>
+      <div class="td ex-tec">{{EXEC_05_TEC}}</div>
+      <div class="td ex-fat td-num">{{EXEC_05_FAT}}</div>
+      <div class="td ex-vu td-num">{{EXEC_05_VU}}</div>
+      <div class="td ex-vt td-num" style="border-right:none">{{EXEC_05_VT}}</div>
+    </div>
+  </div>
+
+  <!-- ════════ PROFISSIONAIS EXECUTANTES ════════ -->
+  <div class="section-header-sm">Identificação do(s) Profissional(is) Executante(s)</div>
+  <div style="display:flex;background:var(--c-section);border-bottom:var(--border);flex-shrink:0;">
+    <div class="th pf-seq">48-Seq.Ref</div>
+    <div class="th pf-grau">49-Grau Part.</div>
+    <div class="th pf-cod">50-Código na Operadora/CPF</div>
+    <div class="th pf-nome">51-Nome do Profissional</div>
+    <div class="th pf-con">52-Conselho</div>
+    <div class="th pf-nr">53-Número no Conselho</div>
+    <div class="th pf-uf">54-UF</div>
+    <div class="th pf-cbo" style="border-right:none">55-Código CBO</div>
+  </div>
+  <!-- 4 linhas profissionais -->
+  <div style="flex-shrink:0;border-bottom:var(--border);">
+    <div style="display:flex;border-bottom:0.3px solid #bbb;min-height:3.5mm;">
+      <div class="td pf-seq">{{PF_01_SEQ}}</div><div class="td pf-grau">{{PF_01_GRAU}}</div>
+      <div class="td pf-cod">{{PF_01_COD}}</div><div class="td pf-nome">{{PF_01_NOME}}</div>
+      <div class="td pf-con">{{PF_01_CON}}</div><div class="td pf-nr">{{PF_01_NR}}</div>
+      <div class="td pf-uf">{{PF_01_UF}}</div><div class="td pf-cbo" style="border-right:none">{{PF_01_CBO}}</div>
+    </div>
+    <div style="display:flex;border-bottom:0.3px solid #bbb;min-height:3.5mm;">
+      <div class="td pf-seq">{{PF_02_SEQ}}</div><div class="td pf-grau">{{PF_02_GRAU}}</div>
+      <div class="td pf-cod">{{PF_02_COD}}</div><div class="td pf-nome">{{PF_02_NOME}}</div>
+      <div class="td pf-con">{{PF_02_CON}}</div><div class="td pf-nr">{{PF_02_NR}}</div>
+      <div class="td pf-uf">{{PF_02_UF}}</div><div class="td pf-cbo" style="border-right:none">{{PF_02_CBO}}</div>
+    </div>
+    <div style="display:flex;border-bottom:0.3px solid #bbb;min-height:3.5mm;">
+      <div class="td pf-seq">{{PF_03_SEQ}}</div><div class="td pf-grau">{{PF_03_GRAU}}</div>
+      <div class="td pf-cod">{{PF_03_COD}}</div><div class="td pf-nome">{{PF_03_NOME}}</div>
+      <div class="td pf-con">{{PF_03_CON}}</div><div class="td pf-nr">{{PF_03_NR}}</div>
+      <div class="td pf-uf">{{PF_03_UF}}</div><div class="td pf-cbo" style="border-right:none">{{PF_03_CBO}}</div>
+    </div>
+    <div style="display:flex;min-height:3.5mm;">
+      <div class="td pf-seq">{{PF_04_SEQ}}</div><div class="td pf-grau">{{PF_04_GRAU}}</div>
+      <div class="td pf-cod">{{PF_04_COD}}</div><div class="td pf-nome">{{PF_04_NOME}}</div>
+      <div class="td pf-con">{{PF_04_CON}}</div><div class="td pf-nr">{{PF_04_NR}}</div>
+      <div class="td pf-uf">{{PF_04_UF}}</div><div class="td pf-cbo" style="border-right:none">{{PF_04_CBO}}</div>
+    </div>
+  </div>
+
+  <!-- ════════ DATAS EM SÉRIE + ASSINATURA ════════ -->
+  <div style="display:flex;border-bottom:var(--border);flex-shrink:0;min-height:7mm;">
+    <div style="flex:2;border-right:var(--border);padding:0.3mm 0.5mm;">
+      <div style="font-size:4.2pt;font-weight:bold;color:var(--c-dark);margin-bottom:0.5mm;">56-Data de Realização de Procedimentos em Série</div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.5mm;font-size:4.2pt;color:var(--c-mid);">
+        <span>1- {{SERIE_01}}</span><span>— 3- {{SERIE_03}}</span><span>— 5- {{SERIE_05}}</span>
+        <span>— 7- {{SERIE_07}}</span><span>— 9- {{SERIE_09}}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.5mm;font-size:4.2pt;color:var(--c-mid);margin-top:0.3mm;">
+        <span>2- {{SERIE_02}}</span><span>— 4- {{SERIE_04}}</span><span>— 6- {{SERIE_06}}</span>
+        <span>— 8- {{SERIE_08}}</span><span>— 10- {{SERIE_10}}</span>
+      </div>
+    </div>
+    <div style="flex:1;padding:0.3mm 0.5mm;display:flex;flex-direction:column;">
+      <div style="font-size:4.2pt;font-weight:bold;color:var(--c-dark);">57-Assinatura do Beneficiário ou Responsável</div>
+      <div style="border-bottom:0.3px solid #999;margin-top:3mm;height:1mm;"></div>
+    </div>
+  </div>
+
+  <!-- ════════ OBSERVAÇÃO / JUSTIFICATIVA ════════ -->
+  <div style="padding:0.5mm 0.8mm;flex:1;min-height:5mm;border-bottom:var(--border);display:flex;flex-direction:column;">
+    <div style="font-size:4.2pt;font-weight:bold;color:var(--c-dark);margin-bottom:0.3mm;">58-Observação / Justificativa</div>
+    <div style="font-size:5.2pt;color:var(--c-black);line-height:1.4;">{{OBSERVACAO}}</div>
+  </div>
+
+  <!-- ════════ TOTAIS FINANCEIROS ════════ -->
+  <div class="totals-row">
+    <div class="total-cell">
+      <span class="total-label">59 - Total de Procedimentos (R$)</span>
+      <div class="total-value">{{TOTAL_PROCEDIMENTOS}}</div>
+    </div>
+    <div class="total-cell">
+      <span class="total-label">60 - Total de Taxas e Aluguéis (R$)</span>
+      <div class="total-value">{{TOTAL_TAXAS}}</div>
+    </div>
+    <div class="total-cell">
+      <span class="total-label">61 - Total de Materiais (R$)</span>
+      <div class="total-value">{{TOTAL_MATERIAIS}}</div>
+    </div>
+    <div class="total-cell">
+      <span class="total-label">62- Total de OPME (R$)</span>
+      <div class="total-value">{{TOTAL_OPME}}</div>
+    </div>
+    <div class="total-cell">
+      <span class="total-label">63 - Total de Medicamentos (R$)</span>
+      <div class="total-value">{{TOTAL_MEDICAMENTOS}}</div>
+    </div>
+    <div class="total-cell">
+      <span class="total-label">64 - Total de Gases Medicinais (R$)</span>
+      <div class="total-value">{{TOTAL_GASES}}</div>
+    </div>
+    <div class="total-cell" style="border-right:none">
+      <span class="total-label" style="font-weight:bold;font-size:5pt;">65 - Total Geral (R$)</span>
+      <div class="total-value" style="font-weight:bold;">{{TOTAL_GERAL}}</div>
+    </div>
+  </div>
+
+  <!-- ════════ RODAPÉ PRETO — ASSINATURAS ════════ -->
+  <div class="footer-black">
+    <div class="footer-sig">
+      <span class="footer-sig-label">66 - Assinatura do Responsável pela Autorização</span>
+    </div>
+    <div class="footer-sig">
+      <span class="footer-sig-label">67 - Assinatura do Beneficiário ou Responsável</span>
+    </div>
+    <div class="footer-sig" style="border-right:none">
+      <span class="footer-sig-label">68 - Assinatura do Contratado</span>
+    </div>
+  </div>
+
+</div><!-- /form-wrap -->
+</div><!-- /page -->
+</body>
+</html>

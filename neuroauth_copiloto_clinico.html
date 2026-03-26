@@ -1,0 +1,2890 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEUROAUTH — Copiloto Clínico v2.0</title>
+<style>
+/* ── Reset & Tokens ─────────────────────────────────────────────────────── */
+:root {
+  --navy:        #1b3f6b;
+  --navy-mid:    #2558a0;
+  --navy-light:  #4a7ed6;
+  --navy-ghost:  rgba(27,63,107,0.08);
+  --bg:          #f1f4f8;
+  --bg-card:     #ffffff;
+  --border:      #dde3ec;
+  --border-md:   #b0bfce;
+  --green:       #0e7a50;
+  --green-light: #eaf6f1;
+  --green-border:#9dd9c0;
+  --amber:       #b45309;
+  --amber-bg:    #fef9ed;
+  --red:         #c0392b;
+  --red-bg:      #fef0ee;
+  --text:        #0e1723;
+  --text-2:      #3a4a5e;
+  --text-muted:  #6b7a8d;
+  --text-label:  #8595a6;
+  --font:        system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  --mono:        'SF Mono', 'Fira Code', 'Consolas', monospace;
+  --radius:      8px;
+  --radius-sm:   5px;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md:   0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
+  --mm:          3.7795275591px;
+  --topbar-h:    48px;
+  --panel-w:     368px;
+  --trans:       0.15s ease;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; }
+body { background: var(--bg); font-family: var(--font); font-size: 13px; color: var(--text); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--navy-mid); }
+
+/* ── Top Bar ─────────────────────────────────────────────────────────────── */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: var(--topbar-h);
+  background: var(--navy);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 0 16px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.20);
+}
+#topbar .brand {
+  display: flex; align-items: center; gap: 8px;
+  color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 0.04em;
+}
+#topbar .brand .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #4fc3a1; box-shadow: 0 0 6px #4fc3a1;
+  animation: pulse 2.5s ease infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.topbar-tag {
+  background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.80);
+  padding: 2px 8px; border-radius: 20px; font-size: 10.5px; font-weight: 500;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+#topbar .spacer { flex: 1; }
+.topbar-btn {
+  background: rgba(255,255,255,0.10); color: #fff;
+  border: 1px solid rgba(255,255,255,0.18); padding: 5px 14px;
+  border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 500;
+  font-family: var(--font); transition: var(--trans);
+  display: flex; align-items: center; gap: 6px;
+}
+.topbar-btn:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.30); }
+.topbar-btn.primary {
+  background: #fff; color: var(--navy); border-color: transparent; font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+.topbar-btn.primary:hover { background: #eef4fd; }
+.topbar-btn:disabled { opacity: 0.40; cursor: not-allowed; pointer-events: none; }
+
+/* Billing pill — sutil, não identificado como "billing" */
+#billing-pill {
+  display: none; align-items: center; gap: 5px;
+  background: rgba(14,122,80,0.22); color: #a3e9cc;
+  border: 1px solid rgba(79,195,161,0.25);
+  padding: 3px 10px; border-radius: 20px; font-size: 10.5px; font-weight: 500;
+  transition: opacity 0.4s; cursor: default;
+}
+#billing-pill.show { display: flex; }
+#billing-pill.fade { opacity: 0; }
+
+/* ── CONSUMO MODAL ── */
+#consumo-overlay {
+  display: none; position: fixed; inset: 0; z-index: 2000;
+  background: rgba(10,20,40,0.72); backdrop-filter: blur(4px);
+  align-items: flex-start; justify-content: center; padding-top: 60px;
+}
+#consumo-overlay.open { display: flex; }
+#consumo-modal {
+  background: #fff; border-radius: 14px; width: min(680px, 96vw);
+  max-height: 82vh; overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.28);
+  animation: modalSlideIn 0.22s ease;
+}
+@keyframes modalSlideIn {
+  from { transform: translateY(-18px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+#consumo-modal .cm-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px 24px 16px; border-bottom: 1px solid #e8eef6;
+  position: sticky; top: 0; background: #fff; z-index: 1;
+}
+#consumo-modal .cm-header h2 {
+  margin: 0; font-size: 17px; font-weight: 700; color: var(--navy); flex: 1;
+}
+#consumo-modal .cm-header .cm-period {
+  font-size: 12px; color: #7a8ba0; background: #f0f5fb;
+  padding: 3px 10px; border-radius: 20px; font-weight: 600;
+}
+.cm-close {
+  width: 30px; height: 30px; border: none; background: #f0f5fb;
+  border-radius: 8px; cursor: pointer; color: var(--navy); font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.cm-close:hover { background: #dde7f5; }
+#consumo-modal .cm-body { padding: 20px 24px 24px; }
+
+/* Stat cards row */
+.cm-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;
+}
+.cm-stat {
+  background: #f6f9fd; border-radius: 10px; padding: 14px 16px;
+  border: 1px solid #e4edf8;
+}
+.cm-stat .st-val {
+  font-size: 26px; font-weight: 800; color: var(--navy); line-height: 1;
+}
+.cm-stat .st-lbl {
+  font-size: 11px; color: #7a8ba0; margin-top: 4px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.cm-stat.highlight { background: linear-gradient(135deg,#1b3f6b 0%,#2558a0 100%); border-color: transparent; }
+.cm-stat.highlight .st-val { color: #fff; }
+.cm-stat.highlight .st-lbl { color: rgba(255,255,255,0.70); }
+
+/* Trial banner */
+.cm-trial-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(90deg,#f0fdf5,#e6f7ef);
+  border: 1px solid #b6e8cc; border-radius: 10px;
+  padding: 12px 16px; margin-bottom: 20px;
+}
+.cm-trial-banner .tb-icon { font-size: 20px; }
+.cm-trial-banner .tb-text { flex: 1; }
+.cm-trial-banner .tb-text strong { font-size: 13px; color: #0a6640; display: block; }
+.cm-trial-banner .tb-text span { font-size: 12px; color: #2d8b5e; }
+.cm-trial-bar-wrap { height: 6px; background: #c9edd9; border-radius: 3px; margin-top: 6px; }
+.cm-trial-bar { height: 6px; background: #22a06b; border-radius: 3px; transition: width 0.4s ease; }
+
+/* Section headers */
+.cm-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: #7a8ba0; margin: 0 0 10px;
+}
+
+/* Tier pills row */
+.cm-tiers { display: flex; gap: 10px; margin-bottom: 20px; }
+.cm-tier-pill {
+  flex: 1; border-radius: 8px; padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.cm-tier-pill.std { background: #eef4ff; border: 1px solid #c5d8f8; }
+.cm-tier-pill.prm { background: #fff8eb; border: 1px solid #f5d785; }
+.cm-tier-pill .tp-count { font-size: 22px; font-weight: 800; }
+.cm-tier-pill.std .tp-count { color: var(--navy); }
+.cm-tier-pill.prm .tp-count { color: #b07000; }
+.cm-tier-pill .tp-info strong { font-size: 12px; display: block; }
+.cm-tier-pill .tp-info span { font-size: 11px; color: #7a8ba0; }
+
+/* Operadoras table */
+.cm-op-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+.cm-op-table th {
+  text-align: left; font-size: 11px; font-weight: 700; color: #7a8ba0;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 0 8px 8px; border-bottom: 1px solid #e8eef6;
+}
+.cm-op-table td { padding: 9px 8px; font-size: 13px; border-bottom: 1px solid #f0f4f9; }
+.cm-op-table tr:last-child td { border-bottom: none; }
+.cm-op-bar-cell { width: 120px; }
+.cm-op-bar { height: 6px; background: var(--navy-mid); border-radius: 3px; }
+
+/* Recent guides list */
+.cm-guide-list { list-style: none; margin: 0; padding: 0; }
+.cm-guide-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid #f0f4f9;
+}
+.cm-guide-item:last-child { border-bottom: none; }
+.cm-guide-badge {
+  width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800;
+}
+.cm-guide-badge.std { background: #eef4ff; color: var(--navy); }
+.cm-guide-badge.prm { background: #fff8eb; color: #b07000; }
+.cm-guide-info { flex: 1; }
+.cm-guide-info strong { font-size: 13px; color: #1a2535; display: block; }
+.cm-guide-info span { font-size: 11px; color: #7a8ba0; }
+.cm-guide-amount { font-size: 13px; font-weight: 700; color: var(--navy); }
+.cm-guide-status { font-size: 10px; padding: 2px 7px; border-radius: 12px; font-weight: 600; }
+.cm-guide-status.rep { background: #e6f7ef; color: #22a06b; }
+.cm-guide-status.pend { background: #fff3cd; color: #856404; }
+
+/* Empty state */
+.cm-empty {
+  text-align: center; padding: 40px 20px; color: #7a8ba0;
+}
+.cm-empty .em-icon { font-size: 40px; margin-bottom: 10px; }
+.cm-empty p { font-size: 14px; margin: 0; }
+
+/* ── Toast ───────────────────────────────────────────────────────────────── */
+#toast-area {
+  position: fixed; top: calc(var(--topbar-h) + 10px); right: 16px; z-index: 1000;
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+}
+.toast {
+  background: #fff; border-radius: var(--radius); padding: 10px 14px;
+  box-shadow: var(--shadow-lg); border-left: 3px solid var(--navy-mid);
+  font-size: 12px; color: var(--text); line-height: 1.45;
+  min-width: 240px; max-width: 320px; pointer-events: auto;
+  animation: slideIn 0.22s cubic-bezier(.16,.8,.4,1) forwards;
+}
+.toast.success { border-left-color: var(--green); }
+.toast.error { border-left-color: var(--red); }
+.toast.warning { border-left-color: var(--amber); }
+.toast strong { display: block; font-size: 12.5px; margin-bottom: 2px; }
+@keyframes slideIn { from{transform:translateX(16px);opacity:0} to{transform:translateX(0);opacity:1} }
+@keyframes slideOut { from{transform:translateX(0);opacity:1} to{transform:translateX(16px);opacity:0} }
+.toast.removing { animation: slideOut 0.18s ease forwards; }
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+#workspace {
+  margin-top: var(--topbar-h);
+  display: flex; min-height: calc(100vh - var(--topbar-h));
+}
+
+/* ── Left Panel ─────────────────────────────────────────────────────────── */
+#panel-left {
+  width: var(--panel-w); min-width: 300px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow-y: auto; max-height: calc(100vh - var(--topbar-h));
+  position: sticky; top: var(--topbar-h);
+}
+
+.panel-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.panel-section h2 {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 11px;
+  display: flex; align-items: center; gap: 7px;
+}
+.panel-section h2 .s-icon { font-size: 13px; opacity: 0.7; }
+.badge {
+  background: var(--navy-ghost); color: var(--navy-mid);
+  padding: 1px 7px; border-radius: 20px; font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.badge.active { background: var(--green-light); color: var(--green); }
+
+/* ── Magic Input ─────────────────────────────────────────────────────────── */
+#magic-wrap {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f0f6ff 0%, #fafcff 100%);
+  border-bottom: 2px solid var(--navy-mid);
+}
+#magic-wrap h2 {
+  font-size: 11px; font-weight: 700; color: var(--navy); margin-bottom: 9px;
+  display: flex; align-items: center; gap: 7px; letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+#magic-input {
+  width: 100%; padding: 10px 12px;
+  border: 1.5px solid var(--border-md); border-radius: var(--radius);
+  font-size: 13px; font-family: var(--font); color: var(--text);
+  background: #fff; resize: none; min-height: 62px; line-height: 1.5;
+  transition: border-color var(--trans), box-shadow var(--trans);
+}
+#magic-input:focus {
+  outline: none; border-color: var(--navy-mid);
+  box-shadow: 0 0 0 3px rgba(37,88,160,0.12);
+}
+#magic-input::placeholder { color: var(--text-muted); font-size: 12px; }
+#magic-btn {
+  margin-top: 9px; width: 100%; padding: 9px 14px;
+  background: var(--navy); color: #fff; border: none; border-radius: var(--radius);
+  font-size: 13px; font-weight: 600; font-family: var(--font); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background var(--trans), transform 0.1s;
+  letter-spacing: 0.01em;
+}
+#magic-btn:hover { background: var(--navy-mid); }
+#magic-btn:active { transform: scale(0.98); }
+#magic-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Interpretation ── */
+#interpretation {
+  display: none; margin-top: 9px;
+  padding: 9px 11px; border-radius: var(--radius-sm);
+  font-size: 11.5px; line-height: 1.55;
+}
+#interpretation.ok { background: var(--green-light); border: 1px solid var(--green-border); color: #085c3a; }
+#interpretation.err { background: var(--red-bg); border: 1px solid #f5b7b1; color: var(--red); }
+#interpretation strong { display: block; margin-bottom: 3px; font-size: 12px; }
+
+/* ── Form Fields ─────────────────────────────────────────────────────────── */
+.form-group { margin-bottom: 10px; }
+.form-group:last-child { margin-bottom: 0; }
+.form-group label {
+  display: block; font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-label); margin-bottom: 4px;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%; padding: 7px 10px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 12.5px; font-family: var(--font); color: var(--text);
+  background: #fff; transition: border-color var(--trans), box-shadow var(--trans);
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none; border-color: var(--navy-light);
+  box-shadow: 0 0 0 3px rgba(74,126,214,0.12);
+}
+.form-group textarea { resize: vertical; min-height: 60px; font-size: 12px; line-height: 1.5; }
+.form-row { display: flex; gap: 8px; }
+.form-row .form-group { flex: 1; }
+
+/* ── Inferred ── */
+.inferred-field { position: relative; }
+.inferred-field input,
+.inferred-field textarea,
+.inferred-field select {
+  background: var(--green-light) !important;
+  border-color: var(--green-border) !important;
+}
+.inferred-badge {
+  position: absolute; right: 7px; top: 50%; transform: translateY(-50%);
+  background: var(--green); color: #fff;
+  font-size: 8px; font-weight: 700; padding: 1px 6px;
+  border-radius: 20px; pointer-events: none; letter-spacing: 0.04em;
+}
+.inferred-field textarea ~ .inferred-badge { top: 16px; transform: none; }
+
+/* ── OPME Preview ─────────────────────────────────────────────────────────── */
+#opme-preview-list { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.opme-preview-item {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 7px 9px; background: var(--green-light);
+  border: 1px solid var(--green-border); border-radius: var(--radius-sm);
+  font-size: 11px; line-height: 1.4;
+}
+.opme-name { flex: 1; font-weight: 600; color: var(--green); }
+.opme-qty { font-size: 13px; font-weight: 700; color: var(--navy); margin-left: 10px; white-space: nowrap; }
+.opme-preview-empty { color: var(--text-muted); font-style: italic; font-size: 11.5px; padding: 6px 0; }
+
+/* ── Right Panel ─────────────────────────────────────────────────────────── */
+#panel-right {
+  flex: 1; padding: 24px 28px;
+  overflow-y: auto; background: var(--bg);
+}
+
+/* ── Welcome ── */
+#welcome { text-align: center; padding: 80px 20px 60px; color: var(--text-muted); }
+#welcome h3 { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 10px; letter-spacing: -0.01em; }
+#welcome p { font-size: 13.5px; max-width: 420px; margin: 0 auto 20px; line-height: 1.65; color: var(--text-2); }
+.example-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 18px; }
+.chip {
+  background: var(--bg-card); border: 1.5px solid var(--border-md); color: var(--navy-mid);
+  padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 500;
+  transition: all var(--trans); box-shadow: var(--shadow-sm);
+}
+.chip:hover { background: var(--navy-mid); color: #fff; border-color: var(--navy-mid); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+/* ── A4 Pages ─────────────────────────────────────────────────────────────── */
+#pages-container { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.a4-page {
+  width: 210mm; min-height: 297mm; background: #fff;
+  padding: 10mm; position: relative;
+  box-shadow: var(--shadow-lg);
+  border-radius: 2px;
+  page-break-after: always; page-break-inside: avoid;
+}
+
+/* ── Guide CSS (render engine — não alterado) ───────────────────────────── */
+.guide-header {
+  background: var(--navy); color: #fff;
+  padding: 3mm 4mm; display: flex; justify-content: space-between; align-items: center;
+}
+.guide-header .guide-title { font-size: 10pt; font-weight: bold; letter-spacing: 0.05em; }
+.guide-header .guide-subtitle { font-size: 7pt; opacity: 0.85; margin-top: 1px; }
+.guide-header .guide-meta { text-align: right; font-size: 6.5pt; opacity: 0.9; line-height: 1.5; }
+.guide-header .ans-logo {
+  font-size: 8pt; font-weight: bold; border: 1px solid rgba(255,255,255,0.6);
+  padding: 2px 6px; border-radius: 2px; margin-left: 10px;
+}
+.ans-strip { border: 0.4mm solid #1b3f6b; display: flex; }
+.sec-header {
+  background: #d8e4f0; color: #1b3f6b; font-size: 6.5pt;
+  font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 2px 4px; border: 0.3mm solid #333; border-bottom: none;
+}
+.opme-sec-header {
+  background: #2558a0; color: #fff; font-size: 6.5pt;
+  font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 2px 4px; border: 0.3mm solid #333; border-bottom: none;
+}
+.field-row { display: flex; border: 0.3mm solid #333; border-top: none; }
+.field-cell {
+  flex: 1; border-right: 0.3mm solid #333; padding: 1mm 1.5mm;
+  min-height: 6mm; display: flex; flex-direction: column; justify-content: flex-end;
+}
+.field-cell:last-child { border-right: none; }
+.field-label { font-size: 5.5pt; color: #555; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 1px; line-height: 1.1; }
+.field-label .req { color: #c0392b; }
+.field-value { font-size: 7.5pt; color: #111; line-height: 1.3; word-break: break-word; }
+.field-value.empty { color: #ccc; font-style: italic; font-size: 6pt; }
+.field-value.textarea-val { white-space: pre-wrap; line-height: 1.4; font-size: 6.8pt; }
+.proc-table { width: 100%; border-collapse: collapse; font-size: 6.5pt; }
+.proc-table th { background: #d8e4f0; color: #1b3f6b; border: 0.3mm solid #333; padding: 1.5mm 1mm; font-size: 5.5pt; text-transform: uppercase; font-weight: bold; }
+.proc-table td { border: 0.3mm solid #333; padding: 1.5mm 1mm; vertical-align: top; line-height: 1.3; }
+.proc-table tr:nth-child(even) td { background: #f5f8fb; }
+.opme-table { width: 100%; border-collapse: collapse; font-size: 6pt; }
+.opme-table th { background: #2558a0; color: #fff; border: 0.3mm solid #333; padding: 1.5mm 1mm; font-size: 5pt; text-transform: uppercase; font-weight: bold; text-align: center; }
+.opme-table td { border: 0.3mm solid #333; padding: 1mm; vertical-align: top; line-height: 1.3; }
+.opme-table .row-a { background: #fff; }
+.opme-table .row-b { background: #eef4fa; font-size: 5.5pt; }
+.opme-table .row-b td { color: #444; font-style: italic; }
+.opme-table .seq-cell-top { text-align: center; font-weight: bold; font-size: 7pt; border-bottom: none !important; vertical-align: bottom; }
+.opme-table .seq-cell-bottom { text-align: center; font-weight: bold; font-size: 7pt; border-top: none !important; vertical-align: top; color: #aaa; }
+.opme-table tbody { page-break-inside: avoid; break-inside: avoid; display: table-row-group; }
+.cid-row { display: flex; border: 0.3mm solid #333; border-top: none; }
+.cid-cell { flex: 1; border-right: 0.3mm solid #333; padding: 1mm 1.5mm; min-height: 6mm; display: flex; flex-direction: column; justify-content: flex-end; }
+.cid-cell:last-child { border-right: none; }
+.justificativa-box { border: 0.3mm solid #333; border-top: none; padding: 2mm; min-height: 30mm; font-size: 6.8pt; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.sig-block { page-break-inside: avoid; break-inside: avoid; }
+.sig-row { display: flex; border: 0.3mm solid #333; border-top: none; height: 15mm; }
+.sig-cell { flex: 1; border-right: 0.3mm solid #333; padding: 1.5mm; display: flex; flex-direction: column; }
+.sig-cell:last-child { border-right: none; }
+.sig-line { flex: 1; border-bottom: 0.3mm solid #999; margin: 2mm 4mm; }
+.page-footer { margin-top: 3mm; display: flex; justify-content: space-between; font-size: 5.5pt; color: #888; border-top: 0.3mm solid #ddd; padding-top: 1.5mm; }
+.mini-header-p2 { background: #1b3f6b; color: #fff; padding: 2mm 4mm; display: flex; justify-content: space-between; align-items: center; font-size: 6.5pt; }
+.vsep { height: 2mm; }
+.num-cell { text-align: right; }
+
+/* ── Print ── */
+@media print {
+  body { background: #fff; }
+  #topbar, #toast-area, #workspace > #panel-left { display: none; }
+  #panel-right { padding: 0; }
+  #pages-container { gap: 0; }
+  .a4-page { box-shadow: none; border-radius: 0; page-break-after: always; overflow: hidden; max-height: 277mm; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REVENUE EXPERIENCE LAYER — CSS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Notification badge ─────────────────────────────────────────────────── */
+.notif-badge {
+  position: absolute; top: -5px; right: -5px;
+  width: 16px; height: 16px; background: #e53e3e; color: #fff;
+  border-radius: 50%; font-size: 9px; font-weight: 800;
+  display: none; align-items: center; justify-content: center;
+  border: 1.5px solid var(--navy);
+}
+.notif-badge.show { display: flex; }
+.topbar-btn-wrap { position: relative; }
+
+/* ── Billing access banner (top of copiloto) ─────────────────────────────── */
+#billing-banner {
+  display: none; align-items: center; gap: 10px;
+  padding: 9px 16px; font-size: 12.5px;
+  border-bottom: 1px solid transparent;
+  z-index: 100;
+}
+#billing-banner.show { display: flex; }
+#billing-banner.warn {
+  background: #fffbea; border-color: #f6d860; color: #7a5400;
+}
+#billing-banner.critical {
+  background: #fff0f0; border-color: #f5b8b8; color: #8b1a1a;
+}
+#billing-banner .bb-icon { font-size: 16px; flex-shrink: 0; }
+#billing-banner .bb-text { flex: 1; line-height: 1.4; }
+#billing-banner .bb-text strong { display: block; font-size: 13px; }
+#billing-banner .bb-action {
+  background: var(--navy); color: #fff; border: none; border-radius: 6px;
+  padding: 5px 12px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  font-family: var(--font); white-space: nowrap;
+}
+#billing-banner .bb-action:hover { background: var(--navy-mid); }
+#billing-banner .bb-dismiss {
+  background: none; border: none; color: inherit; opacity: 0.55;
+  cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px;
+}
+#billing-banner .bb-dismiss:hover { opacity: 1; }
+
+/* ── Doctor dashboard — enhanced ────────────────────────────────────────── */
+.cm-invoice-card {
+  border: 1px solid #e4edf8; border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 14px;
+}
+.cm-invoice-card.open   { border-color: #fce8a0; background: #fffdf0; }
+.cm-invoice-card.overdue { border-color: #f5b8b8; background: #fff5f5; }
+.cm-invoice-card.paid   { border-color: #b6e8cc; background: #f0fdf5; }
+.cm-invoice-card.none   { border-color: #e4edf8; background: #f6f9fd; }
+.cic-icon { font-size: 26px; flex-shrink: 0; }
+.cic-info { flex: 1; }
+.cic-info .cic-label { font-size: 11px; color: #7a8ba0; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em; }
+.cic-info .cic-value { font-size: 18px; font-weight: 800; color: var(--navy); line-height: 1.2; }
+.cic-info .cic-sub { font-size: 12px; color: #6b7a8d; margin-top: 2px; }
+.cic-status { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.cic-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+}
+.cic-badge.open    { background: #fff3cd; color: #856404; }
+.cic-badge.overdue { background: #fde8e8; color: #c0392b; }
+.cic-badge.paid    { background: #e6f7ef; color: #22a06b; }
+.cic-badge.none    { background: #f0f4fb; color: #7a8ba0; }
+.cic-action {
+  font-size: 11px; color: var(--navy-mid); text-decoration: none;
+  font-weight: 600; cursor: pointer; border: none; background: none;
+  font-family: var(--font); padding: 0;
+}
+.cic-action:hover { text-decoration: underline; }
+
+/* KPI mini cards (economia de tempo) */
+.cm-kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.cm-kpi { background: #f6f9fd; border: 1px solid #e4edf8; border-radius: 10px;
+  padding: 12px 14px; }
+.cm-kpi .kpi-val { font-size: 20px; font-weight: 800; color: var(--navy); }
+.cm-kpi .kpi-lbl { font-size: 11px; color: #7a8ba0; margin-top: 3px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.cm-kpi.green { background: #f0fdf5; border-color: #b6e8cc; }
+.cm-kpi.green .kpi-val { color: #0e7a50; }
+.cm-kpi.amber { background: #fffbea; border-color: #f6d860; }
+.cm-kpi.amber .kpi-val { color: #b45309; }
+
+/* Dashboard action buttons */
+.cm-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px;
+  padding-top: 16px; border-top: 1px solid #edf2f8; }
+.cm-act-btn {
+  flex: 1; min-width: 130px; padding: 9px 14px; border-radius: 8px;
+  font-size: 12.5px; font-weight: 600; font-family: var(--font);
+  cursor: pointer; border: 1.5px solid; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.cm-act-btn.primary { background: var(--navy); color: #fff; border-color: transparent; }
+.cm-act-btn.primary:hover { background: var(--navy-mid); }
+.cm-act-btn.secondary { background: #fff; color: var(--navy); border-color: #c8d8f0; }
+.cm-act-btn.secondary:hover { background: #f0f5fb; }
+.cm-act-btn.danger { background: #fff0f0; color: #c0392b; border-color: #f5b8b8; }
+.cm-act-btn.danger:hover { background: #fde8e8; }
+
+/* ── Admin Dashboard Modal ───────────────────────────────────────────────── */
+#founder-overlay {
+  display: none; position: fixed; inset: 0; z-index: 2100;
+  background: rgba(10,20,40,0.78); backdrop-filter: blur(4px);
+  align-items: flex-start; justify-content: center; padding-top: 40px;
+  overflow-y: auto;
+}
+#founder-overlay.open { display: flex; }
+#founder-modal {
+  background: #fff; border-radius: 16px; width: min(820px, 96vw);
+  max-height: 88vh; overflow-y: auto;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.32);
+  animation: modalSlideIn 0.22s ease;
+  margin-bottom: 40px;
+}
+#founder-modal .adm-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 22px 28px 18px; border-bottom: 1px solid #e8eef6;
+  position: sticky; top: 0; background: var(--navy); z-index: 1;
+  border-radius: 16px 16px 0 0;
+}
+#founder-modal .adm-header h2 { color: #fff; font-size: 18px; font-weight: 700; flex: 1; margin: 0; }
+#founder-modal .adm-header .adm-period {
+  font-size: 12px; color: rgba(255,255,255,0.65);
+  background: rgba(255,255,255,0.12); padding: 3px 12px; border-radius: 20px;
+}
+#founder-modal .adm-body { padding: 24px 28px 28px; }
+
+#admin-overlay {
+  display: none; position: fixed; inset: 0; z-index: 2100;
+  background: rgba(10,20,40,0.78); backdrop-filter: blur(4px);
+  align-items: flex-start; justify-content: center; padding-top: 40px;
+  overflow-y: auto;
+}
+#admin-overlay.open { display: flex; }
+#admin-modal {
+  background: #fff; border-radius: 16px; width: min(820px, 96vw);
+  max-height: 88vh; overflow-y: auto;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.32);
+  animation: modalSlideIn 0.22s ease;
+  margin-bottom: 40px;
+}
+#admin-modal .adm-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 22px 28px 18px; border-bottom: 1px solid #e8eef6;
+  position: sticky; top: 0; background: var(--navy); z-index: 1;
+  border-radius: 16px 16px 0 0;
+}
+#admin-modal .adm-header h2 {
+  color: #fff; font-size: 18px; font-weight: 700; flex: 1; margin: 0;
+}
+#admin-modal .adm-header .adm-period {
+  font-size: 12px; color: rgba(255,255,255,0.65);
+  background: rgba(255,255,255,0.12); padding: 3px 12px; border-radius: 20px;
+}
+.adm-close {
+  width: 32px; height: 32px; border: none;
+  background: rgba(255,255,255,0.15); border-radius: 8px;
+  cursor: pointer; color: #fff; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.adm-close:hover { background: rgba(255,255,255,0.25); }
+#admin-modal .adm-body { padding: 24px 28px 28px; }
+
+/* Admin KPI grid */
+.adm-kpi-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px;
+}
+@media (max-width: 600px) { .adm-kpi-grid { grid-template-columns: 1fr 1fr; } }
+.adm-kpi {
+  background: #f6f9fd; border: 1px solid #e4edf8;
+  border-radius: 10px; padding: 14px 16px;
+}
+.adm-kpi .ak-val { font-size: 24px; font-weight: 800; color: var(--navy); line-height: 1; }
+.adm-kpi .ak-lbl { font-size: 10.5px; color: #7a8ba0; margin-top: 4px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.adm-kpi.highlight { background: linear-gradient(135deg,#1b3f6b,#2558a0); border-color: transparent; }
+.adm-kpi.highlight .ak-val,
+.adm-kpi.highlight .ak-lbl { color: #fff; }
+.adm-kpi.highlight .ak-lbl { opacity: 0.75; }
+.adm-kpi.green { background: #f0fdf5; border-color: #b6e8cc; }
+.adm-kpi.green .ak-val { color: #0e7a50; }
+.adm-kpi.amber { background: #fffbea; border-color: #f6d860; }
+.adm-kpi.amber .ak-val { color: #b45309; }
+.adm-kpi.red { background: #fff5f5; border-color: #f5b8b8; }
+.adm-kpi.red .ak-val { color: #c0392b; }
+
+/* Admin section */
+.adm-section { margin-bottom: 24px; }
+.adm-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: #7a8ba0; margin-bottom: 12px;
+  padding-bottom: 8px; border-bottom: 1px solid #edf2f8;
+}
+.adm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.adm-table th {
+  text-align: left; font-size: 10.5px; font-weight: 700; color: #7a8ba0;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 0 10px 8px; border-bottom: 1px solid #e8eef6;
+}
+.adm-table td { padding: 9px 10px; border-bottom: 1px solid #f0f4f9; }
+.adm-table tr:last-child td { border-bottom: none; }
+.adm-table .td-right { text-align: right; }
+.adm-table .td-mono { font-family: var(--mono); font-size: 12px; }
+
+/* Health score */
+.adm-health {
+  display: flex; align-items: center; gap: 16px;
+  padding: 14px 18px; border-radius: 10px; margin-bottom: 24px;
+}
+.adm-health.good { background: #f0fdf5; border: 1px solid #b6e8cc; }
+.adm-health.warn { background: #fffbea; border: 1px solid #f6d860; }
+.adm-health.crit { background: #fff5f5; border: 1px solid #f5b8b8; }
+.adm-health .hs-score { font-size: 36px; font-weight: 900; line-height: 1; }
+.adm-health.good .hs-score { color: #0e7a50; }
+.adm-health.warn .hs-score { color: #b45309; }
+.adm-health.crit .hs-score { color: #c0392b; }
+.adm-health .hs-info strong { display: block; font-size: 14px; }
+.adm-health .hs-info span { font-size: 12px; color: #6b7a8d; }
+
+/* Tier progress bars */
+.tier-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.tier-label { width: 80px; font-size: 12px; font-weight: 600; }
+.tier-bar-wrap { flex: 1; height: 8px; background: #edf2f8; border-radius: 4px; }
+.tier-bar { height: 8px; border-radius: 4px; transition: width 0.4s; }
+.tier-bar.std { background: var(--navy-mid); }
+.tier-bar.prm { background: #f6b840; }
+.tier-count { font-size: 12px; font-weight: 700; width: 40px; text-align: right; }
+
+/* Invoice status grid */
+.inv-status-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px;
+}
+.inv-status-card {
+  border-radius: 10px; padding: 14px 16px; border: 1px solid;
+  text-align: center;
+}
+.inv-status-card .isc-count { font-size: 28px; font-weight: 900; line-height: 1; }
+.inv-status-card .isc-lbl { font-size: 11px; font-weight: 600; margin-top: 4px;
+  text-transform: uppercase; letter-spacing: 0.04em; }
+.inv-status-card.open   { background: #fffbea; border-color: #f6d860; }
+.inv-status-card.open   .isc-count, .inv-status-card.open   .isc-lbl { color: #856404; }
+.inv-status-card.overdue { background: #fff5f5; border-color: #f5b8b8; }
+.inv-status-card.overdue .isc-count, .inv-status-card.overdue .isc-lbl { color: #c0392b; }
+.inv-status-card.paid   { background: #f0fdf5; border-color: #b6e8cc; }
+.inv-status-card.paid   .isc-count, .inv-status-card.paid   .isc-lbl { color: #0e7a50; }
+
+/* ── Restriction Modal ───────────────────────────────────────────────────── */
+#restrict-overlay {
+  display: none; position: fixed; inset: 0; z-index: 3000;
+  background: rgba(10,20,40,0.80); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center;
+}
+#restrict-overlay.open { display: flex; }
+#restrict-modal {
+  background: #fff; border-radius: 16px; width: min(440px, 92vw);
+  box-shadow: 0 32px 80px rgba(0,0,0,0.36);
+  animation: modalSlideIn 0.22s ease;
+  overflow: hidden;
+}
+.rm-head {
+  background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+  padding: 24px 28px 20px; text-align: center;
+}
+.rm-head.grace {
+  background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
+}
+.rm-icon { font-size: 36px; margin-bottom: 8px; }
+.rm-head h2 { color: #fff; font-size: 18px; font-weight: 700; margin: 0; }
+.rm-head p { color: rgba(255,255,255,0.82); font-size: 13px; margin: 6px 0 0; }
+.rm-body { padding: 24px 28px; }
+.rm-detail-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0; border-bottom: 1px solid #f0f4f9; font-size: 13px;
+}
+.rm-detail-row:last-child { border-bottom: none; }
+.rm-detail-row .rd-label { color: #7a8ba0; font-weight: 600; }
+.rm-detail-row .rd-value { font-weight: 700; color: var(--navy); }
+.rm-detail-row .rd-value.overdue { color: #c0392b; }
+.rm-detail-row .rd-value.paid { color: #22a06b; }
+.rm-actions { display: flex; flex-direction: column; gap: 8px; padding: 0 28px 24px; }
+.rm-btn {
+  width: 100%; padding: 11px 16px; border-radius: 9px;
+  font-size: 13.5px; font-weight: 600; font-family: var(--font);
+  cursor: pointer; border: none; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.rm-btn.primary { background: var(--navy); color: #fff; }
+.rm-btn.primary:hover { background: var(--navy-mid); }
+.rm-btn.secondary { background: #f0f5fb; color: var(--navy); border: 1.5px solid #c8d8f0; }
+.rm-btn.secondary:hover { background: #e4edf8; }
+.rm-btn.ghost { background: none; color: #7a8ba0; border: 1.5px solid #e4edf8; }
+.rm-btn.ghost:hover { background: #f6f9fd; }
+
+/* ── Spinner / loading state ─────────────────────────────────────────────── */
+.cm-loading {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 40px 20px; gap: 12px; color: #7a8ba0; font-size: 13px;
+}
+.cm-spinner {
+  width: 28px; height: 28px; border: 3px solid #e4edf8;
+  border-top-color: var(--navy-mid); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── SMART REUSE LAYER ─────────────────────────────────────────────── */
+#reuse-banner {
+  display: none; margin: 8px 16px 0; border-radius: 8px;
+  background: linear-gradient(135deg,#eaf4ff,#f0f8ef);
+  border: 1.5px solid #b3d4ff; padding: 10px 14px; animation: fadeIn .3s;
+}
+.rb-head { font-size:12px; font-weight:700; color:#1a4a8a; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+.rb-cases { display:flex; gap:8px; flex-wrap:wrap; }
+.rb-case-card {
+  background:#fff; border:1.5px solid #c8dff8; border-radius:7px;
+  padding:7px 11px; font-size:11px; cursor:pointer; transition:all .18s;
+  min-width:160px; max-width:220px;
+}
+.rb-case-card:hover { border-color:#2563eb; transform:translateY(-1px); box-shadow:0 3px 8px rgba(37,99,235,.15); }
+.rb-case-proc { font-weight:700; color:#1a3a6a; font-size:11px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rb-case-meta { color:#64748b; font-size:10px; }
+.rb-case-score { font-size:9px; color:#2563eb; font-weight:700; }
+.rb-dismiss { margin-left:auto; background:none; border:none; font-size:14px; cursor:pointer; color:#94a3b8; padding:0; }
+
+/* Reuse confirmation modal */
+#reuse-overlay {
+  display:none; position:fixed; inset:0; background:rgba(10,20,50,.55);
+  z-index:8200; align-items:center; justify-content:center;
+}
+#reuse-overlay.open { display:flex; }
+#reuse-modal {
+  background:#fff; border-radius:14px; width:min(520px,94vw);
+  box-shadow:0 20px 60px rgba(0,0,50,.25); overflow:hidden;
+}
+.rm2-head {
+  background:linear-gradient(135deg,#1a3a6a,#2563eb); color:#fff;
+  padding:16px 20px; display:flex; align-items:center; gap:10px;
+}
+.rm2-head h3 { margin:0; font-size:15px; }
+.rm2-body { padding:18px 20px; }
+.rm2-origin { font-size:11px; color:#64748b; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:8px 12px; margin-bottom:14px; }
+.rm2-fields { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+.rm2-field-pill {
+  font-size:10px; padding:3px 9px; border-radius:20px;
+  background:#e0f2fe; color:#075985; border:1px solid #bae6fd;
+}
+.rm2-field-pill.forbidden { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+.rm2-warn { font-size:11px; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:8px 12px; margin-bottom:14px; }
+.rm2-actions { display:flex; gap:10px; justify-content:flex-end; }
+.rm2-btn { padding:9px 18px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:600; }
+.rm2-btn.primary { background:#2563eb; color:#fff; }
+.rm2-btn.primary:hover { background:#1d4ed8; }
+.rm2-btn.secondary { background:#f1f5f9; color:#374151; }
+.rm2-btn.secondary:hover { background:#e2e8f0; }
+
+/* Blueprint library in dashboard */
+.cm-blueprints { margin-top:16px; }
+.cm-bp-grid { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.cm-bp-card {
+  background:#fff; border:1.5px solid #e0eaff; border-radius:9px;
+  padding:10px 13px; flex:1; min-width:150px; max-width:200px;
+  cursor:pointer; transition:all .18s;
+}
+.cm-bp-card:hover { border-color:#2563eb; transform:translateY(-1px); box-shadow:0 3px 10px rgba(37,99,235,.13); }
+.cm-bp-name { font-size:11.5px; font-weight:700; color:#1a3a6a; margin-bottom:4px; }
+.cm-bp-meta { font-size:10px; color:#64748b; }
+.cm-bp-badge { display:inline-block; font-size:9px; padding:1px 7px; border-radius:10px; background:#dbeafe; color:#1e40af; font-weight:700; margin-top:4px; }
+
+/* ROI section */
+.cm-roi-section { margin-top:16px; padding-top:14px; border-top:1.5px dashed #c7d9f0; }
+.cm-roi-header { font-size:12px; font-weight:800; color:#1a3a6a; text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.cm-roi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+.cm-roi-kpi { background:linear-gradient(135deg,#f0f7ff,#e8f4f0); border:1px solid #c8dff8; border-radius:9px; padding:10px 12px; text-align:center; }
+.cm-roi-kpi .rv { font-size:18px; font-weight:800; color:#1a3a6a; }
+.cm-roi-kpi .rl { font-size:10px; color:#64748b; margin-top:2px; }
+.cm-roi-messages { display:flex; flex-direction:column; gap:6px; }
+.cm-roi-msg { font-size:11.5px; color:#374151; background:#f8faff; border:1px solid #dbeafe; border-radius:7px; padding:8px 12px; display:flex; align-items:flex-start; gap:7px; }
+.cm-roi-msg .roi-icon { font-size:14px; flex-shrink:0; }
+
+/* Recent cases with reuse button */
+.cm-case-row { display:flex; align-items:center; gap:6px; padding:5px 0; border-bottom:1px solid #f1f5f9; }
+.cm-case-row:last-child { border-bottom:none; }
+.cm-case-info { flex:1; font-size:11px; }
+.cm-case-proc { font-weight:700; color:#1a3a6a; }
+.cm-case-date { color:#64748b; font-size:10px; }
+.cm-case-reuse-btn {
+  font-size:9px; padding:3px 9px; border-radius:5px; border:1.5px solid #2563eb;
+  color:#2563eb; background:#fff; cursor:pointer; font-weight:700; white-space:nowrap;
+  transition:all .15s;
+}
+.cm-case-reuse-btn:hover { background:#2563eb; color:#fff; }
+.cm-mode-pill {
+  font-size:9px; padding:2px 7px; border-radius:10px; font-weight:700;
+}
+.cm-mode-pill.fresh     { background:#dcfce7; color:#166534; }
+.cm-mode-pill.reuse     { background:#dbeafe; color:#1e40af; }
+.cm-mode-pill.blueprint { background:#fef3c7; color:#92400e; }
+
+/* ── SMART REUSE ENGINE — blueprint-suggestions component ────────── */
+#blueprint-suggestions {
+  display: none; margin-top: 8px; border-radius: 8px;
+  border: 1.5px solid #bfdbfe; background: #f0f7ff;
+  padding: 8px 10px; animation: fadeIn .25s;
+}
+.sre-head {
+  font-size: 11px; font-weight: 800; color: #1e40af;
+  text-transform: uppercase; letter-spacing: .04em;
+  display: flex; align-items: center; gap: 5px; margin-bottom: 6px;
+}
+.sre-dismiss {
+  margin-left: auto; background: none; border: none;
+  cursor: pointer; color: #94a3b8; font-size: 15px; line-height: 1;
+}
+.sre-bp-card {
+  background: #fff; border: 1.5px solid #bfdbfe; border-radius: 7px;
+  padding: 7px 10px; margin-bottom: 5px; cursor: pointer;
+  transition: all .15s; display: flex; align-items: center; gap: 8px;
+}
+.sre-bp-card:last-child { margin-bottom: 0; }
+.sre-bp-card:hover { border-color: #2563eb; background: #eff6ff; transform: translateX(2px); }
+.sre-bp-card:focus { outline: 2px solid #2563eb; outline-offset: 2px; }
+.sre-bp-title { font-size: 12px; font-weight: 700; color: #1a3a6a; flex: 1; }
+.sre-bp-meta  { font-size: 10px; color: #64748b; white-space: nowrap; }
+
+/* Patient fields that still need manual fill after blueprint apply */
+.highlight-required {
+  border: 2px solid #f59e0b !important;
+  background: #fffbeb !important;
+  animation: pulseYellow 1.2s ease 2;
+}
+@keyframes pulseYellow {
+  0%,100% { box-shadow: none; }
+  50% { box-shadow: 0 0 0 3px rgba(245,158,11,.25); }
+}
+</style>
+</head>
+<body>
+
+<div id="toast-area"></div>
+
+<!-- ── TOP BAR ── -->
+<div id="topbar">
+  <div class="brand">
+    <div class="dot"></div>
+    NEUROAUTH
+  </div>
+  <span class="topbar-tag">Copiloto Clínico v2.0</span>
+  <span class="topbar-tag">TISS 4.01.00</span>
+  <div id="billing-pill">
+    <span>✓</span><span id="billing-text">Registrado</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="topbar-btn" onclick="resetAll()">↺ Limpar</button>
+  <button class="topbar-btn primary" onclick="renderGuia()" id="btn-render" disabled>▶ Gerar Guia</button>
+  <button class="topbar-btn" onclick="window.print()">⎙ Imprimir A4</button>
+  <div class="topbar-btn-wrap">
+    <button class="topbar-btn" id="btn-consumo" onclick="showConsumo()" title="Ver consumo do mês">📊 Consumo</button>
+    <span class="notif-badge" id="notif-badge"></span>
+  </div>
+  <button class="topbar-btn" id="btn-admin" onclick="showAdmin()" title="Dashboard Admin" style="opacity:0.75">⚙ Admin</button>
+  <button class="topbar-btn" id="btn-founder" onclick="showFounderDashboard()" title="Painel do Fundador" style="opacity:0.75">📊 Fundador</button>
+</div>
+
+<!-- ── Billing Banner (abaixo do topbar) ── -->
+<div id="billing-banner">
+  <span class="bb-icon" id="bb-icon">⚠️</span>
+  <div class="bb-text">
+    <strong id="bb-title">Extrato pendente</strong>
+    <span id="bb-msg"></span>
+  </div>
+  <button class="bb-action" onclick="showRestrict()" id="bb-action">Regularizar</button>
+  <button class="bb-dismiss" onclick="document.getElementById('billing-banner').classList.remove('show')" title="Dispensar">✕</button>
+</div>
+
+<!-- ── MODAL: Ver meu consumo (Doctor Dashboard) ── -->
+<div id="consumo-overlay" onclick="if(event.target===this)closeConsumo()">
+  <div id="consumo-modal">
+    <div class="cm-header">
+      <h2>📊 Meu Consumo</h2>
+      <span class="cm-period" id="cm-period-label">—</span>
+      <button class="cm-close" onclick="closeConsumo()" title="Fechar">✕</button>
+    </div>
+    <div class="cm-body" id="cm-body">
+      <div class="cm-loading"><div class="cm-spinner"></div>Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Admin Dashboard ── -->
+<div id="admin-overlay" onclick="if(event.target===this)closeAdmin()">
+  <div id="admin-modal">
+    <div class="adm-header">
+      <h2>⚙ Dashboard Operacional</h2>
+      <span class="adm-period" id="adm-period-label">—</span>
+      <button class="adm-close" onclick="closeAdmin()" title="Fechar">✕</button>
+    </div>
+    <div class="adm-body" id="adm-body">
+      <div class="cm-loading"><div class="cm-spinner"></div>Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Painel do Fundador ── -->
+<div id="founder-overlay" onclick="if(event.target===this)closeFounderDashboard()">
+  <div id="founder-modal">
+    <div class="adm-header">
+      <h2>📊 Painel do Fundador</h2>
+      <span class="adm-period">Analytics · comportamento real</span>
+      <button class="adm-close" onclick="closeFounderDashboard()" title="Fechar">✕</button>
+    </div>
+    <div class="adm-body" id="founder-dashboard">
+      <div class="cm-loading"><div class="cm-spinner"></div>Carregando analytics...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Restrição de Acesso ── -->
+<div id="restrict-overlay" onclick="if(event.target===this)closeRestrict()">
+  <div id="restrict-modal">
+    <div class="rm-head" id="rm-head">
+      <div class="rm-icon" id="rm-icon">🔒</div>
+      <h2 id="rm-title">Acesso temporariamente limitado</h2>
+      <p id="rm-subtitle">Pendência financeira identificada</p>
+    </div>
+    <div class="rm-body">
+      <div class="rm-detail-row">
+        <span class="rd-label">Status da fatura</span>
+        <span class="rd-value" id="rm-status">—</span>
+      </div>
+      <div class="rm-detail-row">
+        <span class="rd-label">Vencimento</span>
+        <span class="rd-value" id="rm-due">—</span>
+      </div>
+      <div class="rm-detail-row">
+        <span class="rd-label">Dias em atraso</span>
+        <span class="rd-value overdue" id="rm-days">—</span>
+      </div>
+      <div class="rm-detail-row">
+        <span class="rd-label">Guias de cortesia</span>
+        <span class="rd-value" id="rm-courtesy">—</span>
+      </div>
+    </div>
+    <div class="rm-actions">
+      <button class="rm-btn primary" onclick="closeRestrict();showConsumo()">📄 Ver extrato</button>
+      <button class="rm-btn secondary" onclick="handleRegularize()">💳 Regularizar pagamento</button>
+      <button class="rm-btn ghost" onclick="closeRestrict()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── REUSE CONFIRMATION MODAL ── -->
+<div id="reuse-overlay" onclick="if(event.target===this)closeReuseModal()">
+  <div id="reuse-modal">
+    <div class="rm2-head">
+      <span style="font-size:20px">♻</span>
+      <h3 id="rm2-title">Reutilizar caso anterior</h3>
+    </div>
+    <div class="rm2-body">
+      <div class="rm2-origin" id="rm2-origin">Origem: —</div>
+      <div style="font-size:12px;color:#374151;margin-bottom:8px;font-weight:600;">Campos que serão aplicados:</div>
+      <div class="rm2-fields" id="rm2-fields"></div>
+      <div class="rm2-warn">⚠ Dados do paciente anterior <strong>não serão copiados</strong>. Revise e preencha os dados do novo paciente antes de gerar a guia.</div>
+      <div class="rm2-actions">
+        <button class="rm2-btn secondary" onclick="closeReuseModal()">Cancelar</button>
+        <button class="rm2-btn primary" id="rm2-confirm-btn" onclick="confirmReuseApply()">♻ Aplicar template e revisar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── WORKSPACE ── -->
+<div id="workspace">
+
+  <!-- ── LEFT PANEL ── -->
+  <div id="panel-left">
+
+    <!-- MAGIC AUTOFILL -->
+    <div id="magic-wrap">
+      <h2>⚡ Autofill Clínico</h2>
+      <textarea id="magic-input"
+        placeholder="Digite o procedimento em linguagem livre…&#10;Ex: artrodese lombar L4-L5&#10;Ex: craniotomia tumor cerebral&#10;Ex: microdiscectomia L5-S1 direita"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();runAutofill()}"
+      ></textarea>
+      <button id="magic-btn" onclick="runAutofill()">
+        ⚡ Interpretar e Preencher
+      </button>
+      <!-- ── Smart Reuse Engine — blueprint suggestions ── -->
+      <div id="blueprint-suggestions">
+        <div class="sre-head">
+          🧠 <span>Usar caso anterior</span>
+          <button class="sre-dismiss" onclick="_dismissSmartSuggestions()" title="Fechar">×</button>
+        </div>
+        <!-- cards injetados via renderBlueprintSuggestions() -->
+      </div>
+      <div id="interpretation"></div>
+      <!-- ── Smart Reuse Banner ── -->
+      <div id="reuse-banner">
+        <div class="rb-head">
+          <span>♻</span>
+          <span id="reuse-banner-title">Casos semelhantes no seu histórico</span>
+          <button class="rb-dismiss" onclick="_dismissReuseBanner()" title="Fechar">×</button>
+        </div>
+        <div class="rb-cases" id="reuse-banner-cases"></div>
+      </div>
+    </div>
+
+    <!-- DADOS DO PACIENTE -->
+    <div class="panel-section">
+      <h2><span class="s-icon">👤</span> Dados do Paciente</h2>
+      <div class="form-group">
+        <label>Nome completo *</label>
+        <input type="text" id="f-nome" placeholder="Nome do beneficiário" oninput="syncPayload()" data-patient-field="nome">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nº Carteira *</label>
+          <input type="text" id="f-carteira" placeholder="0000000000000000" oninput="syncPayload()" data-patient-field="carteira">
+        </div>
+        <div class="form-group">
+          <label>Data Nasc.</label>
+          <input type="date" id="f-nascimento" oninput="syncPayload()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Plano / Operadora</label>
+        <input type="text" id="f-plano" placeholder="Ex: Bradesco Top Nacional" oninput="syncPayload()">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>ANS Registro</label>
+          <input type="text" id="f-ans" placeholder="337555" oninput="syncPayload()">
+        </div>
+        <div class="form-group">
+          <label>Nº Guia</label>
+          <input type="text" id="f-guia" oninput="syncPayload()">
+        </div>
+      </div>
+    </div>
+
+    <!-- DADOS DO MÉDICO -->
+    <div class="panel-section">
+      <h2><span class="s-icon">🩺</span> Médico Solicitante / Executante</h2>
+      <div class="form-group">
+        <label>Nome do Médico *</label>
+        <input type="text" id="f-medico" placeholder="Dr. Nome Sobrenome" oninput="syncPayload()">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>CRM</label>
+          <input type="text" id="f-crm" placeholder="123456" oninput="syncPayload()">
+        </div>
+        <div class="form-group">
+          <label>UF</label>
+          <input type="text" id="f-uf" placeholder="SP" maxlength="2" oninput="syncPayload()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Hospital / Estabelecimento</label>
+        <input type="text" id="f-hospital" placeholder="Nome do hospital" oninput="syncPayload()">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>CNES Executante</label>
+          <input type="text" id="f-cnes" oninput="syncPayload()">
+        </div>
+        <div class="form-group">
+          <label>Data Solicitação</label>
+          <input type="date" id="f-data-sol" oninput="syncPayload()">
+        </div>
+      </div>
+    </div>
+
+    <!-- DADOS CLÍNICOS INFERIDOS -->
+    <div class="panel-section">
+      <h2><span class="s-icon">🔬</span> Dados Clínicos <span class="badge" id="inferred-count">—</span></h2>
+
+      <div class="form-group inferred-field" id="wrap-proc">
+        <label>Procedimento (TUSS)</label>
+        <input type="text" id="f-proc" placeholder="Será preenchido pelo autofill" oninput="syncPayload()">
+        <span class="inferred-badge">AUTO</span>
+      </div>
+      <div class="form-row">
+        <div class="form-group inferred-field" id="wrap-tuss">
+          <label>Código TUSS</label>
+          <input type="text" id="f-tuss" placeholder="—" oninput="syncPayload()">
+          <span class="inferred-badge">AUTO</span>
+        </div>
+        <div class="form-group inferred-field" id="wrap-cid">
+          <label>CID-10 Principal</label>
+          <input type="text" id="f-cid" placeholder="—" oninput="syncPayload()">
+          <span class="inferred-badge">AUTO</span>
+        </div>
+      </div>
+      <div class="form-group inferred-field" id="wrap-just">
+        <label>Justificativa Cirúrgica</label>
+        <textarea id="f-just" rows="5" oninput="syncPayload()"></textarea>
+        <span class="inferred-badge">AUTO</span>
+      </div>
+      <div class="form-group">
+        <label>Hipótese Diagnóstica</label>
+        <textarea id="f-hip" rows="2" oninput="syncPayload()"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Indicação Clínica (Campo 42)</label>
+        <textarea id="f-indicacao" rows="2" placeholder="Resumo objetivo para campo 42" oninput="syncPayload()"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Observações</label>
+        <textarea id="f-obs" rows="2" oninput="syncPayload()"></textarea>
+      </div>
+    </div>
+
+    <!-- OPME PREVIEW -->
+    <div class="panel-section">
+      <h2><span class="s-icon">🔧</span> OPME Inferido <span class="badge" id="opme-count">0</span></h2>
+      <div id="opme-preview-list">
+        <div class="opme-preview-empty">Nenhum OPME inferido ainda.</div>
+      </div>
+    </div>
+
+  </div><!-- /panel-left -->
+
+  <!-- ── RIGHT PANEL ── -->
+  <div id="panel-right">
+    <div id="welcome">
+      <h3>🧠 Copiloto Clínico NEUROAUTH</h3>
+      <p>Digite o procedimento em linguagem livre e o sistema preenche automaticamente TUSS, CID, justificativa cirúrgica e OPME completo — compatível com TISS 4.01.00.</p>
+      <div class="example-chips">
+        <span class="chip" onclick="tryExample('artrodese lombar L4-L5')">artrodese lombar L4-L5</span>
+        <span class="chip" onclick="tryExample('microdiscectomia L5-S1 direita')">microdiscectomia L5-S1</span>
+        <span class="chip" onclick="tryExample('craniotomia tumor cerebral')">craniotomia tumor</span>
+        <span class="chip" onclick="tryExample('DVP hidrocefalia')">DVP hidrocefalia</span>
+        <span class="chip" onclick="tryExample('clipagem aneurisma cerebral')">clipagem aneurisma</span>
+        <span class="chip" onclick="tryExample('artrodese cervical C4-C5 C5-C6')">artrodese cervical C4-C6</span>
+        <span class="chip" onclick="tryExample('laminectomia lombar L3-L5')">laminectomia L3-L5</span>
+        <span class="chip" onclick="tryExample('vertebroplastia L1 fratura osteoporotica')">vertebroplastia L1</span>
+      </div>
+    </div>
+    <div id="pages-container" style="display:none"></div>
+  </div>
+
+</div><!-- /workspace -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// NEUROAUTH_CLINICAL_AUTOFILL_ENGINE — inline
+// ═══════════════════════════════════════════════════════════════════════════
+
+const NEURO_PROCEDURE_LIBRARY = {
+  "artrodese_lombar": {
+    label: "Artrodese Lombar (Fixação Posterior)",
+    synonyms: ["artrodese lombar","fusao lombar","fixacao lombar","fixacao de coluna","estabilizacao posterior","artrodese vertebral","fusao vertebral lombar","cirurgia de coluna lombar","instrumentacao lombar","plif","tlif","posterior lumbar interbody fusion","transforaminal lumbar"],
+    tuss: "30715016", tabela_tuss: "22", cid_padrao: "M43.1",
+    justificativa_base: "Paciente apresenta quadro de dor lombar crônica refratária ao tratamento conservador por mais de 6 meses, com instabilidade segmentar documentada em {nivel} por exames de imagem (radiografia dinâmica e/ou RM). Indicada artrodese cirúrgica com instrumentação pedicular para estabilização definitiva, descompressão neural e restauração da altura discal.",
+    opme_obrigatorio: true, regime_internacao: "2", carater_atendimento: "1",
+    opme_template: [
+      { item: "Parafuso Pedicular Polyaxial Titânio", codigo_material: "20714100010", referencia: "POLY-PED-5.5", qtd_base: 2, por_nivel: true, nivel_mode: "vertebra", anvisa: "80072700018", fabricante: "DePuy Synthes / Stryker Brasil", unidade: "UN", justificativa: "Fixação pedicular bilateral para instrumentação posterior e estabilização segmentar em {nivel}. 2 parafusos por vértebra instrumentada." },
+      { item: "Haste Longitudinal CoCr 5.5mm", codigo_material: "20714100020", referencia: "ROD-COCR-5.5", qtd_base: 2, por_nivel: false, nivel_mode: "fixo", anvisa: "80072700021", fabricante: "DePuy Synthes / Stryker Brasil", unidade: "UN", justificativa: "Haste de cobalto-cromo bilateral para conexão dos parafusos pediculares e manutenção do alinhamento sagital." },
+      { item: "Crosslink / Conector Transversal", codigo_material: "20714100025", referencia: "XLINK-STD", qtd_base: 1, por_nivel: false, nivel_mode: "fixo", anvisa: "80072700025", fabricante: "DePuy Synthes / Stryker Brasil", unidade: "UN", justificativa: "Conector transversal para aumento da rigidez torsional da montagem pedicular bilateral." },
+      { item: "Cage Intersomático PEEK/Titânio", codigo_material: "20714100030", referencia: "CAGE-PEEK-LIF", qtd_base: 1, por_nivel: true, nivel_mode: "disco", anvisa: "80072700030", fabricante: "Alphatec / NuVasive Brasil", unidade: "UN", justificativa: "Espaçador intersomático para restauração da altura discal e fusão interbody em {nivel}." }
+    ]
+  },
+  "microdiscectomia": {
+    label: "Microdiscectomia",
+    synonyms: ["microdiscectomia","hernia de disco","microcirurgia hernia discal","discectomia lombar","cirurgia hernia","hernia discal lombar","descompressao radicular","hld","protrusion discal cirurgia","hernia disco lombossacra","ciatalgia cirurgia"],
+    tuss: "30715180", tabela_tuss: "22", cid_padrao: "M51.1",
+    justificativa_base: "Paciente com hérnia discal em {nivel}, apresentando radiculopatia persistente com irradiação para membro inferior, com falha do tratamento conservador por mais de 6 semanas. Exame de RM confirma compressão radicular por material discal extrusado. Indicada microdiscectomia para descompressão neural.",
+    opme_obrigatorio: false, regime_internacao: "2", carater_atendimento: "1",
+    opme_template: []
+  },
+  "derivacao_ventriculo_peritoneal": {
+    label: "Derivação Ventricular Peritoneal (DVP)",
+    synonyms: ["dvp","derivacao ventriculo peritoneal","valvula de derivacao","hidrocefalia cirurgia","derivacao liquorica","shunt ventriculoperitoneal","valvula anti-sifao","derivacao hidrocefalia"],
+    tuss: "30704016", tabela_tuss: "22", cid_padrao: "G91.9",
+    justificativa_base: "Paciente com hidrocefalia sintomática — cefaleia progressiva, alteração de marcha e distúrbio cognitivo — com dilatação ventricular documentada em RM/TC. Indicada derivação ventriculoperitoneal com válvula programável para controle da hipertensão intracraniana e restauração da dinâmica do LCR.",
+    opme_obrigatorio: true, regime_internacao: "2", carater_atendimento: "1",
+    opme_template: [
+      { item: "Válvula de Derivação Programável", codigo_material: "20704100010", referencia: "VALVE-PROG-STD", qtd_base: 1, por_nivel: false, nivel_mode: "fixo", anvisa: "10332340152", fabricante: "Medtronic / Integra Brasil", unidade: "UN", justificativa: "Válvula de derivação ventriculoperitoneal programável por telemetria magnética. Permite ajuste não-invasivo da pressão de abertura no pós-operatório." },
+      { item: "Cateter Ventricular Silicone", codigo_material: "20704100020", referencia: "CATH-VENT-14FR", qtd_base: 1, por_nivel: false, nivel_mode: "fixo", anvisa: "10332340153", fabricante: "Medtronic / Integra Brasil", unidade: "UN", justificativa: "Cateter ventricular radiopaco para punção e drenagem ventricular. Impregnado com antibiótico para redução de risco de infecção." },
+      { item: "Cateter Peritoneal Silicone", codigo_material: "20704100030", referencia: "CATH-PERIT-30CM", qtd_base: 1, por_nivel: false, nivel_mode: "fixo", anvisa: "10332340154", fabricante: "Medtronic / Integra Brasil", unidade: "UN", justificativa: "Cateter peritoneal para drenagem distal do LCR na cavidade peritoneal." }
+    ]
+  },
+  "craniotomia_tumor": {
+    label: "Craniotomia para Ressecção Tumoral",
+    synonyms: ["craniotomia tumor","resseccao tumoral cerebral","tumor cerebral cirurgia","craniotomia para tumor","exerese neoplasia cerebral","craniotomia glioma","craniotomia meningioma","craniotomia gbm","glioblastoma cirurgia","ressecao cerebral","craniotomia para neoplasia"],
+    tuss: "30706018", tabela_tuss: "22", cid_padrao: "C71.9",
+    justificativa_base: "Paciente com lesão expansiva intracraniana — compatível com neoplasia cerebral — com efeito de massa, edema perilesional e/ou déficit neurológico progressivo, documentada por RM com contraste. Indicada craniotomia para ressecção máxima segura da lesão, obtenção de material histológico e descompressão neural.",
+    opme_obrigatorio: true, regime_internacao: "2", carater_atendimento: "1",
+    opme_template: [
+      { item: "Sistema de Fixação Craniana Titânio (placa + parafusos)", codigo_material: "20161400070", referencia: "CRANIOPLAST-KIT", qtd_base: 1, por_nivel: false, nivel_mode: "fixo", anvisa: "10223710035", fabricante: "Stryker Brasil / DePuy Synthes", unidade: "KIT", justificativa: "Reposicionamento e fixação rígida do retalho ósseo após craniotomia. Sistema de placa e parafusos de titânio previne deslocamento e assegura cicatrização óssea adequada." },
+      { item: "Substituto Dural Biológico Absorvível", codigo_material: "20161200041", referencia: "DURA-BIO-5X6", qtd_base: 1, por_nivel: false, nivel_mode: "fixo", anvisa: "80378070002", fabricante: "Integra LifeSciences Brasil", unidade: "UN", justificativa: "Substituto dural para duroplastia quando dura-máter comprometida por infiltração tumoral ou insuficiente para fechamento primário." }
+    ]
+  },
+  "biopsia_cerebral": {
+    label: "Biópsia Cerebral (Estereotáxica ou Aberta)",
+    synonyms: ["biopsia cerebral","biopsia estereotaxica","biopsia de tumor cerebral","biopsia intracraniana","biopsia guiada","biopsia lesao cerebral","diagnostico histologico cerebral"],
+    tuss: "30706026", tabela_tuss: "22", cid_padrao: "D43.2",
+    justificativa_base: "Paciente com lesão intracraniana de etiologia indeterminada — sem diagnóstico histológico definido por exames não-invasivos. Indicada biópsia cerebral estereotáxica para obtenção de material para diagnóstico histopatológico definitivo e orientação terapêutica.",
+    opme_obrigatorio: false, regime_internacao: "1", carater_atendimento: "1",
+    opme_template: []
+  },
+  "craniectomia_descompressiva": {
+    label: "Craniectomia Descompressiva",
+    synonyms: ["craniectomia descompressiva","hipertensao intracraniana cirurgia","pic refrataria","hematoma epidural","hematoma subdural drenagem","traumatismo craniano cirurgia","sdh agudo"],
+    tuss: "30706034", tabela_tuss: "22", cid_padrao: "S06.5",
+    justificativa_base: "Paciente com hipertensão intracraniana refratária ao tratamento clínico máximo — ou hematoma intracraniano com efeito de massa — com risco iminente de herniação cerebral e morte. Indicada craniectomia descompressiva de urgência para redução da pressão intracraniana.",
+    opme_obrigatorio: false, regime_internacao: "2", carater_atendimento: "3",
+    opme_template: []
+  },
+  "tratamento_aneurisma_clipagem": {
+    label: "Clipagem Microcirúrgica de Aneurisma",
+    synonyms: ["aneurisma cerebral clipagem","clipagem aneurisma","clipagem de aneurisma","aneurisma intracraniano clipagem","clipagem microcirurgica","clipagem arterial cerebral","aneurisma cerebral cirurgia aberta"],
+    tuss: "30706042", tabela_tuss: "22", cid_padrao: "I67.1",
+    justificativa_base: "Paciente com aneurisma intracraniano com indicação de tratamento cirúrgico por clipagem microcirúrgica, dada morfologia e localização favoráveis. Indicada oclusão definitiva do colo com clip aneurismático para eliminação do risco de ruptura.",
+    opme_obrigatorio: true, regime_internacao: "2", carater_atendimento: "2",
+    opme_template: [
+      { item: "Clip Aneurismático Permanente Titânio", codigo_material: "20706100010", referencia: "CLIP-ANEURYSM-STD", qtd_base: 2, por_nivel: false, nivel_mode: "fixo", anvisa: "10150470555", fabricante: "Aesculap / Codman Brasil", unidade: "UN", justificativa: "Clip aneurismático permanente para oclusão definitiva do colo do aneurisma. Quantidade mínima de 2 clips prevê necessidade de clip auxiliar ou reposicionamento intraoperatório." }
+    ]
+  },
+  "tratamento_aneurisma_endovascular": {
+    label: "Embolização Endovascular de Aneurisma",
+    synonyms: ["embolizacao aneurisma","coil aneurisma","tratamento endovascular aneurisma","aneurisma embolizacao","neuroradiologia intervencionista aneurisma","pipeline diversion"],
+    tuss: "30912015", tabela_tuss: "22", cid_padrao: "I67.1",
+    justificativa_base: "Paciente com aneurisma intracraniano indicado para tratamento endovascular por morfologia favorável (razão domo/colo adequada) e/ou alto risco cirúrgico. Indicada embolização com microcoils de platina para oclusão progressiva.",
+    opme_obrigatorio: true, regime_internacao: "2", carater_atendimento: "2",
+    opme_template: [
+      { item: "Microcoil de Platina", codigo_material: "20912100010", referencia: "COIL-PT-3D", qtd_base: 3, por_nivel: false, nivel_mode: "fixo", anvisa: "10150470666", fabricante: "Stryker Neurovascular / MicroVention", unidade: "UN", justificativa: "Microcoils de platina para embolização progressiva do saco aneurismático. Quantidade ajustada intraoperatoriamente por progressão do preenchimento." },
+      { item: "Microcateter Neurovascular", codigo_material: "20912100020", referencia: "MICROCATH-NEURO", qtd_base: 1, por_nivel: false, nivel_mode: "fixo", anvisa: "10150470667", fabricante: "Stryker / Medtronic", unidade: "UN", justificativa: "Microcateter para acesso superseletivo ao saco aneurismático durante embolização endovascular." }
+    ]
+  },
+  "laminectomia_lombar": {
+    label: "Laminectomia / Descompressão Lombar",
+    synonyms: ["laminectomia","descompressao lombar","estenose lombar cirurgia","laminectomia lombar","estenose do canal lombar","estenose vertebral","descompressao cirurgica canal medular","claudicacao neurogena"],
+    tuss: "30715121", tabela_tuss: "22", cid_padrao: "M48.0",
+    justificativa_base: "Paciente com estenose do canal medular lombar sintomática em {nivel} — claudicação neurogênica, dor irradiada bilateral e limitação funcional — refratária ao tratamento conservador por mais de 6 semanas. Indicada descompressão cirúrgica por laminectomia.",
+    opme_obrigatorio: false, regime_internacao: "2", carater_atendimento: "1",
+    opme_template: []
+  },
+  "rizotomia_percutanea": {
+    label: "Rizotomia Percutânea do Trigêmeo",
+    synonyms: ["rizotomia","neuralgia trigeminal cirurgia","rizotomia percutanea","neuralgia do trigemio","termocoagulacao percutanea","ganglio de gasser","forame oval percutaneo"],
+    tuss: "30712022", tabela_tuss: "22", cid_padrao: "G50.0",
+    justificativa_base: "Paciente com neuralgia do trigêmeo clássica — dor paroxística tipo choque em território trigeminal — refratária a carbamazepina em dose máxima tolerada e/ou com efeitos colaterais inaceitáveis. Indicada rizotomia percutânea por termocoagulação do gânglio de Gasser.",
+    opme_obrigatorio: false, regime_internacao: "1", carater_atendimento: "1",
+    opme_template: []
+  },
+  "implante_eletrodo_medular": {
+    label: "Implante de Neuroestimulador Medular",
+    synonyms: ["estimulador medular","neuroestimulacao medular","implante eletrodo medular","neuromodulacao medular","spinal cord stimulation","scs implante","dor neuropatica estimulador","neuroestimulador coluna"],
+    tuss: "30717011", tabela_tuss: "22", cid_padrao: "M96.1",
+    justificativa_base: "Paciente com dor neuropática crônica refratária a múltiplos tratamentos farmacológicos e intervencionistas, com avaliação psicológica favorável. Indicado implante de neuroestimulador medular após teste de rastreamento positivo.",
+    opme_obrigatorio: true, regime_internacao: "2", carater_atendimento: "1",
+    opme_template: [
+      { item: "Eletrodo Epidural Percutâneo 8 contatos", codigo_material: "20717100010", referencia: "ELEC-EPI-8CH", qtd_base: 1, por_nivel: false, nivel_mode: "fixo", anvisa: "10332340222", fabricante: "Medtronic / Abbott Neuromodulation", unidade: "UN", justificativa: "Eletrodo de neuroestimulação epidural com 8 contatos para cobertura bilateral do campo doloroso. Posicionamento guiado por fluoroscopia." },
+      { item: "Gerador de Pulso Implantável Recarregável", codigo_material: "20717100020", referencia: "IPG-RECHARG-STD", qtd_base: 1, por_nivel: false, nivel_mode: "fixo", anvisa: "10332340223", fabricante: "Medtronic / Abbott Neuromodulation", unidade: "UN", justificativa: "Gerador de pulso implantável com bateria recarregável por indução. Longevidade > 10 anos." },
+      { item: "Cabo de Extensão / Conector", codigo_material: "20717100030", referencia: "EXT-CABLE-60CM", qtd_base: 1, por_nivel: false, nivel_mode: "fixo", anvisa: "10332340224", fabricante: "Medtronic / Abbott Neuromodulation", unidade: "UN", justificativa: "Cabo de extensão para conexão entre eletrodo epidural e gerador subcutâneo." }
+    ]
+  },
+  "vertebroplastia": {
+    label: "Vertebroplastia / Cifoplastia",
+    synonyms: ["vertebroplastia","cifoplastia","cimentacao vertebral","fratura vertebral osteoporotica","cimento vertebral","balloon kyphoplasty","fratura vertebral compressao"],
+    tuss: "30715083", tabela_tuss: "22", cid_padrao: "M80.0",
+    justificativa_base: "Paciente com fratura vertebral por compressão em {nivel} — osteoporótica ou por fragilidade — com dor mecânica intensa e limitação funcional, refratária ao tratamento clínico por mais de 4 semanas. Indicada vertebroplastia percutânea para estabilização e alívio da dor.",
+    opme_obrigatorio: true, regime_internacao: "1", carater_atendimento: "1",
+    opme_template: [
+      { item: "Cimento Ósseo PMMA Kit para Vertebroplastia", codigo_material: "20715100010", referencia: "PMMA-VERTEBRO-KIT", qtd_base: 1, por_nivel: true, nivel_mode: "disco", anvisa: "10332340333", fabricante: "Stryker / DePuy Synthes Brasil", unidade: "KIT", justificativa: "Cimento ósseo PMMA para injeção intracorporal transpedicular. Estabiliza microfraturas e restaura resistência mecânica do corpo vertebral acometido em {nivel}." }
+    ]
+  },
+  "artrodese_cervical": {
+    label: "Artrodese Cervical (ACDF / Posterior)",
+    synonyms: ["artrodese cervical","fusao cervical","acdf","anterior cervical discectomy fusion","fixacao cervical","instabilidade cervical","hernia cervical artrodese","mielopatia cervical","placa cervical anterior","fusao anterior cervical"],
+    tuss: "30714010", tabela_tuss: "22", cid_padrao: "M50.1",
+    justificativa_base: "Paciente com hérnia discal cervical / espondilomielopatia em {nivel} — com radiculopatia e/ou mielopatia progressiva documentada — refratária ao tratamento conservador. Indicada artrodese cervical anterior com cage e placa de fixação para descompressão e estabilização.",
+    opme_obrigatorio: true, regime_internacao: "2", carater_atendimento: "1",
+    opme_template: [
+      { item: "Cage Cervical Intersomático PEEK", codigo_material: "20714200010", referencia: "CAGE-CERV-PEEK", qtd_base: 1, por_nivel: true, nivel_mode: "disco", anvisa: "80072700040", fabricante: "Alphatec / Globus Medical", unidade: "UN", justificativa: "Espaçador intersomático cervical PEEK para discectomia e fusão anterior em {nivel}. Restaura altura do disco e descomprime raízes e/ou medula." },
+      { item: "Placa Cervical Anterior + Parafusos (Kit)", codigo_material: "20714200020", referencia: "CERV-PLATE-KIT", qtd_base: 1, por_nivel: false, nivel_mode: "fixo", anvisa: "80072700041", fabricante: "DePuy Synthes / Stryker Brasil", unidade: "KIT", justificativa: "Placa anterior de titânio para fixação e estabilização da coluna cervical após artrodese. Parafusos autobloqueantes inclusos." }
+    ]
+  }
+};
+
+// ── Autofill Engine ──────────────────────────────────────────────────────
+function normalize(text) {
+  return (text||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
+}
+function extractNivel(t) {
+  const r = t.match(/\b([lct]\s*\d{1,2})\s*[-–]\s*([lcts]\s*\d{1,2})\b/gi);
+  if (r) return r[0].toUpperCase().replace(/\s+/g,'').replace('–','-');
+  const s = t.match(/\b([lct])(\d{1,2})\b/gi);
+  return s ? s[0].toUpperCase() : null;
+}
+function extractLateralidade(t) {
+  if (/\b(bilateral|ambos)\b/.test(t)) return 'bilateral';
+  if (/\b(esquerdo|esquerda|esq)\b/.test(t)) return 'esquerdo';
+  if (/\b(direito|direita|dir)\b/.test(t)) return 'direito';
+  return null;
+}
+function countDiscLevels(nivel) {
+  if (!nivel) return 1;
+  const m = nivel.match(/([LCTS])(\d+)-([LCTS])(\d+)/i);
+  if (!m) return 1;
+  const end = m[3].toUpperCase() === 'S' ? 6 : parseInt(m[4]);
+  return Math.max(1, end - parseInt(m[2]));
+}
+function countVertebrae(nivel) { return countDiscLevels(nivel) + 1; }
+function formatNivel(n) { return n ? n.toUpperCase().replace('--','-') : 'nível a determinar'; }
+
+function parseProcedimento(input) {
+  const norm = normalize(input);
+  let matchedKey = null, matchScore = 0;
+  for (const [key, proc] of Object.entries(NEURO_PROCEDURE_LIBRARY)) {
+    for (const syn of proc.synonyms) {
+      const ns = normalize(syn);
+      let score = 0;
+      if (norm === ns) score = ns.length * 3;
+      else if (norm.includes(ns)) score = ns.length * 2;
+      else if (ns.includes(norm)) score = norm.length;
+      else {
+        const words = ns.split(' ').filter(w => w.length > 3);
+        const matched = words.filter(w => norm.includes(w));
+        if (words.length && matched.length === words.length) score = words.length * 5;
+        else if (matched.length >= 2) score = matched.length * 2;
+      }
+      if (score > matchScore) { matchScore = score; matchedKey = key; }
+    }
+  }
+  const techKeywords = [];
+  if (/neuronaveg/.test(norm)) techKeywords.push('neuronavegacao');
+  if (/fluorescenc|5-ala/.test(norm)) techKeywords.push('fluorescencia');
+  if (/endoscop/.test(norm)) techKeywords.push('endoscopia');
+  if (/minimamente.invasiv|mis\b/.test(norm)) techKeywords.push('minimamente_invasivo');
+  return { procKey: matchedKey, nivel: extractNivel(norm), lateralidade: extractLateralidade(norm), techKeywords, rawInput: input, confidence: Math.min(100, matchScore * 5) };
+}
+function generateJustificativa(template, ctx) {
+  return (template||'').replace(/\{nivel\}/g, formatNivel(ctx.nivel)).replace(/\{lateralidade\}/g, ctx.lateralidade||'a determinar');
+}
+function buildOPME(proc, ctx) {
+  const disc = countDiscLevels(ctx.nivel), vert = countVertebrae(ctx.nivel);
+  return (proc.opme_template||[]).map((item, i) => {
+    let qtd = item.qtd_base;
+    if (item.por_nivel) {
+      qtd = item.nivel_mode === 'vertebra' ? item.qtd_base * vert
+           : item.nivel_mode === 'disco'   ? item.qtd_base * disc
+           : item.qtd_base;
+    }
+    if (/crosslink/i.test(item.item) && disc > 2) qtd = 2;
+    return {
+      tiss_62_opme_sequencial: i+1,
+      tiss_63_opme_codigo_material: item.codigo_material||'',
+      tiss_64_opme_referencia_fabricante: item.referencia||'',
+      tiss_65_opme_descricao_item: item.item,
+      tiss_66_opme_qtd_solicitada: qtd,
+      tiss_67_opme_qtd_autorizada: null,
+      tiss_68_opme_unidade_medida: item.unidade||'UN',
+      tiss_69_opme_numero_anvisa: item.anvisa||'',
+      tiss_70_opme_nome_fabricante: item.fabricante||'',
+      tiss_71_opme_justificativa_uso: generateJustificativa(item.justificativa, ctx)
+    };
+  });
+}
+function inferClinicalData(parsed) {
+  if (!parsed.procKey) return { success: false, error: `Procedimento não reconhecido: "${parsed.rawInput}"` };
+  const proc = NEURO_PROCEDURE_LIBRARY[parsed.procKey];
+  const ctx = { nivel: parsed.nivel, lateralidade: parsed.lateralidade, techKeywords: parsed.techKeywords };
+  return {
+    success: true, procKey: parsed.procKey, label: proc.label,
+    tuss: proc.tuss, tabela_tuss: proc.tabela_tuss, cid_principal: proc.cid_padrao,
+    justificativa_clinica: generateJustificativa(proc.justificativa_base, ctx),
+    opme_itens: buildOPME(proc, ctx),
+    opme_obrigatorio: proc.opme_obrigatorio,
+    regime_internacao: proc.regime_internacao, carater_atendimento: proc.carater_atendimento,
+    nivel: parsed.nivel, lateralidade: parsed.lateralidade, techKeywords: parsed.techKeywords,
+    discLevels: countDiscLevels(parsed.nivel), vertebrae: countVertebrae(parsed.nivel),
+    confidence: parsed.confidence
+  };
+}
+function mapToTISSPayload(cd, p) {
+  if (!cd || !cd.success) return null;
+  p = p || {};
+  const now = new Date().toISOString().split('T')[0];
+  const caratLabel = cd.carater_atendimento === '3' ? 'Urgência/Emergência' : cd.carater_atendimento === '2' ? 'Urgência' : 'Eletivo';
+  return {
+    _meta: { payload_id: `NEUROAUTH-${Date.now()}`, engine_version: '2.0.0', proc_key: cd.procKey, nivel: cd.nivel, confidence: cd.confidence },
+    tiss_01_registro_ans: p.registro_ans||'', tiss_02_numero_guia_operadora: p.numero_guia||'',
+    tiss_03_senha_autorizacao: p.senha_autorizacao||'', tiss_04_data_autorizacao: null,
+    tiss_05_data_validade_senha: null, tiss_06_data_validade_atendimento: null, tiss_07_numero_guia_principal: null,
+    tiss_08_numero_carteira: p.numero_carteira||'', tiss_09_atendimento_rn: false,
+    tiss_10_nome_beneficiario: p.nome_beneficiario||'', tiss_11_numero_cns: '',
+    tiss_12_data_nascimento: p.data_nascimento||null, tiss_13_nome_social: null,
+    tiss_14_codigo_plano: '', tiss_15_nome_plano: p.nome_plano||'', tiss_16_validade_carteira: null,
+    tiss_17_codigo_contratado_sol: '', tiss_18_nome_contratado_sol: p.nome_clinica||'',
+    tiss_19_codigo_cnes_sol: '', tiss_20_codigo_operadora_sol: p.registro_ans||'',
+    tiss_21_nome_profissional_sol: p.nome_medico||'', tiss_22_conselho_profissional_sol: 'CRM',
+    tiss_23_numero_conselho_sol: p.crm||'', tiss_24_uf_conselho_sol: p.uf_crm||'',
+    tiss_25_codigo_cbo_sol: '225125', tiss_26_descricao_cbo_sol: 'Médico Neurocirurgião',
+    tiss_27_codigo_contratado_exec: '', tiss_28_nome_contratado_exec: p.nome_hospital||'',
+    tiss_29_codigo_cnes_exec: p.cnes_exec||'', tiss_30_codigo_operadora_exec: p.registro_ans||'',
+    tiss_31_nome_profissional_exec: p.nome_medico||'', tiss_32_conselho_profissional_exec: 'CRM',
+    tiss_33_numero_conselho_exec: p.crm||'', tiss_34_uf_conselho_exec: p.uf_crm||'',
+    tiss_35_codigo_cbo_exec: '225125', tiss_36_descricao_cbo_exec: 'Médico Neurocirurgião',
+    tiss_37_data_solicitacao: p.data_sol||now, tiss_38_carater_atendimento: caratLabel,
+    tiss_39_tipo_consulta: null, tiss_40_indicacao_acidente: 'Não', tiss_41_tipo_internacao: 'Cirúrgica',
+    tiss_42_indicacao_clinica: p.indicacao_clinica || cd.justificativa_clinica.substring(0, 300),
+    procedimentos: [{
+      tiss_43_proc_sequencial: 1, tiss_44_proc_codigo_tabela: cd.tabela_tuss,
+      tiss_45_proc_codigo: cd.tuss, tiss_46_proc_descricao: cd.label,
+      tiss_47_proc_qtd_solicitada: 1, tiss_48_proc_qtd_autorizada: null,
+      tiss_49_proc_via_acesso: 'Única',
+      tiss_50_proc_tecnica: cd.techKeywords.includes('minimamente_invasivo') ? 'Minimamente Invasivo' : 'Convencional',
+      tiss_51_proc_reducao_acrescimo: 0
+    }],
+    tiss_52_cid_principal: p.cid||cd.cid_principal, tiss_53_cid_secundario: null,
+    tiss_54_cid_causas_1: null, tiss_55_cid_causas_2: null,
+    tiss_56_indicacao_acidente_diag: 'Não', tiss_57_tipo_consulta_diag: null,
+    tiss_58_observacao: p.observacao||'',
+    tiss_59_assinatura_medico_sol: '__ASSINATURA_DIGITAL__', tiss_60_data_assinatura_sol: p.data_sol||now,
+    tiss_61_assinatura_beneficiario: '__ASSINATURA_BENEFICIARIO__',
+    opme_itens: cd.opme_itens,
+    tiss_72_justificativa_clinica: p.justificativa||cd.justificativa_clinica,
+    tiss_73_hipotese_diagnostica: p.hipotese||'',
+    tiss_74_assinatura_medico_exec: '__ASSINATURA_DIGITAL__', tiss_75_data_assinatura_exec: p.data_sol||now,
+    tiss_76_conselho_carimbo_exec: `CRM-${p.uf_crm||''} ${p.crm||''}`.trim(),
+    tiss_77_assinatura_beneficiario_p2: '__ASSINATURA_BENEFICIARIO__',
+    // billing fields
+    paciente_nome: p.nome_beneficiario||'',
+    operadora_nome: p.nome_plano||'',
+    medico_crm: `CRM/${p.uf_crm||'SP'} ${p.crm||''}`.trim(),
+    autofill_used: true,
+    user_id: 'copiloto_clinico'
+  };
+}
+
+// ── Consumo Modal ─────────────────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REVENUE EXPERIENCE LAYER — HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function _getActiveUserId() {
+  return (typeof PAYLOAD !== 'undefined' && PAYLOAD && PAYLOAD.user_id)
+    ? PAYLOAD.user_id : 'copiloto_clinico';
+}
+
+function _periodLabel(period) {
+  if (!period) return '—';
+  const [yr, mo] = period.split('-');
+  return `${MESES_PT[parseInt(mo, 10) - 1]} ${yr}`;
+}
+
+function _fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso.includes('T') ? iso : iso + 'T12:00:00Z');
+  return `${d.getUTCDate().toString().padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;
+}
+
+// ── Access Policy State (in-memory for session) ────────────────────────────
+let _currentPolicy = null;
+
+async function _refreshAccessPolicy() {
+  if (typeof NEUROAUTH_ACCESS_POLICY === 'undefined') return null;
+  const uid = _getActiveUserId();
+  _currentPolicy = await NEUROAUTH_ACCESS_POLICY.evaluate(uid);
+  _applyPolicyUI(_currentPolicy);
+  return _currentPolicy;
+}
+
+function _applyPolicyUI(policy) {
+  if (!policy) return;
+  const banner  = document.getElementById('billing-banner');
+  const bbIcon  = document.getElementById('bb-icon');
+  const bbTitle = document.getElementById('bb-title');
+  const bbMsg   = document.getElementById('bb-msg');
+  const bbAction = document.getElementById('bb-action');
+
+  if (policy.show_billing_banner && policy.severity !== 'info') {
+    banner.className = 'show ' + (policy.severity === 'critical' ? 'critical' : 'warn');
+    if (policy.access_state === 'warning') {
+      bbIcon.textContent = '⚠️';
+      bbTitle.textContent = 'Fatura com vencimento próximo';
+      bbMsg.textContent = policy.message_user;
+      bbAction.textContent = 'Ver extrato';
+      bbAction.onclick = () => showConsumo();
+    } else if (policy.access_state === 'grace_period') {
+      bbIcon.textContent = '⏳';
+      bbTitle.textContent = 'Extrato em atraso — acesso com cortesia';
+      bbMsg.textContent = policy.message_user;
+      bbAction.textContent = 'Regularizar';
+      bbAction.onclick = () => showRestrict();
+    } else if (policy.access_state === 'restricted' || policy.access_state === 'blocked') {
+      bbIcon.textContent = '🔒';
+      bbTitle.textContent = policy.access_state === 'blocked' ? 'Acesso suspenso' : 'Acesso limitado';
+      bbMsg.textContent = policy.message_user;
+      bbAction.textContent = 'Regularizar';
+      bbAction.onclick = () => showRestrict();
+    }
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DOCTOR DASHBOARD (consumo modal)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function showConsumo() {
+  document.getElementById('consumo-overlay').classList.add('open');
+  renderConsumo();
+}
+function closeConsumo() {
+  document.getElementById('consumo-overlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeConsumo(); closeAdmin(); closeRestrict(); closeFounderDashboard(); }
+});
+
+async function renderConsumo() {
+  const body = document.getElementById('cm-body');
+  body.innerHTML = `<div class="cm-loading"><div class="cm-spinner"></div>Carregando dados...</div>`;
+
+  const uid  = _getActiveUserId();
+  let dash, policy;
+
+  try {
+    dash   = await NEUROAUTH_AGGREGATOR.getDoctorDashboard(uid);
+    policy = _currentPolicy || await NEUROAUTH_ACCESS_POLICY.evaluate(uid);
+  } catch (err) {
+    body.innerHTML = `<div class="cm-empty"><div class="em-icon">⚠️</div><p>Não foi possível carregar os dados.<br><small>${err.message}</small></p></div>`;
+    return;
+  }
+
+  // Period label
+  const period = dash.current_period || dash.period || new Date().toISOString().slice(0,7);
+  document.getElementById('cm-period-label').textContent = _periodLabel(period);
+
+  // Normalize fields
+  const d = {
+    total_guias:    dash.total_guias_mes || 0,
+    gasto_fmt:      dash.gasto_acumulado_formatado || NEUROAUTH_AGGREGATOR.fmtBRL(dash.gasto_acumulado_brl || 0),
+    gasto_brl:      dash.gasto_acumulado_brl || 0,
+    economia_fmt:   dash.economia_trial_formatado || NEUROAUTH_AGGREGATOR.fmtBRL(dash.economia_trial_brl || 0),
+    economia_brl:   dash.economia_trial_brl || 0,
+    pending_count:  dash.pending_registration || 0,
+    standard_count: dash.total_standard_mes || 0,
+    premium_count:  dash.total_premium_mes || 0,
+    trial_count:    dash.total_trial_mes || 0,
+    in_trial:       dash.trial_active,
+    trial_used:     dash.trial_used || 0,
+    trial_remaining:dash.trial_remaining || 0,
+    por_operadora:  dash.resumo_por_operadora || [],
+    ultimas_guias:  dash.ultimas_guias || [],
+    invoice_id:     dash.ultimo_invoice_id || null,
+    inv_status:     dash.status_invoice || 'not_generated',
+    due_date:       dash.due_date || null
+  };
+
+  // Economy of time: ~15 min saved per guide
+  const minsSaved = d.total_guias * 15;
+  const hrsSaved  = minsSaved >= 60 ? `${Math.floor(minsSaved/60)}h${minsSaved%60>0?minsSaved%60+'min':''}` : `${minsSaved}min`;
+
+  // Empty state
+  if (d.total_guias === 0) {
+    body.innerHTML = `
+      <div class="cm-empty">
+        <div class="em-icon">📋</div>
+        <p>Nenhuma guia gerada em ${_periodLabel(period)} ainda.<br>Gere sua primeira guia para ver o painel aqui.</p>
+      </div>`;
+    return;
+  }
+
+  // ── Invoice card ────────────────────────────────────────────────────────
+  const invStatusMap = {
+    paid:          { cls: 'paid',    icon: '✅', badge: 'paid',    label: 'Paga',          badgeTxt: 'Paga' },
+    open:          { cls: 'open',    icon: '📄', badge: 'open',    label: 'Aberta',        badgeTxt: 'Aberta' },
+    overdue:       { cls: 'overdue', icon: '⚠️', badge: 'overdue', label: 'Em atraso',     badgeTxt: 'Em atraso' },
+    not_generated: { cls: 'none',    icon: '📄', badge: 'none',    label: 'Em aberto',     badgeTxt: 'Sem fatura' },
+    none:          { cls: 'none',    icon: '📄', badge: 'none',    label: 'Sem fatura',    badgeTxt: '—' }
+  };
+  const invInfo    = invStatusMap[d.inv_status] || invStatusMap.none;
+  const invDueTxt  = d.due_date ? `Vencimento: ${_fmtDate(d.due_date)}` : (d.inv_status === 'not_generated' ? 'Fatura gerada ao fechar o período' : '');
+  const invCard = `
+    <div class="cm-invoice-card ${invInfo.cls}">
+      <div class="cic-icon">${invInfo.icon}</div>
+      <div class="cic-info">
+        <div class="cic-label">Fatura do período</div>
+        <div class="cic-value">${d.gasto_fmt}</div>
+        <div class="cic-sub">${invDueTxt || '&nbsp;'}</div>
+      </div>
+      <div class="cic-status">
+        <span class="cic-badge ${invInfo.badge}">${invInfo.badgeTxt}</span>
+        ${d.inv_status !== 'not_generated' && d.inv_status !== 'none'
+          ? `<button class="cic-action" onclick="closeConsumo();showRestrict()">Ver extrato →</button>`
+          : ''}
+      </div>
+    </div>`;
+
+  // ── Trial banner ─────────────────────────────────────────────────────────
+  const trialPct = Math.min(100, Math.round((d.trial_used / 10) * 100));
+  const trialBanner = d.in_trial ? `
+    <div class="cm-trial-banner">
+      <div class="tb-icon">🎁</div>
+      <div class="tb-text">
+        <strong>Trial ativo — ${d.trial_remaining} guia${d.trial_remaining !== 1 ? 's' : ''} grátis restante${d.trial_remaining !== 1 ? 's' : ''}</strong>
+        <span>Você usou ${d.trial_used} de 10 guias gratuitas do período de trial</span>
+        <div class="cm-trial-bar-wrap">
+          <div class="cm-trial-bar" style="width:${trialPct}%"></div>
+        </div>
+      </div>
+    </div>` : `
+    <div class="cm-trial-banner" style="background:linear-gradient(90deg,#f0f4ff,#e8eeff);border-color:#c5d0f5">
+      <div class="tb-icon">✅</div>
+      <div class="tb-text">
+        <strong style="color:#1b3f6b">Trial concluído — faturamento postpaid ativo</strong>
+        <span style="color:#4a7ed6">Suas guias são cobradas consolidadamente ao final do mês</span>
+      </div>
+    </div>`;
+
+  // ── KPI grid (4 cards) ───────────────────────────────────────────────────
+  const stats = `
+    <div class="cm-stats">
+      <div class="cm-stat highlight">
+        <div class="st-val">${d.total_guias}</div>
+        <div class="st-lbl">Guias geradas</div>
+      </div>
+      <div class="cm-stat">
+        <div class="st-val">${d.gasto_fmt}</div>
+        <div class="st-lbl">Acumulado no mês</div>
+      </div>
+      <div class="cm-stat">
+        <div class="st-val">${d.pending_count}</div>
+        <div class="st-lbl">Pendentes registro</div>
+      </div>
+    </div>`;
+
+  // ── KPI row: economia ────────────────────────────────────────────────────
+  const kpiRow = `
+    <div class="cm-kpi-row">
+      <div class="cm-kpi green">
+        <div class="kpi-val">${d.economia_fmt}</div>
+        <div class="kpi-lbl">Economia com trial</div>
+      </div>
+      <div class="cm-kpi amber">
+        <div class="kpi-val">${hrsSaved}</div>
+        <div class="kpi-lbl">Tempo economizado est.</div>
+      </div>
+    </div>`;
+
+  // ── Tier pills ────────────────────────────────────────────────────────────
+  const tiers = `
+    <p class="cm-section-title">Tipo de guia</p>
+    <div class="cm-tiers">
+      <div class="cm-tier-pill std">
+        <div class="tp-count">${d.standard_count}</div>
+        <div class="tp-info">
+          <strong>Standard</strong>
+          <span>≤ 5 OPME · R$ 5,00/guia</span>
+        </div>
+      </div>
+      <div class="cm-tier-pill prm">
+        <div class="tp-count">${d.premium_count}</div>
+        <div class="tp-info">
+          <strong>Premium OPME</strong>
+          <span>&gt; 5 OPME · R$ 7,50/guia</span>
+        </div>
+      </div>
+      ${d.in_trial ? `
+      <div class="cm-tier-pill" style="background:#f0fdf5;border:1px solid #b6e8cc">
+        <div class="tp-count" style="color:#0e7a50">${d.trial_count}</div>
+        <div class="tp-info">
+          <strong style="color:#0e7a50">Trial grátis</strong>
+          <span>Coberto pelo período gratuito</span>
+        </div>
+      </div>` : ''}
+    </div>`;
+
+  // ── Operadoras table ──────────────────────────────────────────────────────
+  const maxOp = Math.max(1, ...d.por_operadora.map(o => o.guias));
+  let opRows = '';
+  d.por_operadora.forEach(op => {
+    const pct = Math.round((op.guias / maxOp) * 100);
+    opRows += `
+      <tr>
+        <td><strong>${op.operadora}</strong></td>
+        <td style="text-align:center;font-weight:700">${op.guias}</td>
+        <td>${op.total_formatted || NEUROAUTH_AGGREGATOR.fmtBRL(op.total || 0)}</td>
+        <td class="cm-op-bar-cell">
+          <div class="cm-op-bar" style="width:${pct}%"></div>
+        </td>
+      </tr>`;
+  });
+  const opSection = d.por_operadora.length > 0 ? `
+    <p class="cm-section-title" style="margin-top:4px">Por operadora</p>
+    <table class="cm-op-table">
+      <thead><tr><th>Operadora</th><th>Guias</th><th>Total</th><th></th></tr></thead>
+      <tbody>${opRows}</tbody>
+    </table>` : '';
+
+  // ── Recent guides ─────────────────────────────────────────────────────────
+  let guideItems = '';
+  d.ultimas_guias.forEach(e => {
+    const isPrm  = e.tier === 'premium';
+    const badge  = isPrm ? 'prm' : 'std';
+    const label  = isPrm ? 'P' : 'S';
+    const date   = (e.generated_at || '').substring(0, 10);
+    const op     = e.operadora || '—';
+    const proc   = e.procedimento || e.procedimento_desc || '—';
+    const status = e.status === 'billing_reported' || e.status === 'billing_reconciled' ? 'rep' : 'pend';
+    const stLbl  = status === 'rep' ? 'Registrado' : 'Pendente';
+    guideItems += `
+      <li class="cm-guide-item">
+        <div class="cm-guide-badge ${badge}">${label}</div>
+        <div class="cm-guide-info">
+          <strong>${op}</strong>
+          <span>${date}${proc !== '—' ? ' · ' + proc.substring(0,30) : ''}</span>
+        </div>
+        <span class="cm-guide-amount">${e.amount_formatted || NEUROAUTH_AGGREGATOR.fmtBRL(e.amount_brl || 0)}</span>
+        <span class="cm-guide-status ${status}">${stLbl}</span>
+      </li>`;
+  });
+  const recentSection = `
+    <p class="cm-section-title">Últimas guias</p>
+    <ul class="cm-guide-list">${guideItems}</ul>`;
+
+  // ── Action buttons ────────────────────────────────────────────────────────
+  const actions = `
+    <div class="cm-actions">
+      <button class="cm-act-btn secondary" onclick="closeConsumo()">✕ Fechar</button>
+      ${policy && (policy.access_state === 'restricted' || policy.access_state === 'blocked' || policy.access_state === 'grace_period')
+        ? `<button class="cm-act-btn danger" onclick="closeConsumo();showRestrict()">💳 Regularizar pagamento</button>`
+        : `<button class="cm-act-btn primary" onclick="closeConsumo()">✓ Continuar</button>`
+      }
+    </div>`;
+
+  // ── Smart Reuse + ROI sections (async, append after base render) ────────
+  const uid = _getActiveUserId();
+  const [blueprintSec, recentCaseSec, roiSec] = await Promise.all([
+    _buildBlueprintSection(uid),
+    _buildRecentCasesSection(uid),
+    _buildROISection(uid, _periodLabel(_dash.period || ''))
+  ]);
+  body.innerHTML = invCard + trialBanner + stats + kpiRow + tiers + opSection +
+    blueprintSec + recentCaseSec + recentSection + roiSec + actions;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FOUNDER DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function showFounderDashboard() {
+  document.getElementById('founder-overlay').classList.add('open');
+  if (typeof NEUROAUTH_ANALYTICS !== 'undefined') {
+    NEUROAUTH_ANALYTICS.renderFounderDashboard('founder-dashboard');
+  }
+}
+function closeFounderDashboard() {
+  document.getElementById('founder-overlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ADMIN DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function showAdmin() {
+  document.getElementById('admin-overlay').classList.add('open');
+  renderAdmin();
+}
+function closeAdmin() {
+  document.getElementById('admin-overlay').classList.remove('open');
+}
+
+async function renderAdmin() {
+  const body = document.getElementById('adm-body');
+  body.innerHTML = `<div class="cm-loading"><div class="cm-spinner"></div>Carregando dashboard operacional...</div>`;
+
+  const period = new Date().toISOString().slice(0, 7);
+  document.getElementById('adm-period-label').textContent = _periodLabel(period);
+
+  let adm, profit, rec;
+  try {
+    adm    = await NEUROAUTH_AGGREGATOR.getAdminDashboard(period);
+    rec    = await NEUROAUTH_BILLING_CLIENT.getReconciliationReport({});
+    profit = adm.profitability || {};
+  } catch (err) {
+    body.innerHTML = `<div class="cm-empty"><div class="em-icon">⚠️</div><p>Erro ao carregar dados operacionais.<br><small>${err.message}</small></p></div>`;
+    return;
+  }
+
+  const totalGuias  = adm.total_guias || 0;
+  const totalUsers  = adm.total_users_active || 0;
+  const grossRev    = adm.gross_revenue_brl || 0;
+  const grossFmt    = adm.gross_revenue_formatted || NEUROAUTH_AGGREGATOR.fmtBRL(grossRev);
+  const stdCount    = adm.total_standard || 0;
+  const prmCount    = adm.total_premium  || 0;
+  const pending     = adm.pending_registration || 0;
+  const failed      = adm.failed_reports_count || 0;
+  const closingStatus = adm.closing_status || 'not_closed';
+  const invCount    = adm.invoices_generated_count || 0;
+  const margin      = profit.gross_margin_pct || 0;
+  const prmMix      = profit.premium_mix_pct || 0;
+  const avgTicket   = adm.average_ticket_brl || 0;
+  const topUsers    = adm.top_users || [];
+  const byOp        = adm.revenue_by_operadora || [];
+  const revStd      = adm.revenue_by_tier && adm.revenue_by_tier.standard || 0;
+  const revPrm      = adm.revenue_by_tier && adm.revenue_by_tier.premium  || 0;
+
+  // ── Health Score ──────────────────────────────────────────────────────────
+  let healthScore = 100;
+  if (pending > 0) healthScore -= Math.min(20, pending * 5);
+  if (failed  > 0) healthScore -= Math.min(20, failed  * 10);
+  if (margin  < 50) healthScore -= 15;
+  if (closingStatus === 'not_closed') healthScore -= 5;
+  healthScore = Math.max(0, Math.round(healthScore));
+  const healthCls = healthScore >= 80 ? 'good' : healthScore >= 50 ? 'warn' : 'crit';
+  const healthTxt = healthScore >= 80 ? 'Sistema saudável' : healthScore >= 50 ? 'Atenção necessária' : 'Ação urgente recomendada';
+
+  const healthCard = `
+    <div class="adm-health ${healthCls}">
+      <div class="hs-score">${healthScore}</div>
+      <div class="hs-info">
+        <strong>${healthTxt}</strong>
+        <span>Health score financeiro · ${_periodLabel(period)}</span>
+      </div>
+    </div>`;
+
+  // ── KPI grid ──────────────────────────────────────────────────────────────
+  const kpis = `
+    <div class="adm-kpi-grid">
+      <div class="adm-kpi highlight">
+        <div class="ak-val">${grossFmt}</div>
+        <div class="ak-lbl">Receita bruta</div>
+      </div>
+      <div class="adm-kpi">
+        <div class="ak-val">${totalUsers}</div>
+        <div class="ak-lbl">Usuários ativos</div>
+      </div>
+      <div class="adm-kpi">
+        <div class="ak-val">${totalGuias}</div>
+        <div class="ak-lbl">Guias geradas</div>
+      </div>
+      <div class="adm-kpi ${margin >= 70 ? 'green' : margin >= 40 ? 'amber' : 'red'}">
+        <div class="ak-val">${margin.toFixed(1)}%</div>
+        <div class="ak-lbl">Margem bruta est.</div>
+      </div>
+      <div class="adm-kpi">
+        <div class="ak-val">${NEUROAUTH_AGGREGATOR.fmtBRL(avgTicket)}</div>
+        <div class="ak-lbl">Ticket médio</div>
+      </div>
+      <div class="adm-kpi ${prmMix >= 20 ? 'green' : 'amber'}">
+        <div class="ak-val">${prmMix.toFixed(1)}%</div>
+        <div class="ak-lbl">Mix Premium</div>
+      </div>
+      <div class="adm-kpi ${pending > 0 ? 'amber' : 'green'}">
+        <div class="ak-val">${pending}</div>
+        <div class="ak-lbl">Pendentes reconciliação</div>
+      </div>
+      <div class="adm-kpi ${failed > 0 ? 'red' : 'green'}">
+        <div class="ak-val">${failed}</div>
+        <div class="ak-lbl">Falhas de report</div>
+      </div>
+    </div>`;
+
+  // ── Invoice status cards ──────────────────────────────────────────────────
+  const recRate  = rec.reconciliation_rate || '—';
+  const recTotal = rec.total_events || 0;
+  const invStatusCards = `
+    <div class="adm-section">
+      <div class="adm-section-title">Invoices · Reconciliação</div>
+      <div class="inv-status-grid">
+        <div class="inv-status-card paid">
+          <div class="isc-count">${invCount}</div>
+          <div class="isc-lbl">Faturas geradas</div>
+        </div>
+        <div class="inv-status-card open">
+          <div class="isc-count">${rec.reported || 0}</div>
+          <div class="isc-lbl">Eventos reportados</div>
+        </div>
+        <div class="inv-status-card overdue">
+          <div class="isc-count">${rec.pending || 0}</div>
+          <div class="isc-lbl">Pendentes report</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#7a8ba0;padding:4px 0">
+        <span>Taxa de reconciliação: <strong style="color:var(--navy)">${recRate}</strong></span>
+        <span>·</span>
+        <span>Total de eventos: <strong style="color:var(--navy)">${recTotal}</strong></span>
+        <span>·</span>
+        <span>Fechamento: <strong style="color:${closingStatus === 'closed' ? '#0e7a50' : '#b45309'}">${closingStatus === 'closed' ? 'Fechado' : 'Em aberto'}</strong></span>
+      </div>
+    </div>`;
+
+  // ── Tier distribution ─────────────────────────────────────────────────────
+  const maxTier = Math.max(1, stdCount, prmCount);
+  const tierBars = `
+    <div class="adm-section">
+      <div class="adm-section-title">Distribuição por tier</div>
+      <div class="tier-row">
+        <span class="tier-label">Standard</span>
+        <div class="tier-bar-wrap"><div class="tier-bar std" style="width:${Math.round(stdCount/maxTier*100)}%"></div></div>
+        <span class="tier-count">${stdCount}</span>
+        <span style="font-size:11px;color:#7a8ba0;min-width:60px">${NEUROAUTH_AGGREGATOR.fmtBRL(revStd)}</span>
+      </div>
+      <div class="tier-row">
+        <span class="tier-label">Premium</span>
+        <div class="tier-bar-wrap"><div class="tier-bar prm" style="width:${Math.round(prmCount/maxTier*100)}%"></div></div>
+        <span class="tier-count">${prmCount}</span>
+        <span style="font-size:11px;color:#7a8ba0;min-width:60px">${NEUROAUTH_AGGREGATOR.fmtBRL(revPrm)}</span>
+      </div>
+    </div>`;
+
+  // ── Top users ─────────────────────────────────────────────────────────────
+  let userRows = topUsers.length === 0
+    ? `<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">Nenhum dado disponível</td></tr>`
+    : '';
+  topUsers.forEach((u, i) => {
+    userRows += `
+      <tr>
+        <td><strong>#${i+1}</strong> ${u.user_id}</td>
+        <td class="td-right">${u.guias}</td>
+        <td class="td-right td-mono">${u.revenue_formatted || NEUROAUTH_AGGREGATOR.fmtBRL(u.revenue||0)}</td>
+      </tr>`;
+  });
+  const topUsersSection = `
+    <div class="adm-section">
+      <div class="adm-section-title">Top usuários por receita</div>
+      <table class="adm-table">
+        <thead><tr><th>Usuário</th><th style="text-align:right">Guias</th><th style="text-align:right">Receita</th></tr></thead>
+        <tbody>${userRows}</tbody>
+      </table>
+    </div>`;
+
+  // ── Revenue by operadora ──────────────────────────────────────────────────
+  let opRows2 = byOp.length === 0
+    ? `<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">Nenhum dado disponível</td></tr>`
+    : '';
+  byOp.forEach(op => {
+    opRows2 += `
+      <tr>
+        <td>${op.operadora}</td>
+        <td class="td-right">${op.guias}</td>
+        <td class="td-right td-mono">${op.revenue_formatted || NEUROAUTH_AGGREGATOR.fmtBRL(op.revenue||0)}</td>
+      </tr>`;
+  });
+  const opSection = `
+    <div class="adm-section">
+      <div class="adm-section-title">Receita por operadora</div>
+      <table class="adm-table">
+        <thead><tr><th>Operadora</th><th style="text-align:right">Guias</th><th style="text-align:right">Receita</th></tr></thead>
+        <tbody>${opRows2}</tbody>
+      </table>
+    </div>`;
+
+  body.innerHTML = healthCard + kpis + invStatusCards + tierBars + topUsersSection + opSection;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RESTRICTION MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+
+function showRestrict(policy) {
+  const p = policy || _currentPolicy || {};
+  const el = id => document.getElementById(id);
+  const rmHead = el('rm-head');
+  const isGrace = p.access_state === 'grace_period';
+
+  // Update header
+  rmHead.className = 'rm-head' + (isGrace ? ' grace' : '');
+  el('rm-icon').textContent    = isGrace ? '⏳' : p.access_state === 'blocked' ? '🔒' : '⚠️';
+  el('rm-title').textContent   = isGrace ? 'Acesso em período de cortesia'
+    : p.access_state === 'blocked' ? 'Acesso suspenso' : 'Acesso temporariamente limitado';
+  el('rm-subtitle').textContent = p.message_user || 'Pendência financeira identificada.';
+
+  // Details
+  const stMap = {
+    open:          'Fatura aberta',
+    overdue:       'Em atraso',
+    not_generated: 'Sem fatura gerada',
+    paid:          'Paga',
+    none:          '—'
+  };
+  el('rm-status').textContent  = stMap[p.invoice_status] || p.invoice_status || '—';
+  el('rm-status').className    = 'rd-value' + (p.invoice_status === 'overdue' ? ' overdue' : p.invoice_status === 'paid' ? ' paid' : '');
+  el('rm-due').textContent     = p.due_date_formatted || _fmtDate(p.due_date) || '—';
+  el('rm-days').textContent    = p.days_overdue > 0 ? `${p.days_overdue} dia${p.days_overdue !== 1 ? 's' : ''}` : '—';
+  el('rm-courtesy').textContent = isGrace
+    ? `${p.courtesy_guides_remaining || 0} restante${p.courtesy_guides_remaining !== 1 ? 's' : ''}`
+    : '—';
+
+  document.getElementById('restrict-overlay').classList.add('open');
+}
+
+function closeRestrict() {
+  document.getElementById('restrict-overlay').classList.remove('open');
+}
+
+function handleRegularize() {
+  // Em produção: abrir link de pagamento / redirect para portal de cobrança
+  closeRestrict();
+  showToast('<strong>Regularização</strong>Entre em contato com suporte ou acesse o portal de pagamento.', 'warning', 5000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TOAST SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+function showToast(message, type = 'info', duration = 4000) {
+  const area = document.getElementById('toast-area');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = message;
+  area.appendChild(t);
+  const remove = () => {
+    t.classList.add('removing');
+    t.addEventListener('animationend', () => t.remove(), { once: true });
+  };
+  const timer = setTimeout(remove, duration);
+  t.addEventListener('click', () => { clearTimeout(timer); remove(); });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// APP STATE & UI
+// ═══════════════════════════════════════════════════════════════════════════
+
+let PAYLOAD  = null;
+let CLINICAL = null;
+
+// ── SMART REUSE LAYER — estado ─────────────────────────────────────────────
+let _currentReuseMode       = 'fresh';   // 'fresh' | 'reuse' | 'blueprint'
+let _currentSourceCaseId    = null;
+let _currentSourceBlueprintId = null;
+let _pendingReuseFlow       = null;      // resultado de startReuseFlow/startBlueprintFlow
+const MM              = 3.7795275591;
+const PAGE_USABLE_H_PX = 277 * MM;
+
+function tryExample(txt) {
+  document.getElementById('magic-input').value = txt;
+  runAutofill();
+}
+
+function runAutofill() {
+  const input = document.getElementById('magic-input').value.trim();
+  if (!input) return;
+  const btn = document.getElementById('magic-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Interpretando…';
+  setTimeout(() => {
+    const parsed   = parseProcedimento(input);
+    const clinical = inferClinicalData(parsed);
+    btn.disabled   = false;
+    btn.textContent = '⚡ Interpretar e Preencher';
+    const box = document.getElementById('interpretation');
+    if (!clinical.success) {
+      box.style.display = 'block'; box.className = 'err';
+      box.innerHTML = `<strong>⚠ Não reconhecido</strong>${clinical.error}`;
+      return;
+    }
+    CLINICAL = clinical;
+    box.style.display = 'block'; box.className = 'ok';
+    box.innerHTML = `<strong>✅ ${clinical.label}</strong>` +
+      `TUSS ${clinical.tuss} · CID ${clinical.cid_principal}` +
+      (clinical.nivel ? ` · Nível ${formatNivel(clinical.nivel)}` : '') +
+      ` · ${clinical.opme_itens.length} OPME · Confiança ${clinical.confidence}%`;
+    populateInferredFields(clinical);
+    updateOpmePreview(clinical.opme_itens);
+    updateInferredCount(clinical);
+    syncPayload();
+    document.getElementById('btn-render').disabled = false;
+
+    // ── SMART REUSE: buscar casos semelhantes no histórico ─────────────
+    _currentReuseMode         = 'fresh';
+    _currentSourceCaseId      = null;
+    _currentSourceBlueprintId = null;
+    // Smart Reuse Engine — sugestões de blueprint local (zero latência)
+    if (typeof NEUROAUTH_SMART_REUSE_ENGINE !== 'undefined') {
+      _triggerSmartReuseEngine(clinical);
+    }
+    if (typeof NEUROAUTH_CASE_REUSE_ENGINE !== 'undefined') {
+      const uid = _getActiveUserId();
+      NEUROAUTH_CASE_REUSE_ENGINE.findSimilarCases({
+        user_id:              uid,
+        procedimento_nome:    clinical.label,
+        procedimento_tuss:    clinical.tuss,
+        operadora:            PAYLOAD ? (PAYLOAD.operadora_nome || '') : '',
+        opme_itens:           clinical.opme_itens,
+        cid:                  clinical.cid_principal,
+        justificativa_clinica: clinical.justificativa_clinica
+      }, { limit: 3, min_score: 15 }).then(similar => {
+        if (similar.length > 0) _showReuseBanner(similar);
+      }).catch(() => {});
+    }
+    // ─────────────────────────────────────────────────────────────────────
+  }, 120);
+}
+
+function populateInferredFields(cd) {
+  document.getElementById('f-proc').value = cd.label;
+  document.getElementById('f-tuss').value = cd.tuss;
+  document.getElementById('f-cid').value  = cd.cid_principal;
+  document.getElementById('f-just').value = cd.justificativa_clinica;
+  const sentences = cd.justificativa_clinica.split('. ');
+  document.getElementById('f-indicacao').value = sentences.slice(0, 2).join('. ') + '.';
+  ['wrap-proc','wrap-tuss','wrap-cid','wrap-just'].forEach(id => {
+    document.getElementById(id).classList.add('inferred-field');
+  });
+}
+
+function updateOpmePreview(items) {
+  const list = document.getElementById('opme-preview-list');
+  document.getElementById('opme-count').textContent = items.length;
+  if (!items.length) {
+    list.innerHTML = '<div class="opme-preview-empty">Nenhum OPME para este procedimento.</div>';
+    return;
+  }
+  list.innerHTML = items.map(it => `
+    <div class="opme-preview-item">
+      <span class="opme-name">${escHtml(it.tiss_65_opme_descricao_item)}</span>
+      <span class="opme-qty">${it.tiss_66_opme_qtd_solicitada} ${escHtml(it.tiss_68_opme_unidade_medida)}</span>
+    </div>
+  `).join('');
+  document.getElementById('opme-count').className = items.length > 0 ? 'badge active' : 'badge';
+}
+
+function updateInferredCount(cd) {
+  const n = ['label','tuss','cid_principal','justificativa_clinica'].filter(f=>cd[f]).length + (cd.opme_itens.length?1:0) + (cd.nivel?1:0);
+  const el = document.getElementById('inferred-count');
+  el.textContent = `${n} campos`;
+  el.className = 'badge active';
+}
+
+function getPatientData() {
+  return {
+    nome_beneficiario:   document.getElementById('f-nome').value.trim(),
+    numero_carteira:     document.getElementById('f-carteira').value.trim(),
+    data_nascimento:     document.getElementById('f-nascimento').value||null,
+    nome_plano:          document.getElementById('f-plano').value.trim(),
+    registro_ans:        document.getElementById('f-ans').value.trim(),
+    numero_guia:         document.getElementById('f-guia').value.trim(),
+    nome_medico:         document.getElementById('f-medico').value.trim(),
+    crm:                 document.getElementById('f-crm').value.trim(),
+    uf_crm:              document.getElementById('f-uf').value.trim().toUpperCase(),
+    nome_hospital:       document.getElementById('f-hospital').value.trim(),
+    cnes_exec:           document.getElementById('f-cnes').value.trim(),
+    data_sol:            document.getElementById('f-data-sol').value || new Date().toISOString().split('T')[0],
+    cid:                 document.getElementById('f-cid').value.trim(),
+    justificativa:       document.getElementById('f-just').value.trim(),
+    hipotese:            document.getElementById('f-hip').value.trim(),
+    indicacao_clinica:   document.getElementById('f-indicacao').value.trim(),
+    observacao:          document.getElementById('f-obs').value.trim()
+  };
+}
+
+function syncPayload() {
+  if (!CLINICAL) return;
+  CLINICAL.cid_principal = document.getElementById('f-cid').value.trim() || CLINICAL.cid_principal;
+  PAYLOAD = mapToTISSPayload(CLINICAL, getPatientData());
+}
+
+function resetAll() {
+  PAYLOAD = null; CLINICAL = null;
+  document.getElementById('magic-input').value = '';
+  document.getElementById('interpretation').style.display = 'none';
+  ['f-proc','f-tuss','f-cid','f-just','f-hip','f-indicacao','f-obs'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('opme-preview-list').innerHTML = '<div class="opme-preview-empty">Nenhum OPME inferido ainda.</div>';
+  document.getElementById('opme-count').textContent = '0';
+  document.getElementById('opme-count').className = 'badge';
+  document.getElementById('inferred-count').textContent = '—';
+  document.getElementById('inferred-count').className = 'badge';
+  document.getElementById('btn-render').disabled = true;
+  document.getElementById('pages-container').style.display = 'none';
+  document.getElementById('pages-container').innerHTML = '';
+  document.getElementById('welcome').style.display = '';
+  hideBillingPill();
+}
+
+// ── Billing pill ──
+function showBillingPill(text) {
+  const pill = document.getElementById('billing-pill');
+  document.getElementById('billing-text').textContent = text || 'Registrado';
+  pill.classList.add('show');
+  pill.classList.remove('fade');
+}
+function hideBillingPill() {
+  const pill = document.getElementById('billing-pill');
+  pill.classList.add('fade');
+  setTimeout(() => { pill.classList.remove('show','fade'); }, 450);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER ENGINE v2 — funções herdadas
+// ═══════════════════════════════════════════════════════════════════════════
+
+function val(key, fallback) {
+  if (!PAYLOAD) return fallback||'';
+  const v = PAYLOAD[key];
+  if (v===null||v===undefined||v==='') return fallback||'';
+  if (typeof v==='boolean') return v?'Sim':'Não';
+  return String(v);
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,dd] = d.split('-');
+  return dd ? `${dd}/${m}/${y}` : d;
+}
+function fieldCell(label, value, flex, required, type) {
+  const isEmpty = !value||value==='';
+  const vc = type==='textarea'?'field-value textarea-val':'field-value';
+  const rm = required?'<span class="req">*</span>':'';
+  const dv = isEmpty?`<span class="field-value empty">—</span>`:`<span class="${vc}">${escHtml(value)}</span>`;
+  return `<div class="field-cell" style="flex:${flex||1}"><div class="field-label">${escHtml(label)}${rm}</div>${dv}</div>`;
+}
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function secHeader(t) { return `<div class="sec-header">${t}</div>`; }
+function row(...cells) { return `<div class="field-row">${cells.join('')}</div>`; }
+
+function measureHTMLHeight(html) {
+  const probe = document.createElement('div');
+  probe.style.cssText = `position:fixed;top:-99999px;left:0;width:${190*MM}px;visibility:hidden;pointer-events:none;font-family:Arial,sans-serif;font-size:7.5pt;box-sizing:border-box`;
+  probe.innerHTML = html;
+  document.body.appendChild(probe);
+  const h = probe.getBoundingClientRect().height;
+  document.body.removeChild(probe);
+  return h;
+}
+function miniHeaderContinuation(label) {
+  const now = new Date().toLocaleDateString('pt-BR');
+  return `<div class="mini-header-p2"><div><strong>GUIA SP/SADT — ${label}</strong><span style="margin-left:12px;opacity:0.8">${escHtml(val('tiss_10_nome_beneficiario'))} · ${escHtml(val('tiss_15_nome_plano'))}</span></div><div>Guia: <strong>${escHtml(val('tiss_02_numero_guia_operadora'))}</strong> · ANS ${escHtml(val('tiss_01_registro_ans'))} · ${now}</div></div>`;
+}
+function buildFooterHtml(n, t) {
+  return `<div class="page-footer"><span>NEUROAUTH · TISS 4.01.00 · Guia SP/SADT</span><span>ANS: ${escHtml(val('tiss_01_registro_ans'))} | Guia: ${escHtml(val('tiss_02_numero_guia_operadora'))}</span><span>Página ${n} / ${t}</span></div>`;
+}
+function buildOpmeHtml() {
+  const opme = (PAYLOAD&&PAYLOAD.opme_itens)||[];
+  let html = `<div class="opme-sec-header">OPME — Órteses, Próteses e Materiais Especiais</div>`;
+  html += `<table class="opme-table"><thead><tr><th style="width:4%" rowspan="2">Seq</th><th style="width:11%">Código TUSS</th><th style="width:14%">Ref. Fabricante</th><th style="width:27%">Descrição do Item</th><th style="width:6%">Qtd Sol.</th><th style="width:6%">Qtd Aut.</th><th style="width:5%">Unid.</th><th style="width:13%">Nº ANVISA</th></tr><tr><th colspan="2" style="text-align:left">Fabricante</th><th colspan="5" style="text-align:left">Justificativa de Uso</th></tr></thead>`;
+  if (!opme.length) {
+    html += `<tbody><tr class="row-a"><td colspan="8" style="text-align:center;color:#aaa;font-style:italic;padding:4mm">Nenhum item OPME informado</td></tr></tbody>`;
+  } else {
+    opme.forEach(it => {
+      const seq = it.tiss_62_opme_sequencial||'';
+      html += `<tbody class="opme-item"><tr class="row-a"><td class="seq-cell-top">${seq}</td><td><strong>${escHtml(it.tiss_63_opme_codigo_material||'')}</strong></td><td>${escHtml(it.tiss_64_opme_referencia_fabricante||'')}</td><td>${escHtml(it.tiss_65_opme_descricao_item||'')}</td><td class="num-cell">${it.tiss_66_opme_qtd_solicitada||''}</td><td class="num-cell">${it.tiss_67_opme_qtd_autorizada||''}</td><td style="text-align:center">${escHtml(it.tiss_68_opme_unidade_medida||'')}</td><td>${escHtml(it.tiss_69_opme_numero_anvisa||'')}</td></tr><tr class="row-b"><td class="seq-cell-bottom">${seq}</td><td colspan="2" style="font-weight:bold;font-style:normal">${escHtml(it.tiss_70_opme_nome_fabricante||'')}</td><td colspan="5">${escHtml(it.tiss_71_opme_justificativa_uso||'')}</td></tr></tbody>`;
+    });
+  }
+  return html + `</table>`;
+}
+function buildClinicalHtml() {
+  let html = secHeader('Justificativa Cirúrgica / Clínica');
+  html += `<div class="justificativa-box">${escHtml(val('tiss_72_justificativa_clinica'))}</div>`;
+  if (val('tiss_73_hipotese_diagnostica')) {
+    html += secHeader('Hipótese Diagnóstica');
+    html += `<div class="justificativa-box" style="min-height:12mm">${escHtml(val('tiss_73_hipotese_diagnostica'))}</div>`;
+  }
+  html += `<div class="vsep"></div><div class="sig-block">`;
+  html += secHeader('Assinaturas — Continuação');
+  html += `<div class="sig-row"><div class="sig-cell" style="flex:2"><div class="field-label">Assinatura do Médico Executante</div><div class="sig-line"></div><div style="text-align:center;font-size:5.5pt;color:#888">${escHtml(val('tiss_76_conselho_carimbo_exec'))} · ${fmtDate(val('tiss_75_data_assinatura_exec'))}</div></div><div class="sig-cell" style="flex:2"><div class="field-label">Assinatura do Beneficiário / Responsável</div><div class="sig-line"></div><div style="text-align:center;font-size:5.5pt;color:#888">Data: ${fmtDate(val('tiss_75_data_assinatura_exec'))}</div></div></div>`;
+  html += `</div>`;
+  return html;
+}
+function renderPage1() {
+  const procs = (PAYLOAD&&PAYLOAD.procedimentos)||[];
+  const now = new Date().toLocaleDateString('pt-BR');
+  let html = `<div class="guide-header"><div><div class="guide-title">GUIA DE SP/SADT</div><div class="guide-subtitle">Serviço Profissional / Serviço Auxiliar de Diagnóstico e Terapia</div></div><div style="display:flex;align-items:center;gap:8px"><div class="guide-meta">Padrão TISS: <strong>4.01.00</strong><br>Emissão: ${now}<br>Guia: ${escHtml(val('tiss_02_numero_guia_operadora','—'))}</div><div class="ans-logo">ANS<br><span style="font-size:6pt;font-weight:normal">${escHtml(val('tiss_01_registro_ans','000000'))}</span></div></div></div>`;
+  html += `<div class="ans-strip">${fieldCell('Nº Guia Operadora',val('tiss_02_numero_guia_operadora'),2,true)}${fieldCell('Senha Autorização',val('tiss_03_senha_autorizacao'),1.5)}${fieldCell('Data Autorização',fmtDate(val('tiss_04_data_autorizacao')),1)}${fieldCell('Val. Senha',fmtDate(val('tiss_05_data_validade_senha')),1)}${fieldCell('Val. Atendimento',fmtDate(val('tiss_06_data_validade_atendimento')),1)}${fieldCell('Guia Principal',val('tiss_07_numero_guia_principal'),1.5)}</div>`;
+  html += `<div class="vsep"></div>${secHeader('Dados do Beneficiário')}`;
+  html += row(fieldCell('Nº Carteira',val('tiss_08_numero_carteira'),2,true),fieldCell('Nome Beneficiário',val('tiss_10_nome_beneficiario'),4,true),fieldCell('Data Nasc.',fmtDate(val('tiss_12_data_nascimento')),1.2,true),fieldCell('RN',val('tiss_09_atendimento_rn'),0.5));
+  html += row(fieldCell('CNS',val('tiss_11_numero_cns'),2),fieldCell('Código Plano',val('tiss_14_codigo_plano'),1.5),fieldCell('Nome Plano',val('tiss_15_nome_plano'),3),fieldCell('Val. Carteira',fmtDate(val('tiss_16_validade_carteira')),1.2),fieldCell('Nome Social',val('tiss_13_nome_social'),2));
+  html += `<div class="vsep"></div>${secHeader('Dados do Solicitante')}`;
+  html += row(fieldCell('Código Contratado',val('tiss_17_codigo_contratado_sol'),1.5,true),fieldCell('Nome Contratado / Estabelecimento',val('tiss_18_nome_contratado_sol'),4,true),fieldCell('CNES',val('tiss_19_codigo_cnes_sol'),1.2),fieldCell('Cód. Operadora',val('tiss_20_codigo_operadora_sol'),1.2));
+  html += row(fieldCell('Nome Profissional Solicitante',val('tiss_21_nome_profissional_sol'),3,true),fieldCell('Conselho',val('tiss_22_conselho_profissional_sol'),0.8,true),fieldCell('Nº Conselho',val('tiss_23_numero_conselho_sol'),1.2,true),fieldCell('UF',val('tiss_24_uf_conselho_sol'),0.5,true),fieldCell('CBO',val('tiss_25_codigo_cbo_sol'),1),fieldCell('Descrição CBO',val('tiss_26_descricao_cbo_sol'),2));
+  html += `<div class="vsep"></div>${secHeader('Dados do Executante')}`;
+  html += row(fieldCell('Código Contratado',val('tiss_27_codigo_contratado_exec'),1.5),fieldCell('Nome Contratado / Hospital',val('tiss_28_nome_contratado_exec'),4),fieldCell('CNES',val('tiss_29_codigo_cnes_exec'),1.2),fieldCell('Cód. Operadora',val('tiss_30_codigo_operadora_exec'),1.2));
+  html += row(fieldCell('Nome Profissional Executante',val('tiss_31_nome_profissional_exec'),3),fieldCell('Conselho',val('tiss_32_conselho_profissional_exec'),0.8),fieldCell('Nº Conselho',val('tiss_33_numero_conselho_exec'),1.2),fieldCell('UF',val('tiss_34_uf_conselho_exec'),0.5),fieldCell('CBO',val('tiss_35_codigo_cbo_exec'),1),fieldCell('Descrição CBO',val('tiss_36_descricao_cbo_exec'),2));
+  html += `<div class="vsep"></div>${secHeader('Dados do Atendimento')}`;
+  html += row(fieldCell('Data Solicitação',fmtDate(val('tiss_37_data_solicitacao')),1.5,true),fieldCell('Caráter Atendimento',val('tiss_38_carater_atendimento'),1.5,true),fieldCell('Tipo Internação',val('tiss_41_tipo_internacao'),1.5),fieldCell('Indicação Acidente',val('tiss_40_indicacao_acidente'),1.2),fieldCell('Tipo Consulta',val('tiss_39_tipo_consulta'),1.2));
+  html += `<div class="field-row" style="border:0.3mm solid #333;border-top:none"><div class="field-cell" style="flex:1"><div class="field-label">Indicação Clínica</div><div class="field-value textarea-val">${escHtml(val('tiss_42_indicacao_clinica'))}</div></div></div>`;
+  html += `<div class="vsep"></div>${secHeader('Procedimentos / Itens Assistenciais Solicitados')}`;
+  html += `<table class="proc-table"><thead><tr><th style="width:5%">Seq</th><th style="width:8%">Tabela</th><th style="width:13%">Código</th><th style="width:32%">Descrição</th><th style="width:8%">Qtd Sol.</th><th style="width:8%">Qtd Aut.</th><th style="width:10%">Via Acesso</th><th style="width:9%">Técnica</th><th style="width:7%">Red/Acrés</th></tr></thead><tbody>`;
+  if (!procs.length) { html += `<tr><td colspan="9" style="text-align:center;color:#aaa;font-style:italic">—</td></tr>`; }
+  else {
+    procs.forEach(p => { html += `<tr><td style="text-align:center">${p.tiss_43_proc_sequencial||''}</td><td>${escHtml(p.tiss_44_proc_codigo_tabela||'')}</td><td><strong>${escHtml(p.tiss_45_proc_codigo||'')}</strong></td><td>${escHtml(p.tiss_46_proc_descricao||'')}</td><td style="text-align:center">${p.tiss_47_proc_qtd_solicitada||''}</td><td style="text-align:center">${p.tiss_48_proc_qtd_autorizada||''}</td><td>${escHtml(p.tiss_49_proc_via_acesso||'')}</td><td>${escHtml(p.tiss_50_proc_tecnica||'')}</td><td style="text-align:right">${p.tiss_51_proc_reducao_acrescimo!==undefined?p.tiss_51_proc_reducao_acrescimo:''}</td></tr>`; });
+    for (let i=procs.length;i<3;i++) html += `<tr>${'<td>&nbsp;</td>'.repeat(9)}</tr>`;
+  }
+  html += `</tbody></table>`;
+  html += `<div class="vsep"></div>${secHeader('Diagnóstico / CID')}`;
+  html += `<div class="cid-row">${fieldCell('CID-10 Principal',val('tiss_52_cid_principal'),1)}${fieldCell('CID Secundário',val('tiss_53_cid_secundario'),1)}${fieldCell('CID Causas 1',val('tiss_54_cid_causas_1'),1)}${fieldCell('CID Causas 2',val('tiss_55_cid_causas_2'),1)}${fieldCell('Indicação Acidente',val('tiss_56_indicacao_acidente_diag'),1.5)}${fieldCell('Tipo Consulta',val('tiss_57_tipo_consulta_diag'),1.5)}</div>`;
+  html += `<div class="vsep"></div>${secHeader('Informações Complementares')}`;
+  html += `<div class="field-row" style="border:0.3mm solid #333;border-top:none"><div class="field-cell" style="flex:1"><div class="field-label">Observações</div><div class="field-value textarea-val">${escHtml(val('tiss_58_observacao'))}</div></div></div>`;
+  html += `<div class="vsep"></div><div class="sig-block">${secHeader('Assinaturas')}`;
+  html += `<div class="sig-row"><div class="sig-cell" style="flex:2"><div class="field-label">Assinatura do Médico Solicitante</div><div class="sig-line"></div><div style="text-align:center;font-size:5.5pt;color:#888">CRM ${escHtml(val('tiss_23_numero_conselho_sol'))}/${escHtml(val('tiss_24_uf_conselho_sol'))} · ${fmtDate(val('tiss_60_data_assinatura_sol'))}</div></div><div class="sig-cell" style="flex:2"><div class="field-label">Assinatura do Beneficiário / Responsável</div><div class="sig-line"></div><div style="text-align:center;font-size:5.5pt;color:#888">Data: ${fmtDate(val('tiss_60_data_assinatura_sol'))}</div></div></div>`;
+  html += `</div><div class="page-footer"><span>NEUROAUTH · TISS 4.01.00 · Guia SP/SADT</span><span>ANS: ${escHtml(val('tiss_01_registro_ans'))} | Guia: ${escHtml(val('tiss_02_numero_guia_operadora'))}</span><span>Página 1 / ?</span></div>`;
+  return html;
+}
+
+// ── renderGuia — com billing integrado ──────────────────────────────────
+async function renderGuia() {
+  if (!PAYLOAD) return;
+  const btn = document.getElementById('btn-render');
+  btn.disabled = true;
+  btn.textContent = '⏳ Gerando…';
+
+  try {
+    // ── PROMPT MASTER — access policy gate ─────────────────────────────
+    if (typeof NEUROAUTH_ACCESS_POLICY !== 'undefined') {
+      const uid = _getActiveUserId();
+      const policy = _currentPolicy || await NEUROAUTH_ACCESS_POLICY.evaluate(uid);
+      _currentPolicy = policy;
+      _applyPolicyUI(policy);
+
+      if (!policy.allow_new_guides) {
+        showRestrict(policy);
+        btn.disabled = false;
+        btn.textContent = '▶ Gerar Guia';
+        return;
+      }
+
+      // Grace period — descontar cortesia
+      if (policy.access_state === 'grace_period' && policy.courtesy_guides_remaining > 0) {
+        NEUROAUTH_ACCESS_POLICY.useCourtesyGuide(uid);
+        showToast(
+          `<strong>Guia de cortesia</strong>Restam ${policy.courtesy_guides_remaining - 1} guias durante o período de carência`,
+          'warning', 4500
+        );
+      }
+    }
+    // ───────────────────────────────────────────────────────────────────
+    const vsepHtml    = '<div class="vsep"></div>';
+    const opmeHtml    = buildOpmeHtml();
+    const clinicalHtml = buildClinicalHtml();
+    const miniH   = measureHTMLHeight(miniHeaderContinuation('CONTINUAÇÃO'));
+    const vsepH   = measureHTMLHeight(vsepHtml);
+    const opmeH   = measureHTMLHeight(opmeHtml);
+    const clinH   = measureHTMLHeight(clinicalHtml);
+    const footerH = measureHTMLHeight(buildFooterHtml(2,2));
+    const p2Avail = PAGE_USABLE_H_PX - miniH - vsepH - footerH;
+    const combinedH = opmeH + vsepH + clinH;
+    const container = document.getElementById('pages-container');
+    container.innerHTML = '';
+    document.getElementById('welcome').style.display = 'none';
+    container.style.display = 'flex';
+
+    const p1 = document.createElement('div');
+    p1.className = 'a4-page'; p1.innerHTML = renderPage1(); container.appendChild(p1);
+
+    let totalPages;
+    if (combinedH <= p2Avail) {
+      totalPages = 2;
+      const p2 = document.createElement('div'); p2.className = 'a4-page';
+      p2.innerHTML = miniHeaderContinuation('CONTINUAÇÃO — OPME E JUSTIFICATIVA') + vsepHtml + opmeHtml + vsepHtml + clinicalHtml + buildFooterHtml(2,2);
+      container.appendChild(p2);
+    } else {
+      totalPages = 3;
+      const p2 = document.createElement('div'); p2.className = 'a4-page';
+      p2.innerHTML = miniHeaderContinuation('CONTINUAÇÃO — OPME') + vsepHtml + opmeHtml + buildFooterHtml(2,3);
+      container.appendChild(p2);
+      const p3 = document.createElement('div'); p3.className = 'a4-page';
+      p3.innerHTML = miniHeaderContinuation('CONTINUAÇÃO — JUSTIFICATIVA E ASSINATURAS') + vsepHtml + clinicalHtml + buildFooterHtml(3,3);
+      container.appendChild(p3);
+    }
+    p1.querySelector('.page-footer span:last-child').textContent = `Página 1 / ${totalPages}`;
+
+    // ── Billing silencioso v1.1 ─────────────────────────────────────────
+    // renderResult com success:true é o gate para o billing bridge
+    const renderResult = {
+      success:     true,                            // gate v1.1
+      guia_id:     `NG-${Date.now()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`,
+      total_pages: totalPages,
+      engine_version: '2.0.0'
+    };
+    NEUROAUTH_BILLING_CLIENT.finalizeGuideGeneration(PAYLOAD, renderResult).then(result => {
+      if (result.success) {
+        const isPremium = result.tier === 'premium';
+        showBillingPill('✓ Registrado');
+        const toastMsg = isPremium
+          ? `<strong>Guia registrada</strong>OPME Premium · ${result.amount_formatted}`
+          : `<strong>Guia registrada</strong>${result.amount_formatted}`;
+        showToast(toastMsg, 'success', 3500);
+      }
+    }).catch(() => { /* billing nunca bloqueia a guia */ });
+
+    // ── ANALYTICS — rastrear guia gerada ─────────────────────────────────
+    if (typeof NEUROAUTH_ANALYTICS !== 'undefined') {
+      try {
+        NEUROAUTH_ANALYTICS.track({
+          type:            'GUIDE_GENERATED',
+          user_id:         _getActiveUserId(),
+          guia_id:         renderResult.guia_id,
+          autofill_mode:   _currentReuseMode || 'fresh',
+          opme_count:      (PAYLOAD.opme_itens||[]).length,
+          total_pages:     totalPages,
+          tuss:            PAYLOAD.tiss_05_codigo_procedimento || null,
+          operadora:       PAYLOAD.tiss_09_codigo_operadora || PAYLOAD.operadora_nome || null
+        });
+      } catch(e) { /* analytics nunca bloqueia */ }
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
+    // ── SMART REUSE — indexar guia gerada ────────────────────────────────
+    const _reuseOpts = {
+      autofill_mode:       _currentReuseMode || 'fresh',
+      source_case_id:      _currentSourceCaseId,
+      source_blueprint_id: _currentSourceBlueprintId,
+      complexity_level:    (PAYLOAD.opme_itens||[]).length > 5 ? 'high' :
+                           (PAYLOAD.opme_itens||[]).length > 2 ? 'medium' : 'low'
+    };
+    let _indexedCase = null;
+    if (typeof NEUROAUTH_CASE_REUSE_ENGINE !== 'undefined') {
+      try {
+        _indexedCase = await NEUROAUTH_CASE_REUSE_ENGINE.indexGeneratedCase(PAYLOAD, renderResult, _reuseOpts);
+        // Registrar evento de reutilização se aplicável
+        if (_currentReuseMode !== 'fresh' && (_currentSourceCaseId || _currentSourceBlueprintId)) {
+          await NEUROAUTH_CASE_REUSE_ENGINE.logReuseEvent({
+            source_case_id:          _currentSourceCaseId,
+            source_blueprint_id:     _currentSourceBlueprintId,
+            new_case_id:             _indexedCase ? _indexedCase.case_id : null,
+            user_id:                 _getActiveUserId(),
+            autofill_mode:           _currentReuseMode,
+            time_saved_estimate_min: _currentReuseMode === 'blueprint' ? 14 : 12
+          });
+          const modeLbl = _currentReuseMode === 'blueprint' ? 'blueprint' : 'reutilização';
+          showToast(`<strong>♻ Registrado via ${modeLbl}</strong>14 min economizados`, 'success', 3000);
+
+          // ── ANALYTICS — rastrear reutilização ────────────────────────────
+          if (typeof NEUROAUTH_ANALYTICS !== 'undefined') {
+            try {
+              NEUROAUTH_ANALYTICS.track({
+                type:                 'REUSE_SUCCESS',
+                user_id:              _getActiveUserId(),
+                guia_id:              renderResult.guia_id,
+                autofill_mode:        _currentReuseMode,
+                blueprint_id:         _currentSourceBlueprintId || null,
+                source_case_id:       _currentSourceCaseId || null,
+                time_saved_min:       _currentReuseMode === 'blueprint' ? 14 : 12
+              });
+            } catch(e) { /* analytics nunca bloqueia */ }
+          }
+          // ─────────────────────────────────────────────────────────────────
+        }
+      } catch(e) { /* reuse indexing nunca bloqueia a guia */ }
+    }
+
+    // ── SMART REUSE ENGINE — indexar no grafo local ───────────────────────
+    if (typeof NEUROAUTH_SMART_REUSE_ENGINE !== 'undefined') {
+      try {
+        NEUROAUTH_SMART_REUSE_ENGINE.indexFromBillingEvent({
+          guia_id:                    renderResult.guia_id,
+          autofill_mode:              _currentReuseMode || 'fresh',
+          procedimento_codigo:        PAYLOAD.tiss_05_codigo_procedimento || null,
+          procedimento_nome:          PAYLOAD.tiss_06_descricao_procedimento || null,
+          tuss:                       PAYLOAD.tiss_05_codigo_procedimento || null,
+          cid:                        PAYLOAD.tiss_cid || null,
+          justificativa:              PAYLOAD.tiss_72_justificativa_clinica || null,
+          opme_items:                 PAYLOAD.opme_itens || PAYLOAD.tiss_opme || [],
+          operadora:                  PAYLOAD.tiss_09_codigo_operadora || PAYLOAD.operadora_nome || null
+        });
+      } catch(e) { /* indexação nunca bloqueia */ }
+    }
+    // ── ROI ENGINE — snapshot de valor ───────────────────────────────────
+    if (typeof NEUROAUTH_ROI_ENGINE !== 'undefined') {
+      try {
+        await NEUROAUTH_ROI_ENGINE.buildROISnapshot({
+          guia_id:            renderResult.guia_id,
+          user_id:            _getActiveUserId(),
+          autofill_mode:      _currentReuseMode || 'fresh',
+          opme_count:         (PAYLOAD.opme_itens||[]).length,
+          complexity_level:   _reuseOpts.complexity_level,
+          procedure_category: _indexedCase ? _indexedCase.procedure_category : 'base_neuro',
+          operadora:          PAYLOAD.operadora_nome || null,
+          tier:               PAYLOAD._meta && PAYLOAD._meta.tier ? PAYLOAD._meta.tier : 'standard'
+        });
+        // Accumulator incremental — garante que TODOS os tipos de guia (fresh, reuse, blueprint)
+        // são contados em total_guides, tornando reuse_rate_pct significativo.
+        // A chamada de blueprint via Smart Reuse Engine também chama accumulateFromEvent,
+        // mas com autofill_mode:'blueprint'. Para guias fresh ou reuse via case engine,
+        // este é o único ponto de acumulação.
+        NEUROAUTH_ROI_ENGINE.accumulateFromEvent({
+          user_id:                 _getActiveUserId(),
+          autofill_mode:           _currentReuseMode || 'fresh',
+          time_saved_estimate_min: _reuseOpts.complexity_level === 'high'  ? 9  :
+                                   _reuseOpts.complexity_level === 'medium'? 7  : 6
+        });
+      } catch(e) { /* ROI snapshot nunca bloqueia a guia */ }
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
+    showToast(`<strong>Guia gerada</strong>${totalPages} página${totalPages>1?'s':''} · ${(PAYLOAD.opme_itens||[]).length} OPME`, 'success', 3000);
+
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Gerar Guia';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SMART REUSE LAYER — UI & FLOW FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Reuse Banner ─────────────────────────────────────────────────────────────
+function _showReuseBanner(similarCases) {
+  const banner = document.getElementById('reuse-banner');
+  const casesEl = document.getElementById('reuse-banner-cases');
+  if (!banner || !casesEl || !similarCases || similarCases.length === 0) return;
+  document.getElementById('reuse-banner-title').textContent =
+    `${similarCases.length} caso${similarCases.length>1?'s':''} semelhante${similarCases.length>1?'s':''} no seu histórico`;
+  casesEl.innerHTML = similarCases.map(c => {
+    const date = c.generated_at ? new Date(c.generated_at).toLocaleDateString('pt-BR') : '—';
+    const mode = c.autofill_mode || 'fresh';
+    return `<div class="rb-case-card" onclick="openReuseModal('${escHtml(c.case_id)}','${escHtml(c.procedimento_principal||'Procedimento')}')">
+      <div class="rb-case-proc">${escHtml(c.procedimento_principal || '—')}</div>
+      <div class="rb-case-meta">${escHtml(c.operadora||'—')} · ${date} · ${c.opme_count||0} OPME</div>
+      <div class="rb-case-score">Compatibilidade: ${c.similarity_score||0}pts</div>
+    </div>`;
+  }).join('');
+  banner.style.display = 'block';
+}
+
+function _dismissReuseBanner() {
+  const b = document.getElementById('reuse-banner');
+  if (b) b.style.display = 'none';
+}
+
+// ── Reuse Modal ───────────────────────────────────────────────────────────────
+let _pendingReuseId = null;
+
+async function openReuseModal(caseId, procName) {
+  _pendingReuseId = caseId;
+  if (typeof NEUROAUTH_CASE_REUSE_ENGINE === 'undefined') return;
+  const result = await NEUROAUTH_CASE_REUSE_ENGINE.startReuseFlow(caseId, _getActiveUserId());
+  if (!result.success) { showToast('<strong>Caso não encontrado</strong>', 'error', 2500); return; }
+  _pendingReuseFlow = result;
+
+  document.getElementById('rm2-title').textContent = 'Reutilizar: ' + (procName||'Procedimento').slice(0,35);
+  const src = result.template && result.template.metadata ? result.template.metadata.patient_safe_label : '';
+  document.getElementById('rm2-origin').textContent = 'Origem: ' + (src || caseId.slice(0,18) + '…');
+
+  const fieldsEl = document.getElementById('rm2-fields');
+  const rf = result.template && result.template.reusable_fields ? result.template.reusable_fields : {};
+  const pills = Object.keys(rf).filter(k => rf[k] && (typeof rf[k] !== 'object' || (Array.isArray(rf[k]) && rf[k].length > 0)))
+    .map(k => `<span class="rm2-field-pill">${escHtml(k)}</span>`).join('');
+  fieldsEl.innerHTML = pills || '<span style="color:#64748b;font-size:11px">Nenhum campo reutilizável encontrado</span>';
+
+  document.getElementById('reuse-overlay').classList.add('open');
+}
+
+function closeReuseModal() {
+  document.getElementById('reuse-overlay').classList.remove('open');
+}
+
+async function confirmReuseApply() {
+  if (!_pendingReuseFlow) { closeReuseModal(); return; }
+  _currentReuseMode    = _pendingReuseFlow.autofill_mode || 'reuse';
+  _currentSourceCaseId = _pendingReuseFlow.source_case_id || null;
+  _currentSourceBlueprintId = _pendingReuseFlow.source_blueprint_id || null;
+  closeReuseModal();
+  _dismissReuseBanner();
+
+  // Pre-fill fields from template
+  const rf = _pendingReuseFlow.template && _pendingReuseFlow.template.reusable_fields
+    ? _pendingReuseFlow.template.reusable_fields : {};
+  if (rf.procedimento_principal) document.getElementById('f-proc').value = rf.procedimento_principal;
+  if (rf.procedimento_tuss)      document.getElementById('f-tuss').value = rf.procedimento_tuss;
+  if (rf.cid)                    document.getElementById('f-cid').value  = rf.cid;
+  if (rf.justificativa_clinica)  document.getElementById('f-just').value = rf.justificativa_clinica;
+  if (rf.opme_itens && rf.opme_itens.length > 0 && CLINICAL) {
+    CLINICAL.opme_itens = rf.opme_itens.map(item => ({
+      tiss_65_opme_descricao_item:   item.descricao || '',
+      tiss_66_opme_qtd_solicitada:   item.quantidade || 1,
+      tiss_68_opme_unidade_medida:   'UN',
+      tiss_63_opme_codigo_anvisa:    item.codigo_anvisa || '',
+      tiss_64_opme_referencia:       item.referencia || ''
+    }));
+    updateOpmePreview(CLINICAL.opme_itens);
+  }
+  syncPayload();
+  document.getElementById('btn-render').disabled = false;
+  showToast(`<strong>♻ Template aplicado</strong>Revise e preencha os dados do paciente`, 'success', 4000);
+}
+
+async function openBlueprintFlow(blueprintId, blueprintName) {
+  if (typeof NEUROAUTH_CASE_REUSE_ENGINE === 'undefined') return;
+  const result = await NEUROAUTH_CASE_REUSE_ENGINE.startBlueprintFlow(blueprintId, _getActiveUserId());
+  if (!result.success) { showToast('<strong>Blueprint não encontrado</strong>', 'error', 2500); return; }
+
+  _currentReuseMode         = 'blueprint';
+  _currentSourceCaseId      = result.source_case_id || null;
+  _currentSourceBlueprintId = result.blueprint_id   || null;
+
+  const rf = result.template && result.template.reusable_fields ? result.template.reusable_fields : {};
+  if (rf.procedimento_nome)    document.getElementById('f-proc').value = rf.procedimento_nome;
+  if (rf.procedimento_tuss)    document.getElementById('f-tuss').value = rf.procedimento_tuss;
+  if (rf.cid)                  document.getElementById('f-cid').value  = rf.cid;
+  if (rf.justificativa_base)   document.getElementById('f-just').value = rf.justificativa_base;
+  syncPayload();
+  document.getElementById('btn-render').disabled = false;
+  showToast(`<strong>📋 Blueprint aplicado</strong>${escHtml((blueprintName||'Protocolo').slice(0,40))}`, 'success', 4000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ROI ENGINE — UI HELPERS (usados em renderConsumo + renderAdmin)
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function _buildROISection(userId, period) {
+  if (typeof NEUROAUTH_ROI_ENGINE === 'undefined') return '';
+  try {
+    const roi  = await NEUROAUTH_ROI_ENGINE.getDoctorROI(userId, period || 'current_month');
+    const msgs = NEUROAUTH_ROI_ENGINE.buildROIMessages({ roi: roi, period: period });
+    if (roi.total_guias === 0) return '';
+
+    const kpis = [
+      { v: roi.fmt.total_time_saved,     l: 'Tempo economizado' },
+      { v: roi.total_guias + ' guias',   l: 'Guias geradas' },
+      { v: roi.fmt.estimated_production, l: 'Produção suportada' }
+    ];
+
+    const kpiHtml = kpis.map(k => `
+      <div class="cm-roi-kpi">
+        <div class="rv">${escHtml(k.v)}</div>
+        <div class="rl">${escHtml(k.l)}</div>
+      </div>`).join('');
+
+    const msgHtml = msgs.slice(0,3).map(m =>
+      `<div class="cm-roi-msg"><span class="roi-icon">${m.icon}</span><span>${m.text}</span></div>`
+    ).join('');
+
+    return `
+      <div class="cm-roi-section">
+        <div class="cm-roi-header">⚡ Seu impacto com NEUROAUTH</div>
+        <div class="cm-roi-grid">${kpiHtml}</div>
+        <div class="cm-roi-messages">${msgHtml}</div>
+      </div>`;
+  } catch(e) { return ''; }
+}
+
+async function _buildBlueprintSection(userId) {
+  if (typeof NEUROAUTH_CASE_REUSE_ENGINE === 'undefined') return '';
+  try {
+    const bps = await NEUROAUTH_CASE_REUSE_ENGINE.getBlueprintLibrary(userId, { limit: 6 });
+    if (!bps || bps.length === 0) return '';
+    const cards = bps.map(bp => `
+      <div class="cm-bp-card" onclick="openBlueprintFlow('${escHtml(bp.blueprint_id)}','${escHtml(bp.template_name)}')">
+        <div class="cm-bp-name">${escHtml(bp.template_name.slice(0,40))}</div>
+        <div class="cm-bp-meta">${escHtml(bp.clinical_data && bp.clinical_data.procedimento_tuss ? 'TUSS ' + bp.clinical_data.procedimento_tuss : '—')}</div>
+        <div class="cm-bp-badge">Usado ${bp.usage_count}× </div>
+      </div>`).join('');
+    return `
+      <div class="cm-blueprints">
+        <div class="cm-section-title" style="font-size:12px;font-weight:800;color:#1a3a6a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:0">📋 Meus Protocolos</div>
+        <div class="cm-bp-grid">${cards}</div>
+      </div>`;
+  } catch(e) { return ''; }
+}
+
+async function _buildRecentCasesSection(userId) {
+  if (typeof NEUROAUTH_CASE_REUSE_ENGINE === 'undefined') return '';
+  try {
+    const cases = await NEUROAUTH_CASE_REUSE_ENGINE.getCaseHistory(userId, { limit: 5 });
+    if (!cases || cases.length === 0) return '';
+    const rows = cases.map(c => {
+      const date = c.generated_at ? new Date(c.generated_at).toLocaleDateString('pt-BR') : '—';
+      const mode = c.autofill_mode || 'fresh';
+      return `<div class="cm-case-row">
+        <div class="cm-case-info">
+          <div class="cm-case-proc">${escHtml((c.procedimento_principal||'—').slice(0,38))}</div>
+          <div class="cm-case-date">${escHtml(c.operadora||'—')} · ${date} · ${c.opme_count||0} OPME</div>
+        </div>
+        <span class="cm-mode-pill ${escHtml(mode)}">${mode==='blueprint'?'📋':mode==='reuse'?'♻':'✨'} ${mode}</span>
+        <button class="cm-case-reuse-btn" onclick="openReuseModal('${escHtml(c.case_id)}','${escHtml(c.procedimento_principal||'')}')">♻ Reutilizar</button>
+      </div>`;
+    }).join('');
+    return `
+      <div class="cm-blueprints" style="margin-top:14px">
+        <div class="cm-section-title" style="font-size:12px;font-weight:800;color:#1a3a6a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📁 Casos Recentes</div>
+        ${rows}
+      </div>`;
+  } catch(e) { return ''; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SMART REUSE ENGINE — functions
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Trigger Smart Reuse Engine after autofill succeeds — populates #blueprint-suggestions */
+function _triggerSmartReuseEngine(clinical) {
+  if (typeof NEUROAUTH_SMART_REUSE_ENGINE === 'undefined') return;
+  try {
+    const input = {
+      tuss:              clinical.tuss || null,
+      procedimento_nome: clinical.label || null,
+      operadora:         PAYLOAD ? (PAYLOAD.tiss_09_codigo_operadora || PAYLOAD.operadora_nome || null) : null
+    };
+    const top = NEUROAUTH_SMART_REUSE_ENGINE.getTopBlueprints(input, { k: 3, min_score: 0.05 });
+    if (top.length > 0) {
+      NEUROAUTH_SMART_REUSE_ENGINE.renderBlueprintSuggestions(top, 'blueprint-suggestions', onSmartReuseApply);
+    }
+  } catch(e) { /* never block */ }
+}
+
+/** Apply a Smart Reuse Engine blueprint — pre-fills magic-input and re-runs autofill */
+function onSmartReuseApply(blueprint) {
+  if (!blueprint || !blueprint.clinical_data) return;
+  const cd = blueprint.clinical_data;
+
+  // Mark mode
+  _currentReuseMode         = 'reuse';
+  _currentSourceCaseId      = null;
+  _currentSourceBlueprintId = blueprint.blueprint_id;
+
+  // Fill the magic input with procedure name → re-runs autofill engine
+  const mi = document.getElementById('magic-input');
+  if (mi && cd.procedimento_nome) {
+    mi.value = cd.procedimento_nome;
+  }
+
+  // Apply via engine (will DOM-fill remaining fields + emit billing event)
+  NEUROAUTH_SMART_REUSE_ENGINE.applyBlueprint(blueprint, {
+    userId: _getActiveUserId(),
+    formFieldMap: {
+      tuss:               '#f-tuss',
+      cid:                '#f-cid',
+      justificativa_base: '#f-just',
+      procedimento_nome:  '#magic-input'
+    }
+  });
+
+  // Hide suggestions; show reuse indicator
+  _dismissSmartSuggestions();
+  showToast(`<strong>🧠 Blueprint aplicado</strong>${(cd.procedimento_nome||'').slice(0,35)} — revisão rápida`, 'success', 3000);
+
+  // Run autofill to complete any missing inferences
+  runAutofill();
+}
+
+function _dismissSmartSuggestions() {
+  const el = document.getElementById('blueprint-suggestions');
+  if (el) el.style.display = 'none';
+}
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('f-data-sol').value = new Date().toISOString().split('T')[0];
+
+  // ── PROMPT MASTER — inicializar camada Revenue Experience ───────────
+  // 1. Notification Service: conecta showToast como canal toast
+  if (typeof NEUROAUTH_NOTIFICATION_SERVICE !== 'undefined') {
+    NEUROAUTH_NOTIFICATION_SERVICE.configure({
+      toastFn: showToast,
+      channels: ['toast', 'console']
+    });
+  }
+
+  // 2. Access Policy Engine: conecta ao aggregator global
+  if (typeof NEUROAUTH_ACCESS_POLICY !== 'undefined') {
+    NEUROAUTH_ACCESS_POLICY.configure({
+      aggregator: (typeof NEUROAUTH_AGGREGATOR !== 'undefined') ? NEUROAUTH_AGGREGATOR : null
+    });
+    // Verificação inicial de política (fire-and-forget)
+    _refreshAccessPolicy().catch(() => {});
+  }
+
+  // 3. Case Reuse Engine: inicializa com storage padrão (memory)
+  if (typeof NEUROAUTH_CASE_REUSE_ENGINE !== 'undefined') {
+    NEUROAUTH_CASE_REUSE_ENGINE.configure({});
+  }
+
+  // 4. ROI Engine: inicializa com modelos padrão (conservative)
+  if (typeof NEUROAUTH_ROI_ENGINE !== 'undefined') {
+    NEUROAUTH_ROI_ENGINE.configure({});
+  }
+
+  // 5. Smart Reuse Engine: carrega cache do localStorage (zero latência)
+  if (typeof NEUROAUTH_SMART_REUSE_ENGINE !== 'undefined') {
+    NEUROAUTH_SMART_REUSE_ENGINE.init();
+  }
+
+  // 6. Analytics Engine: inicializa coletor global (offline-first, LGPD-safe)
+  if (typeof NEUROAUTH_ANALYTICS !== 'undefined') {
+    // Nenhuma configuração necessária — coletor opera via track() nos eventos
+    // Alertas de risco ao iniciar (apenas console, nunca bloqueia)
+    NEUROAUTH_ANALYTICS.detectRisk();
+  }
+  // ────────────────────────────────────────────────────────────────────
+});
+</script>
+
+<!-- NeuroAuth Integration Layer — carregue nesta ordem -->
+<script src="neuroauth_billing_bridge.js"></script>
+<script src="neuroauth_billing_bridge_client.js"></script>
+<script src="neuroauth_monthly_billing_aggregator.js"></script>
+<script src="neuroauth_notification_service.js"></script>
+<script src="neuroauth_access_policy.js"></script>
+<script src="neuroauth_case_reuse_engine.js"></script>
+<script src="neuroauth_roi_engine.js"></script>
+<script src="neuroauth_smart_reuse_engine.js"></script>
+<script src="neuroauth_analytics.js"></script>
+</body>
+</html>

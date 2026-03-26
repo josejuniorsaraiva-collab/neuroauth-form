@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>NEUROAUTH — RenderEngine SP/SADT + OPME v4.01.00 (v2)</title>
+<style>
+/* ──────────────────────────────────────────────────────────────
+   BASE: A4 rendering (210x297mm, 96dpi = 794x1123px)
+   ────────────────────────────────────────────────────────────── */
+:root {
+  --mm: 3.7795275591px; /* 1mm in px at 96dpi */
+  --page-w: 210mm;
+  --page-h: 297mm;
+  --margin: 10mm;
+  --usable-w: 190mm;
+  --font-base: 7.5pt;
+  --font-small: 6.5pt;
+  --font-label: 5.5pt;
+  --color-border: #333;
+  --color-header-bg: #1a3a5c;
+  --color-header-text: #fff;
+  --color-section-bg: #d8e4f0;
+  --color-section-text: #1a3a5c;
+  --color-row-alt: #f5f8fb;
+  --color-required: #c0392b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #888;
+  font-family: 'Arial', sans-serif;
+  font-size: var(--font-base);
+  color: #111;
+}
+
+/* ── Controls UI ── */
+#controls {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: #1a3a5c; color: #fff; padding: 8px 16px;
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  font-size: 12px;
+}
+#controls h1 { font-size: 13px; font-weight: bold; margin-right: 8px; }
+#controls button {
+  background: #fff; color: #1a3a5c; border: none; padding: 5px 12px;
+  border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 11px;
+}
+#controls button:hover { background: #e0ecf8; }
+#controls select, #controls input[type=file] {
+  background: #2a4a6c; color: #fff; border: 1px solid #5a8ab0;
+  padding: 4px 8px; border-radius: 3px; font-size: 11px;
+}
+#status {
+  margin-left: auto; font-size: 11px; opacity: 0.85;
+  background: rgba(0,0,0,0.25); padding: 3px 10px; border-radius: 3px;
+}
+
+/* ── Page container ── */
+#pages-container {
+  margin-top: 52px;
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+  padding: 20px;
+}
+
+/* ── A4 Page ── */
+.a4-page {
+  width: var(--page-w);
+  min-height: var(--page-h);
+  background: #fff;
+  padding: var(--margin);
+  position: relative;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  page-break-after: always;
+  page-break-inside: avoid;
+}
+
+/* ── Section header bar ── */
+.sec-header {
+  background: var(--color-section-bg);
+  color: var(--color-section-text);
+  font-size: var(--font-small);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 4px;
+  border: 0.3mm solid var(--color-border);
+  border-bottom: none;
+}
+
+/* ── Field grid ── */
+.field-row {
+  display: flex;
+  border: 0.3mm solid var(--color-border);
+  border-top: none;
+}
+.field-row + .field-row { border-top: none; }
+
+.field-cell {
+  flex: 1;
+  border-right: 0.3mm solid var(--color-border);
+  padding: 1mm 1.5mm;
+  min-height: 6mm; /* FASE 6: reduzido de 7mm para 6mm */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.field-cell:last-child { border-right: none; }
+
+.field-label {
+  font-size: var(--font-label);
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 1px;
+  line-height: 1.1;
+}
+.field-label .req { color: var(--color-required); }
+
+.field-value {
+  font-size: var(--font-base);
+  color: #111;
+  line-height: 1.3;
+  word-break: break-word;
+}
+.field-value.empty {
+  color: #ccc;
+  font-style: italic;
+  font-size: 6pt;
+}
+.field-value.textarea-val {
+  white-space: pre-wrap;
+  line-height: 1.4;
+  font-size: 6.8pt;
+}
+
+/* ── NEUROAUTH header ── */
+.guide-header {
+  background: var(--color-header-bg);
+  color: var(--color-header-text);
+  padding: 3mm 4mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+.guide-header .guide-title {
+  font-size: 10pt;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+.guide-header .guide-subtitle {
+  font-size: 7pt;
+  opacity: 0.85;
+  margin-top: 1px;
+}
+.guide-header .guide-meta {
+  text-align: right;
+  font-size: 6.5pt;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+.guide-header .ans-logo {
+  font-size: 8pt;
+  font-weight: bold;
+  border: 1px solid rgba(255,255,255,0.6);
+  padding: 2px 6px;
+  border-radius: 2px;
+  margin-left: 10px;
+}
+
+/* ── ANS registration strip ── */
+.ans-strip {
+  border: 0.4mm solid var(--color-header-bg);
+  display: flex;
+  margin-bottom: 0;
+}
+.ans-strip-item {
+  flex: 1;
+  border-right: 0.3mm solid var(--color-border);
+  padding: 1mm 2mm;
+}
+.ans-strip-item:last-child { border-right: none; }
+
+/* ── Procedure table ── */
+.proc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 6.5pt;
+  margin-top: 0;
+}
+.proc-table th {
+  background: var(--color-section-bg);
+  color: var(--color-section-text);
+  border: 0.3mm solid var(--color-border);
+  padding: 1.5mm 1mm;
+  text-align: left;
+  font-size: 5.5pt;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+.proc-table td {
+  border: 0.3mm solid var(--color-border);
+  padding: 1.5mm 1mm;
+  vertical-align: top;
+  line-height: 1.3;
+}
+.proc-table tr:nth-child(even) td { background: var(--color-row-alt); }
+
+/* ── OPME table ── */
+.opme-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 6pt;
+  margin-top: 0;
+}
+.opme-table th {
+  background: #2c5f8a;
+  color: #fff;
+  border: 0.3mm solid var(--color-border);
+  padding: 1.5mm 1mm;
+  font-size: 5pt;
+  text-transform: uppercase;
+  font-weight: bold;
+  text-align: center;
+}
+.opme-table td {
+  border: 0.3mm solid var(--color-border);
+  padding: 1mm;
+  vertical-align: top;
+  line-height: 1.3;
+}
+.opme-table .row-a { background: #fff; }
+.opme-table .row-b { background: #eef4fa; font-size: 5.5pt; }
+.opme-table .row-b td { color: #444; font-style: italic; }
+.opme-table .num-cell { text-align: right; }
+
+/* FASE 1: seq-cell-top / seq-cell-bottom — simula merge sem rowspan */
+.opme-table .seq-cell-top {
+  text-align: center;
+  font-weight: bold;
+  font-size: 7pt;
+  border-bottom: none !important;
+  vertical-align: bottom;
+  padding-bottom: 1px;
+}
+.opme-table .seq-cell-bottom {
+  text-align: center;
+  font-weight: bold;
+  font-size: 7pt;
+  border-top: none !important;
+  vertical-align: top;
+  padding-top: 1px;
+  color: #aaa; /* número esfumaçado na sub-linha */
+}
+
+/* FASE 2: page-break-inside: avoid em cada item OPME */
+.opme-table tbody {
+  page-break-inside: avoid;
+  break-inside: avoid;
+  display: table-row-group; /* necessário para break-inside funcionar em Firefox */
+}
+
+/* ── CID block ── */
+.cid-row {
+  display: flex;
+  border: 0.3mm solid var(--color-border);
+  border-top: none;
+}
+.cid-cell {
+  flex: 1;
+  border-right: 0.3mm solid var(--color-border);
+  padding: 1mm 1.5mm;
+  min-height: 6mm;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.cid-cell:last-child { border-right: none; }
+
+/* ── Justificativa textarea ── */
+.justificativa-box {
+  border: 0.3mm solid var(--color-border);
+  border-top: none;
+  padding: 2mm 2mm;
+  min-height: 30mm;
+  font-size: 6.8pt;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #111;
+}
+
+/* ── Signature block ── */
+.sig-block {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* ── Signature row ── */
+.sig-row {
+  display: flex;
+  border: 0.3mm solid var(--color-border);
+  border-top: none;
+  height: 15mm;
+}
+.sig-cell {
+  flex: 1;
+  border-right: 0.3mm solid var(--color-border);
+  padding: 1.5mm;
+  display: flex; flex-direction: column;
+}
+.sig-cell:last-child { border-right: none; }
+.sig-line {
+  flex: 1;
+  border-bottom: 0.3mm solid #999;
+  margin: 2mm 4mm 2mm;
+}
+
+/* ── Page footer ── */
+.page-footer {
+  margin-top: 3mm;
+  display: flex;
+  justify-content: space-between;
+  font-size: 5.5pt;
+  color: #888;
+  border-top: 0.3mm solid #ddd;
+  padding-top: 1.5mm;
+}
+
+/* ── Mini header P2/P3 (continuação) ── */
+.mini-header-p2 {
+  background: var(--color-header-bg);
+  color: #fff;
+  padding: 2mm 4mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 6.5pt;
+  margin-bottom: 0;
+}
+
+/* ── OPME section header ── */
+.opme-sec-header {
+  background: #2c5f8a;
+  color: #fff;
+  font-size: var(--font-small);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 4px;
+  border: 0.3mm solid var(--color-border);
+  border-bottom: none;
+}
+
+/* ── Spacer ── */
+.vsep { height: 2mm; }
+
+/* ── Print ── */
+@media print {
+  body { background: #fff; }
+  #controls { display: none; }
+  #pages-container { margin-top: 0; padding: 0; gap: 0; }
+  .a4-page {
+    box-shadow: none;
+    page-break-after: always;
+    overflow: hidden;
+    max-height: 277mm;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ── CONTROLS ─────────────────────────────────────────────────────────── -->
+<div id="controls">
+  <h1>🧠 NEUROAUTH RenderEngine</h1>
+  <span>SP/SADT + OPME · TISS 4.01.00 · v2</span>
+  <div style="display:flex;gap:6px;align-items:center">
+    <label style="font-size:10px">Spec JSON:</label>
+    <input type="file" id="specFile" accept=".json" onchange="loadSpec(this)">
+  </div>
+  <div style="display:flex;gap:6px;align-items:center">
+    <label style="font-size:10px">Payload JSON:</label>
+    <input type="file" id="payloadFile" accept=".json" onchange="loadPayload(this)">
+  </div>
+  <button onclick="renderGuia()">▶ Renderizar Guia</button>
+  <button onclick="window.print()">🖨 Imprimir A4</button>
+  <button onclick="loadDemo()">⚡ Demo (payload embutido)</button>
+  <span id="status">Aguardando arquivos…</span>
+</div>
+
+<!-- ── PAGES ─────────────────────────────────────────────────────────────── -->
+<div id="pages-container">
+  <div style="color:#ddd;font-size:13px;padding:40px;text-align:center">
+    Carregue o Spec + Payload JSON e clique <strong>Renderizar Guia</strong><br>
+    ou clique <strong>⚡ Demo</strong> para renderizar com payload de teste embutido.
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let SPEC = null;
+let PAYLOAD = null;
+const MM = 3.7795275591; // px por mm a 96dpi
+const PAGE_USABLE_H_PX = 277 * MM; // altura útil A4 sem margens (~1047px)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE LOADERS
+// ─────────────────────────────────────────────────────────────────────────────
+function loadSpec(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      SPEC = JSON.parse(e.target.result);
+      setStatus(`Spec: ${SPEC.template_id || 'OK'} · ${SPEC.field_registry?.length || 0} campos`);
+    } catch(err) { setStatus('ERRO: Spec JSON inválido — ' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function loadPayload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      PAYLOAD = JSON.parse(e.target.result);
+      setStatus(`Payload: ${PAYLOAD._meta?.payload_id || 'OK'} · ${PAYLOAD.opme_itens?.length || 0} OPME`);
+    } catch(err) { setStatus('ERRO: Payload JSON inválido — ' + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function loadDemo() {
+  PAYLOAD = DEMO_PAYLOAD;
+  setStatus(`Demo payload carregado · ${PAYLOAD.opme_itens.length} OPME · renderizando…`);
+  renderGuia();
+}
+
+function setStatus(msg) {
+  document.getElementById('status').textContent = msg;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function val(key, fallback) {
+  if (!PAYLOAD) return fallback || '';
+  const v = PAYLOAD[key];
+  if (v === null || v === undefined || v === '') return fallback || '';
+  if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
+  return String(v);
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  const [y, m, dd] = d.split('-');
+  return dd ? `${dd}/${m}/${y}` : d;
+}
+
+function fieldCell(label, value, flex, required, type) {
+  const isEmpty = !value || value === '';
+  const valClass = type === 'textarea' ? 'field-value textarea-val' : 'field-value';
+  const reqMark = required ? '<span class="req">*</span>' : '';
+  const displayVal = isEmpty
+    ? `<span class="field-value empty">—</span>`
+    : `<span class="${valClass}">${escHtml(value)}</span>`;
+  return `<div class="field-cell" style="flex:${flex||1}">
+    <div class="field-label">${escHtml(label)}${reqMark}</div>
+    ${displayVal}
+  </div>`;
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function secHeader(title) {
+  return `<div class="sec-header">${title}</div>`;
+}
+
+function row(...cells) {
+  return `<div class="field-row">${cells.join('')}</div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FASE 3: Medição de altura via DOM (hidden probe)
+// ─────────────────────────────────────────────────────────────────────────────
+function measureHTMLHeight(htmlStr) {
+  const probe = document.createElement('div');
+  probe.style.cssText = [
+    'position:fixed',
+    'top:-99999px',
+    'left:0',
+    `width:${190 * MM}px`,
+    'visibility:hidden',
+    'pointer-events:none',
+    'font-family:Arial,sans-serif',
+    `font-size:7.5pt`,
+    'box-sizing:border-box'
+  ].join(';');
+  probe.innerHTML = htmlStr;
+  document.body.appendChild(probe);
+  const h = probe.getBoundingClientRect().height;
+  document.body.removeChild(probe);
+  return h;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FASE 4: Mini-header para páginas de continuação
+// ─────────────────────────────────────────────────────────────────────────────
+function miniHeaderContinuation(label) {
+  const now = new Date().toLocaleDateString('pt-BR');
+  return `<div class="mini-header-p2">
+    <div>
+      <strong>GUIA SP/SADT — ${label}</strong>
+      <span style="margin-left:12px;opacity:0.8">${escHtml(val('tiss_10_nome_beneficiario'))} · ${escHtml(val('tiss_15_nome_plano'))}</span>
+    </div>
+    <div>Guia: <strong>${escHtml(val('tiss_02_numero_guia_operadora'))}</strong> · ANS ${escHtml(val('tiss_01_registro_ans'))} · ${now}</div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Footer builder
+// ─────────────────────────────────────────────────────────────────────────────
+function buildFooterHtml(pageNum, totalPages) {
+  return `<div class="page-footer">
+    <span>NEUROAUTH · TISS 4.01.00 · Guia SP/SADT</span>
+    <span>Operadora ANS: ${escHtml(val('tiss_01_registro_ans'))} | Guia: ${escHtml(val('tiss_02_numero_guia_operadora'))}</span>
+    <span>Página ${pageNum} / ${totalPages}</span>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FASE 1 + 2: Build OPME HTML block
+// — sem rowspan, cada item em seu próprio <tbody class="opme-item">
+// ─────────────────────────────────────────────────────────────────────────────
+function buildOpmeHtml() {
+  const opme = (PAYLOAD && PAYLOAD.opme_itens) ? PAYLOAD.opme_itens : [];
+
+  let html = `<div class="opme-sec-header">OPME — Órteses, Próteses e Materiais Especiais</div>`;
+  html += `<table class="opme-table">
+    <thead>
+      <tr>
+        <th style="width:4%" rowspan="2">Seq</th>
+        <th style="width:11%">Código TUSS</th>
+        <th style="width:14%">Ref. Fabricante</th>
+        <th style="width:27%">Descrição do Item</th>
+        <th style="width:6%">Qtd Sol.</th>
+        <th style="width:6%">Qtd Aut.</th>
+        <th style="width:5%">Unid.</th>
+        <th style="width:13%">Nº ANVISA</th>
+      </tr>
+      <tr>
+        <th colspan="2" style="text-align:left">Fabricante</th>
+        <th colspan="5" style="text-align:left">Justificativa de Uso</th>
+      </tr>
+    </thead>`;
+
+  if (opme.length === 0) {
+    html += `<tbody><tr class="row-a"><td colspan="8" style="text-align:center;color:#aaa;font-style:italic;padding:4mm">Nenhum item OPME informado</td></tr></tbody>`;
+  } else {
+    opme.forEach(item => {
+      const seq = item.tiss_62_opme_sequencial || '';
+      // FASE 1: seq-cell-top em row-a, seq-cell-bottom em row-b (sem rowspan)
+      // FASE 2: cada item em seu próprio <tbody> com page-break-inside: avoid
+      html += `<tbody class="opme-item">
+        <tr class="row-a">
+          <td class="seq-cell-top">${seq}</td>
+          <td><strong>${escHtml(item.tiss_63_opme_codigo_material || '')}</strong></td>
+          <td>${escHtml(item.tiss_64_opme_referencia_fabricante || '')}</td>
+          <td>${escHtml(item.tiss_65_opme_descricao_item || '')}</td>
+          <td class="num-cell">${item.tiss_66_opme_qtd_solicitada || ''}</td>
+          <td class="num-cell">${item.tiss_67_opme_qtd_autorizada || ''}</td>
+          <td style="text-align:center">${escHtml(item.tiss_68_opme_unidade_medida || '')}</td>
+          <td>${escHtml(item.tiss_69_opme_numero_anvisa || '')}</td>
+        </tr>
+        <tr class="row-b">
+          <td class="seq-cell-bottom">${seq}</td>
+          <td colspan="2" style="font-weight:bold;font-style:normal">${escHtml(item.tiss_70_opme_nome_fabricante || '')}</td>
+          <td colspan="5">${escHtml(item.tiss_71_opme_justificativa_uso || '')}</td>
+        </tr>
+      </tbody>`;
+    });
+  }
+
+  html += `</table>`;
+  return html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Build clinical HTML block: justificativa + hipótese + assinaturas + footer
+// FASE 5: sig-block wrap para page-break-inside: avoid
+// ─────────────────────────────────────────────────────────────────────────────
+function buildClinicalHtml() {
+  let html = '';
+
+  // Justificativa Cirúrgica
+  html += secHeader('Justificativa Cirúrgica / Clínica');
+  html += `<div class="justificativa-box">${escHtml(val('tiss_72_justificativa_clinica'))}</div>`;
+
+  // Hipótese Diagnóstica (condicional)
+  if (val('tiss_73_hipotese_diagnostica')) {
+    html += secHeader('Hipótese Diagnóstica');
+    html += `<div class="justificativa-box" style="min-height:12mm">${escHtml(val('tiss_73_hipotese_diagnostica'))}</div>`;
+  }
+
+  // FASE 5: assinaturas protegidas contra orphaning com sig-block
+  html += `<div class="vsep"></div>`;
+  html += `<div class="sig-block">`;
+  html += secHeader('Assinaturas — Continuação');
+  html += `<div class="sig-row">
+    <div class="sig-cell" style="flex:2">
+      <div class="field-label">Assinatura do Médico Executante</div>
+      <div class="sig-line"></div>
+      <div style="text-align:center;font-size:5.5pt;color:#888">${escHtml(val('tiss_76_conselho_carimbo_exec'))} · ${fmtDate(val('tiss_75_data_assinatura_exec'))}</div>
+    </div>
+    <div class="sig-cell" style="flex:2">
+      <div class="field-label">Assinatura do Beneficiário / Responsável</div>
+      <div class="sig-line"></div>
+      <div style="text-align:center;font-size:5.5pt;color:#888">Data: ${fmtDate(val('tiss_75_data_assinatura_exec'))}</div>
+    </div>
+  </div>`;
+  html += `</div>`; // .sig-block
+
+  return html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE 1 RENDERER — inalterado exceto FASE 6: redução de linhas vazias proc
+// ─────────────────────────────────────────────────────────────────────────────
+function renderPage1() {
+  const P = PAYLOAD;
+  const procs = P.procedimentos || [];
+  const now = new Date().toLocaleDateString('pt-BR');
+
+  // ── GUIDE HEADER ──
+  let html = `
+  <div class="guide-header">
+    <div>
+      <div class="guide-title">GUIA DE SP/SADT</div>
+      <div class="guide-subtitle">Serviço Profissional / Serviço Auxiliar de Diagnóstico e Terapia</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="guide-meta">
+        Padrão TISS: <strong>4.01.00</strong><br>
+        Emissão: ${now}<br>
+        Guia: ${escHtml(val('tiss_02_numero_guia_operadora','—'))}
+      </div>
+      <div class="ans-logo">ANS<br><span style="font-size:6pt;font-weight:normal">${escHtml(val('tiss_01_registro_ans','000000'))}</span></div>
+    </div>
+  </div>`;
+
+  // ── ANS/AUTORIZAÇÃO STRIP ──
+  html += `<div class="ans-strip">
+    ${fieldCell('Nº Guia Operadora', val('tiss_02_numero_guia_operadora'), 2, true)}
+    ${fieldCell('Senha Autorização', val('tiss_03_senha_autorizacao'), 1.5)}
+    ${fieldCell('Data Autorização', fmtDate(val('tiss_04_data_autorizacao')), 1)}
+    ${fieldCell('Val. Senha', fmtDate(val('tiss_05_data_validade_senha')), 1)}
+    ${fieldCell('Val. Atendimento', fmtDate(val('tiss_06_data_validade_atendimento')), 1)}
+    ${fieldCell('Guia Principal', val('tiss_07_numero_guia_principal'), 1.5)}
+  </div>`;
+
+  // ── BENEFICIÁRIO ──
+  html += `<div class="vsep"></div>`;
+  html += secHeader('Dados do Beneficiário');
+  html += row(
+    fieldCell('Nº Carteira', val('tiss_08_numero_carteira'), 2, true),
+    fieldCell('Nome Beneficiário', val('tiss_10_nome_beneficiario'), 4, true),
+    fieldCell('Data Nasc.', fmtDate(val('tiss_12_data_nascimento')), 1.2, true),
+    fieldCell('RN', val('tiss_09_atendimento_rn'), 0.5)
+  );
+  html += row(
+    fieldCell('CNS', val('tiss_11_numero_cns'), 2),
+    fieldCell('Código Plano', val('tiss_14_codigo_plano'), 1.5),
+    fieldCell('Nome Plano', val('tiss_15_nome_plano'), 3),
+    fieldCell('Val. Carteira', fmtDate(val('tiss_16_validade_carteira')), 1.2),
+    fieldCell('Nome Social', val('tiss_13_nome_social'), 2)
+  );
+
+  // ── SOLICITANTE ──
+  html += `<div class="vsep"></div>`;
+  html += secHeader('Dados do Solicitante');
+  html += row(
+    fieldCell('Código Contratado', val('tiss_17_codigo_contratado_sol'), 1.5, true),
+    fieldCell('Nome Contratado / Estabelecimento Solicitante', val('tiss_18_nome_contratado_sol'), 4, true),
+    fieldCell('CNES', val('tiss_19_codigo_cnes_sol'), 1.2),
+    fieldCell('Cód. Operadora', val('tiss_20_codigo_operadora_sol'), 1.2)
+  );
+  html += row(
+    fieldCell('Nome Profissional Solicitante', val('tiss_21_nome_profissional_sol'), 3, true),
+    fieldCell('Conselho', val('tiss_22_conselho_profissional_sol'), 0.8, true),
+    fieldCell('Nº Conselho', val('tiss_23_numero_conselho_sol'), 1.2, true),
+    fieldCell('UF', val('tiss_24_uf_conselho_sol'), 0.5, true),
+    fieldCell('Código CBO', val('tiss_25_codigo_cbo_sol'), 1, true),
+    fieldCell('Descrição CBO', val('tiss_26_descricao_cbo_sol'), 2)
+  );
+
+  // ── EXECUTANTE ──
+  html += `<div class="vsep"></div>`;
+  html += secHeader('Dados do Executante');
+  html += row(
+    fieldCell('Código Contratado', val('tiss_27_codigo_contratado_exec'), 1.5),
+    fieldCell('Nome Contratado / Hospital Executante', val('tiss_28_nome_contratado_exec'), 4),
+    fieldCell('CNES', val('tiss_29_codigo_cnes_exec'), 1.2),
+    fieldCell('Cód. Operadora', val('tiss_30_codigo_operadora_exec'), 1.2)
+  );
+  html += row(
+    fieldCell('Nome Profissional Executante', val('tiss_31_nome_profissional_exec'), 3),
+    fieldCell('Conselho', val('tiss_32_conselho_profissional_exec'), 0.8),
+    fieldCell('Nº Conselho', val('tiss_33_numero_conselho_exec'), 1.2),
+    fieldCell('UF', val('tiss_34_uf_conselho_exec'), 0.5),
+    fieldCell('Código CBO', val('tiss_35_codigo_cbo_exec'), 1),
+    fieldCell('Descrição CBO', val('tiss_36_descricao_cbo_exec'), 2)
+  );
+
+  // ── DADOS DO ATENDIMENTO ──
+  html += `<div class="vsep"></div>`;
+  html += secHeader('Dados do Atendimento');
+  html += row(
+    fieldCell('Data Solicitação', fmtDate(val('tiss_37_data_solicitacao')), 1.5, true),
+    fieldCell('Caráter Atendimento', val('tiss_38_carater_atendimento'), 1.5, true),
+    fieldCell('Tipo Internação', val('tiss_41_tipo_internacao'), 1.5),
+    fieldCell('Indicação Acidente', val('tiss_40_indicacao_acidente'), 1.2),
+    fieldCell('Tipo Consulta', val('tiss_39_tipo_consulta'), 1.2)
+  );
+  html += `<div class="field-row" style="border:0.3mm solid var(--color-border);border-top:none">
+    <div class="field-cell" style="flex:1">
+      <div class="field-label">Indicação Clínica</div>
+      <div class="field-value textarea-val">${escHtml(val('tiss_42_indicacao_clinica'))}</div>
+    </div>
+  </div>`;
+
+  // ── PROCEDIMENTOS SOLICITADOS ──
+  html += `<div class="vsep"></div>`;
+  html += secHeader('Procedimentos / Itens Assistenciais Solicitados');
+  html += `<table class="proc-table">
+    <thead><tr>
+      <th style="width:5%">Seq</th>
+      <th style="width:8%">Tabela</th>
+      <th style="width:13%">Código</th>
+      <th style="width:32%">Descrição</th>
+      <th style="width:8%">Qtd Sol.</th>
+      <th style="width:8%">Qtd Aut.</th>
+      <th style="width:10%">Via Acesso</th>
+      <th style="width:9%">Técnica</th>
+      <th style="width:7%">Red/Acrés</th>
+    </tr></thead>
+    <tbody>`;
+
+  if (procs.length === 0) {
+    html += `<tr><td colspan="9" style="text-align:center;color:#aaa;font-style:italic">Nenhum procedimento informado</td></tr>`;
+  } else {
+    procs.forEach(p => {
+      html += `<tr>
+        <td style="text-align:center">${p.tiss_43_proc_sequencial || ''}</td>
+        <td>${escHtml(p.tiss_44_proc_codigo_tabela || '')}</td>
+        <td><strong>${escHtml(p.tiss_45_proc_codigo || '')}</strong></td>
+        <td>${escHtml(p.tiss_46_proc_descricao || '')}</td>
+        <td style="text-align:center">${p.tiss_47_proc_qtd_solicitada || ''}</td>
+        <td style="text-align:center">${p.tiss_48_proc_qtd_autorizada || ''}</td>
+        <td>${escHtml(p.tiss_49_proc_via_acesso || '')}</td>
+        <td>${escHtml(p.tiss_50_proc_tecnica || '')}</td>
+        <td style="text-align:right">${p.tiss_51_proc_reducao_acrescimo !== undefined ? p.tiss_51_proc_reducao_acrescimo : ''}</td>
+      </tr>`;
+    });
+    // FASE 6: linhas vazias apenas se < 3 procedimentos (economia vertical)
+    const minRows = 3;
+    for (let i = procs.length; i < minRows; i++) {
+      html += `<tr>${'<td>&nbsp;</td>'.repeat(9)}</tr>`;
+    }
+  }
+  html += `</tbody></table>`;
+
+  // ── DIAGNÓSTICO / CID ──
+  html += `<div class="vsep"></div>`;
+  html += secHeader('Diagnóstico / CID');
+  html += `<div class="cid-row">
+    ${fieldCell('CID-10 Principal', val('tiss_52_cid_principal'), 1)}
+    ${fieldCell('CID Secundário', val('tiss_53_cid_secundario'), 1)}
+    ${fieldCell('CID Causas 1', val('tiss_54_cid_causas_1'), 1)}
+    ${fieldCell('CID Causas 2', val('tiss_55_cid_causas_2'), 1)}
+    ${fieldCell('Indicação Acidente', val('tiss_56_indicacao_acidente_diag'), 1.5)}
+    ${fieldCell('Tipo Consulta', val('tiss_57_tipo_consulta_diag'), 1.5)}
+  </div>`;
+
+  // ── INFORMAÇÕES COMPLEMENTARES ──
+  html += `<div class="vsep"></div>`;
+  html += secHeader('Informações Complementares');
+  html += `<div class="field-row" style="border:0.3mm solid var(--color-border);border-top:none">
+    <div class="field-cell" style="flex:1">
+      <div class="field-label">Observações</div>
+      <div class="field-value textarea-val">${escHtml(val('tiss_58_observacao'))}</div>
+    </div>
+  </div>`;
+
+  // ── ASSINATURAS P1 ──
+  html += `<div class="vsep"></div>`;
+  html += `<div class="sig-block">`;
+  html += secHeader('Assinaturas');
+  html += `<div class="sig-row">
+    <div class="sig-cell" style="flex:2">
+      <div class="field-label">Assinatura do Médico Solicitante</div>
+      <div class="sig-line"></div>
+      <div style="text-align:center;font-size:5.5pt;color:#888">CRM ${escHtml(val('tiss_23_numero_conselho_sol'))}/${escHtml(val('tiss_24_uf_conselho_sol'))} · ${fmtDate(val('tiss_60_data_assinatura_sol'))}</div>
+    </div>
+    <div class="sig-cell" style="flex:2">
+      <div class="field-label">Assinatura do Beneficiário / Responsável</div>
+      <div class="sig-line"></div>
+      <div style="text-align:center;font-size:5.5pt;color:#888">Data: ${fmtDate(val('tiss_60_data_assinatura_sol'))}</div>
+    </div>
+  </div>`;
+  html += `</div>`; // .sig-block
+
+  // ── FOOTER P1 ──
+  html += `<div class="page-footer">
+    <span>NEUROAUTH · TISS 4.01.00 · Guia SP/SADT</span>
+    <span>Operadora ANS: ${escHtml(val('tiss_01_registro_ans'))} | Guia: ${escHtml(val('tiss_02_numero_guia_operadora'))}</span>
+    <span>Página 1 / ?</span>
+  </div>`;
+
+  return html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN RENDER — paginação dinâmica P2/P3 via DOM measurement (FASE 3)
+// ─────────────────────────────────────────────────────────────────────────────
+function renderGuia() {
+  if (!PAYLOAD) {
+    setStatus('⚠ Carregue um payload JSON primeiro (ou use Demo)');
+    return;
+  }
+
+  const vsepHtml = '<div class="vsep"></div>';
+  const opmeHtml = buildOpmeHtml();
+  const clinicalHtml = buildClinicalHtml();
+
+  // Medir alturas reais via DOM
+  const miniH    = measureHTMLHeight(miniHeaderContinuation('CONTINUAÇÃO'));
+  const vsepH    = measureHTMLHeight(vsepHtml);
+  const opmeH    = measureHTMLHeight(opmeHtml);
+  const clinicalH = measureHTMLHeight(clinicalHtml);
+  const footerH  = measureHTMLHeight(buildFooterHtml(2, 2));
+
+  // Espaço útil após mini-header + vsep + footer
+  const p2Available = PAGE_USABLE_H_PX - miniH - vsepH - footerH;
+  // Conteúdo combinado: OPME + vsep + clinical
+  const combinedH = opmeH + vsepH + clinicalH;
+
+  const container = document.getElementById('pages-container');
+  container.innerHTML = '';
+
+  // ── Página 1 ──
+  const p1 = document.createElement('div');
+  p1.className = 'a4-page';
+  p1.innerHTML = renderPage1();
+  container.appendChild(p1);
+
+  let totalPages;
+
+  if (combinedH <= p2Available) {
+    // Tudo cabe em P2 — 2 páginas no total
+    totalPages = 2;
+    const p2 = document.createElement('div');
+    p2.className = 'a4-page';
+    p2.innerHTML =
+      miniHeaderContinuation('CONTINUAÇÃO — OPME E JUSTIFICATIVA') +
+      vsepHtml +
+      opmeHtml +
+      vsepHtml +
+      clinicalHtml +
+      buildFooterHtml(2, 2);
+    container.appendChild(p2);
+  } else {
+    // Não cabe: P2 = OPME, P3 = justificativa + assinaturas
+    totalPages = 3;
+
+    const p2 = document.createElement('div');
+    p2.className = 'a4-page';
+    p2.innerHTML =
+      miniHeaderContinuation('CONTINUAÇÃO — OPME') +
+      vsepHtml +
+      opmeHtml +
+      buildFooterHtml(2, 3);
+    container.appendChild(p2);
+
+    const p3 = document.createElement('div');
+    p3.className = 'a4-page';
+    p3.innerHTML =
+      miniHeaderContinuation('CONTINUAÇÃO — JUSTIFICATIVA E ASSINATURAS') +
+      vsepHtml +
+      clinicalHtml +
+      buildFooterHtml(3, 3);
+    container.appendChild(p3);
+  }
+
+  // Corrigir "Página 1 / ?" no footer da P1
+  p1.querySelector('.page-footer span:last-child').textContent = `Página 1 / ${totalPages}`;
+
+  const opmeCount = PAYLOAD.opme_itens?.length || 0;
+  const justLen = (PAYLOAD.tiss_72_justificativa_clinica || '').length;
+  setStatus(`✅ Renderizado · ${totalPages} págs · ${opmeCount} OPME · ${justLen}c justif · opme=${Math.round(opmeH)}px clinical=${Math.round(clinicalH)}px avail=${Math.round(p2Available)}px`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEMO PAYLOAD (embedded — craniotomia GBM, 10 OPME)
+// ─────────────────────────────────────────────────────────────────────────────
+const DEMO_PAYLOAD = {
+  "_meta": { "payload_id": "TEST-NEURO-CRANIO-001", "caso": "Craniotomia GBM WHO Grau IV" },
+  "tiss_01_registro_ans": "337555",
+  "tiss_02_numero_guia_operadora": "7714500220260001",
+  "tiss_03_senha_autorizacao": "NS2026031445",
+  "tiss_04_data_autorizacao": "2026-03-20",
+  "tiss_05_data_validade_senha": "2026-04-20",
+  "tiss_06_data_validade_atendimento": "2026-04-20",
+  "tiss_07_numero_guia_principal": null,
+  "tiss_08_numero_carteira": "0023778814529001",
+  "tiss_09_atendimento_rn": false,
+  "tiss_10_nome_beneficiario": "CARLOS EDUARDO MENDONÇA FIGUEIREDO",
+  "tiss_11_numero_cns": "707 4512 3618 2049",
+  "tiss_12_data_nascimento": "1961-08-14",
+  "tiss_13_nome_social": null,
+  "tiss_14_codigo_plano": "BDCO-PLAM-ENF",
+  "tiss_15_nome_plano": "Bradesco Top Nacional Enfermaria",
+  "tiss_16_validade_carteira": "2028-12-31",
+  "tiss_17_codigo_contratado_sol": "1234567",
+  "tiss_18_nome_contratado_sol": "CENTRO DE NEUROCIÊNCIAS DR. RAFAEL MONTEIRO S/C",
+  "tiss_19_codigo_cnes_sol": "2748193",
+  "tiss_20_codigo_operadora_sol": "337555",
+  "tiss_21_nome_profissional_sol": "DR. RAFAEL AUGUSTO MONTEIRO",
+  "tiss_22_conselho_profissional_sol": "CRM",
+  "tiss_23_numero_conselho_sol": "123456",
+  "tiss_24_uf_conselho_sol": "SP",
+  "tiss_25_codigo_cbo_sol": "225125",
+  "tiss_26_descricao_cbo_sol": "Médico Neurocirurgião",
+  "tiss_27_codigo_contratado_exec": "9876543",
+  "tiss_28_nome_contratado_exec": "HOSPITAL SÍRIO-LIBANÊS",
+  "tiss_29_codigo_cnes_exec": "2077485",
+  "tiss_30_codigo_operadora_exec": "337555",
+  "tiss_31_nome_profissional_exec": "DR. RAFAEL AUGUSTO MONTEIRO",
+  "tiss_32_conselho_profissional_exec": "CRM",
+  "tiss_33_numero_conselho_exec": "123456",
+  "tiss_34_uf_conselho_exec": "SP",
+  "tiss_35_codigo_cbo_exec": "225125",
+  "tiss_36_descricao_cbo_exec": "Médico Neurocirurgião",
+  "tiss_37_data_solicitacao": "2026-03-25",
+  "tiss_38_carater_atendimento": "Eletivo",
+  "tiss_39_tipo_consulta": null,
+  "tiss_40_indicacao_acidente": "Não",
+  "tiss_41_tipo_internacao": "Cirúrgica",
+  "tiss_42_indicacao_clinica": "Paciente masculino, 64 anos, com cefaleia progressiva de forte intensidade (3 meses), déficit motor MSE grau III/V e convulsão focal. RM crânio 03/03/2026: lesão expansiva frontal direita 4,8×3,9×3,6cm, realce heterogêneo ao Gd, edema perilesional extenso, desvio de linha média 6mm. Espectroscopia compatível com alto grau. Biópsia: GBM WHO Grau IV, IDH wild-type, MGMT não metilado, EGFR amplificado.",
+  "procedimentos": [
+    { "tiss_43_proc_sequencial": 1, "tiss_44_proc_codigo_tabela": "22", "tiss_45_proc_codigo": "31005039", "tiss_46_proc_descricao": "Craniotomia para exérese de neoplasia cerebral", "tiss_47_proc_qtd_solicitada": 1, "tiss_48_proc_qtd_autorizada": null, "tiss_49_proc_via_acesso": "Única", "tiss_50_proc_tecnica": "Convencional", "tiss_51_proc_reducao_acrescimo": 0 },
+    { "tiss_43_proc_sequencial": 2, "tiss_44_proc_codigo_tabela": "22", "tiss_45_proc_codigo": "31005160", "tiss_46_proc_descricao": "Neuronavegação intraoperatória", "tiss_47_proc_qtd_solicitada": 1, "tiss_48_proc_qtd_autorizada": null, "tiss_49_proc_via_acesso": "Única", "tiss_50_proc_tecnica": "Convencional", "tiss_51_proc_reducao_acrescimo": 0 },
+    { "tiss_43_proc_sequencial": 3, "tiss_44_proc_codigo_tabela": "22", "tiss_45_proc_codigo": "31005055", "tiss_46_proc_descricao": "Monitorização neurofisiológica intraoperatória", "tiss_47_proc_qtd_solicitada": 1, "tiss_48_proc_qtd_autorizada": null, "tiss_49_proc_via_acesso": "Única", "tiss_50_proc_tecnica": "Convencional", "tiss_51_proc_reducao_acrescimo": 0 },
+    { "tiss_43_proc_sequencial": 4, "tiss_44_proc_codigo_tabela": "22", "tiss_45_proc_codigo": "30912033", "tiss_46_proc_descricao": "Anestesia geral para neurocirurgia intracraniana", "tiss_47_proc_qtd_solicitada": 1, "tiss_48_proc_qtd_autorizada": null, "tiss_49_proc_via_acesso": "Única", "tiss_50_proc_tecnica": "Convencional", "tiss_51_proc_reducao_acrescimo": 0 }
+  ],
+  "tiss_52_cid_principal": "C71.1",
+  "tiss_53_cid_secundario": "G35",
+  "tiss_54_cid_causas_1": null,
+  "tiss_55_cid_causas_2": null,
+  "tiss_56_indicacao_acidente_diag": "Não",
+  "tiss_57_tipo_consulta_diag": null,
+  "tiss_58_observacao": "Paciente em uso de dexametasona 8mg/dia. Programação cirúrgica após otimização com neurointensivismo. UTI neurocirúrgica 72h pós-op. Exames pré-op: 20/03/2026.",
+  "tiss_59_assinatura_medico_sol": "__ASSINATURA_DIGITAL__",
+  "tiss_60_data_assinatura_sol": "2026-03-25",
+  "tiss_61_assinatura_beneficiario": "__ASSINATURA_BENEFICIARIO__",
+  "opme_itens": [
+    { "tiss_62_opme_sequencial": 1, "tiss_63_opme_codigo_material": "20161400070", "tiss_64_opme_referencia_fabricante": "NEURO-CRANIOPLAST-45", "tiss_65_opme_descricao_item": "Sistema de fixação craniana — placa titanium 0.6mm perfurada, lote 10 parafusos", "tiss_66_opme_qtd_solicitada": 1, "tiss_67_opme_qtd_autorizada": null, "tiss_68_opme_unidade_medida": "KIT", "tiss_69_opme_numero_anvisa": "80041360039", "tiss_70_opme_nome_fabricante": "Stryker Brasil Ltda", "tiss_71_opme_justificativa_uso": "Necessário para reposicionamento seguro do retalho ósseo após craniotomia. Sistema de fixação rígida previne deslocamento no pós-operatório imediato e assegura coaptação adequada para cicatrização óssea." },
+    { "tiss_62_opme_sequencial": 2, "tiss_63_opme_codigo_material": "20161200041", "tiss_64_opme_referencia_fabricante": "DURA-MATRIX-COLLAGEN-5X6", "tiss_65_opme_descricao_item": "Substituto dural biológico — colágeno bovino 5x6cm, absorvível", "tiss_66_opme_qtd_solicitada": 1, "tiss_67_opme_qtd_autorizada": null, "tiss_68_opme_unidade_medida": "UN", "tiss_69_opme_numero_anvisa": "80378070002", "tiss_70_opme_nome_fabricante": "Integra LifeSciences Brasil", "tiss_71_opme_justificativa_uso": "Dura-máter local comprometida por infiltração tumoral. Substituição parcial previne fístula liquórica e pseudomeningocele pós-operatória." },
+    { "tiss_62_opme_sequencial": 3, "tiss_63_opme_codigo_material": "20161800014", "tiss_64_opme_referencia_fabricante": "BIPOLAR-NEURO-25CM", "tiss_65_opme_descricao_item": "Pinça bipolar neurocirúrgica descartável — angulada 25cm, ponta 1mm", "tiss_66_opme_qtd_solicitada": 2, "tiss_67_opme_qtd_autorizada": null, "tiss_68_opme_unidade_medida": "UN", "tiss_69_opme_numero_anvisa": "80263410001", "tiss_70_opme_nome_fabricante": "Codman / DePuy Synthes", "tiss_71_opme_justificativa_uso": "Hemostasia seletiva em campo profundo. Lesão em área eloquente exige bipolarização de precisão milimétrica para preservação cortical adjacente." },
+    { "tiss_62_opme_sequencial": 4, "tiss_63_opme_codigo_material": "20161600052", "tiss_64_opme_referencia_fabricante": "SURGICEL-NU-KNIT-5X7", "tiss_65_opme_descricao_item": "Hemostático de celulose oxidada regenerada — 5x7cm Nu-Knit", "tiss_66_opme_qtd_solicitada": 3, "tiss_67_opme_qtd_autorizada": null, "tiss_68_opme_unidade_medida": "UN", "tiss_69_opme_numero_anvisa": "10267770094", "tiss_70_opme_nome_fabricante": "Ethicon / Johnson & Johnson", "tiss_71_opme_justificativa_uso": "Controle de sangramento em leito tumoral e superfícies durais. Produto reabsorvível em 7-14 dias, minimizando reação inflamatória." },
+    { "tiss_62_opme_sequencial": 5, "tiss_63_opme_codigo_material": "20162200010", "tiss_64_opme_referencia_fabricante": "COTTONOID-NEURO-1/2X3", "tiss_65_opme_descricao_item": "Patê neurocirúrgico (cottonoid) — 1/2 x 3 polegadas com fio radiopaco", "tiss_66_opme_qtd_solicitada": 1, "tiss_67_opme_qtd_autorizada": null, "tiss_68_opme_unidade_medida": "PCT-10", "tiss_69_opme_numero_anvisa": "80085840001", "tiss_70_opme_nome_fabricante": "Medline Industries", "tiss_71_opme_justificativa_uso": "Proteção de estruturas corticais e absorção de fluidos. Fio radiopaco obrigatório por protocolo de segurança intraoperatória para contagem sistematizada." },
+    { "tiss_62_opme_sequencial": 6, "tiss_63_opme_codigo_material": "20161500033", "tiss_64_opme_referencia_fabricante": "TACHOSIL-9X4CM", "tiss_65_opme_descricao_item": "Esponja hemostática colágeno/trombina — TachoSil 9,5x4,8cm", "tiss_66_opme_qtd_solicitada": 2, "tiss_67_opme_qtd_autorizada": null, "tiss_68_opme_unidade_medida": "UN", "tiss_69_opme_numero_anvisa": "80395840003", "tiss_70_opme_nome_fabricante": "Takeda Pharma", "tiss_71_opme_justificativa_uso": "Selamento hemostático de superfície em ressecção com vascularização aberrante. Complementa bipolarização quando tecido não permite coagulação direta por proximidade de estruturas funcionais." },
+    { "tiss_62_opme_sequencial": 7, "tiss_63_opme_codigo_material": "20162400071", "tiss_64_opme_referencia_fabricante": "GLIADEL-WAFER-7.7MG", "tiss_65_opme_descricao_item": "Implante de carmustina intracavitária — wafer 7,7mg Gliadel", "tiss_66_opme_qtd_solicitada": 8, "tiss_67_opme_qtd_autorizada": null, "tiss_68_opme_unidade_medida": "UN", "tiss_69_opme_numero_anvisa": "1020400490001", "tiss_70_opme_nome_fabricante": "Arbor Pharmaceuticals", "tiss_71_opme_justificativa_uso": "Quimioterapia local intracavitária após ressecção máxima de GBM WHO Grau IV, IDH wild-type. Evidência nível I (BCNU Wafer Study Group, NEJM 1995; Westphal 2003). 8 wafers para cobertura completa do leito (~25cm²)." },
+    { "tiss_62_opme_sequencial": 8, "tiss_63_opme_codigo_material": "20162100090", "tiss_64_opme_referencia_fabricante": "NEUROENDOSCOPE-RIGID-30D", "tiss_65_opme_descricao_item": "Neuroendoscópio rígido descartável — 30° ângulo, diâmetro 4mm", "tiss_66_opme_qtd_solicitada": 1, "tiss_67_opme_qtd_autorizada": null, "tiss_68_opme_unidade_medida": "UN", "tiss_69_opme_numero_anvisa": "80422710002", "tiss_70_opme_nome_fabricante": "Karl Storz Endoscopia Brasil", "tiss_71_opme_justificativa_uso": "Inspeção de cavidade residual pós-ressecção para visualização de remanescente em ângulos inacessíveis ao microscópio. Complementar à neuronavegação." },
+    { "tiss_62_opme_sequencial": 9, "tiss_63_opme_codigo_material": "20161100020", "tiss_64_opme_referencia_fabricante": "DRAIN-HEMOVAC-JP-15FR", "tiss_65_opme_descricao_item": "Dreno cirúrgico fechado subgaleal — sistema Jackson-Pratt 15Fr", "tiss_66_opme_qtd_solicitada": 1, "tiss_67_opme_qtd_autorizada": null, "tiss_68_opme_unidade_medida": "UN", "tiss_69_opme_numero_anvisa": "80015610005", "tiss_70_opme_nome_fabricante": "Cardinal Health Brasil", "tiss_71_opme_justificativa_uso": "Drenagem subgaleal 24-48h pós-op para prevenção de hematoma epidural e coleção subgaleal conforme protocolo de neurocirurgia oncológica." },
+    { "tiss_62_opme_sequencial": 10, "tiss_63_opme_codigo_material": "20162300044", "tiss_64_opme_referencia_fabricante": "5-ALA-GLIOLAN-1500MG", "tiss_65_opme_descricao_item": "Solução 5-aminolevulínico (5-ALA) para fluorescência intraoperatória — Gliolan 1500mg", "tiss_66_opme_qtd_solicitada": 1, "tiss_67_opme_qtd_autorizada": null, "tiss_68_opme_unidade_medida": "FR", "tiss_69_opme_numero_anvisa": "1020800750001", "tiss_70_opme_nome_fabricante": "medac GmbH / Eurofarma", "tiss_71_opme_justificativa_uso": "Demarcação de tecido tumoral maligno em tempo real. Evidência nível I (Stummer 2006, Lancet Oncology): aumento de ressecção completa (65% vs 36%) e sobrevida livre de progressão em GBM. Administrado 3h antes da indução." }
+  ],
+  "tiss_72_justificativa_clinica": "JUSTIFICATIVA CLÍNICA — CRANIOTOMIA PARA RESSECÇÃO DE GLIOBLASTOMA MULTIFORME\n\n1. DIAGNÓSTICO E ESTADIAMENTO:\nGlioblastoma Multiforme (GBM) WHO Grau IV, IDH wild-type, MGMT não metilado, EGFR amplificado. Lesão de 4,8×3,9×3,6cm em lobo frontal direito, desvio de linha média 6mm, edema perilesional FLAIR extenso, realce em anel. Espectroscopia: Cho/NAA 3,4 com pico de lipídios — neoplasia de alto grau confirmada.\n\n2. STATUS NEUROLÓGICO:\nDéficit motor progressivo MSE grau III/V. Convulsão focal com generalização secundária: 3 eventos em 6 semanas, refratários a levetiracetam 1000mg 12/12h. Cefaleia EVA 8/10 com padrão hipertensivo. KPS: 70%. ECOG: 1.\n\n3. INDICAÇÃO CIRÚRGICA:\nRessecção máxima é padrão-ouro no tratamento primário do GBM (Stummer 2008; NCCN CNS v1.2026). Objetivos: (a) descompressão do efeito de massa; (b) perfil molecular completo; (c) aumento do intervalo livre de progressão; (d) implantação de wafers de carmustina.\n\n4. PLANEJAMENTO:\nCraniotomia frontoparietal D. Neuronavegação (Brainlab Curve). 5-ALA para fluorescência em tempo real. Monitorização neurofisiológica contínua (MEP/SEP). Microscópio Zeiss KINEVO 900. Implantação de 8 wafers Gliadel no leito.\n\n5. RISCOS E BENEFÍCIOS:\nRisco moderado-alto (área eloquente, giro pré-central proximal). Não operar: herniação e óbito em 4-8 semanas. Sobrevida sem cirurgia: ~3 meses. Com ressecção máxima + Stupp: 14,6 meses. MGMT não metilado reforça o papel da carmustina intracavitária local.\n\n6. SOLICITAÇÃO:\nAutorização para craniotomia com todos os OPME listados, indispensáveis à segurança e eficácia do procedimento conforme protocolos NCCN, ANS e SBNS vigentes.",
+  "tiss_73_hipotese_diagnostica": "Glioblastoma multiforme (GBM) WHO Grau IV — frontal direito. IDH wild-type, MGMT não metilado, EGFR amplificado. Hipertensão intracraniana secundária. Epilepsia focal sintomática.",
+  "tiss_74_assinatura_medico_exec": "__ASSINATURA_DIGITAL_CRM123456_SP__",
+  "tiss_75_data_assinatura_exec": "2026-03-25",
+  "tiss_76_conselho_carimbo_exec": "CRM-SP 123456",
+  "tiss_77_assinatura_beneficiario_p2": "__ASSINATURA_BENEFICIARIO__"
+};
+</script>
+</body>
+</html>

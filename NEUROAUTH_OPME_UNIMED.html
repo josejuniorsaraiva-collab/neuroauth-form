@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>OPME Unimed — NEUROAUTH</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   NEUROAUTH — Template OPME Unimed
+   Base: engenharia reversa forense do PDF original
+   Página: A4 Landscape 297mm × 210mm
+   Fontes: Arial Bold (labels), Arial Regular (conteúdo)
+   Corpo labels: 4.7pt | Seções: 8.5pt | Sequência: 10.3pt Times
+   ═══════════════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+
+body {
+  width: 297mm;
+  min-height: 210mm;
+  margin: 0 auto;
+  padding: 0;
+  background: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ── Página ── */
+.page {
+  width: 297mm;
+  height: 210mm;
+  padding: 3.5mm 9mm 6mm 9mm;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* ── Tokens ── */
+:root {
+  --c-black:   #000000;
+  --c-dark:    #333333;
+  --c-mid:     #808080;
+  --c-light:   #969696;
+  --c-section: #e0e0e0;
+  --c-white:   #ffffff;
+  --border:    0.5px solid #000;
+  --font-label:  4.7pt;
+  --font-sub:    3.8pt;
+  --font-sec:    8.5pt;
+  --font-seq:    10.3pt;
+}
+
+/* ── Estrutura principal ── */
+.form-wrap {
+  border: 0.5px solid #000;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ════════════════ CABEÇALHO ════════════════ */
+.header {
+  display: flex;
+  align-items: stretch;
+  border-bottom: var(--border);
+  flex-shrink: 0;
+  min-height: 17mm;
+}
+.header-logo {
+  width: 25mm;
+  border-right: var(--border);
+  padding: 1.5mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+.logo-box {
+  border: 0.5px solid #000;
+  padding: 1mm 1.5mm;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0.5mm;
+}
+.logo-svg {
+  height: 6mm;
+  width: auto;
+}
+.logo-city {
+  font-size: 8.5pt;
+  color: var(--c-mid);
+  font-weight: normal;
+}
+.header-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1mm 2mm;
+  border-right: var(--border);
+}
+.header-title-main {
+  font-size: 8.5pt;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--c-black);
+  line-height: 1.3;
+}
+.header-right {
+  width: 44mm;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 0.5mm 1mm;
+}
+.guia-prestador-label {
+  font-size: 4.2pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  display: block;
+  margin-bottom: 0.3mm;
+}
+.guia-prestador-val {
+  font-size: 8.5pt;
+  color: var(--c-mid);
+  margin-bottom: 1mm;
+}
+.form-name-top {
+  font-size: 4.2pt;
+  color: var(--c-mid);
+  text-align: right;
+  margin-bottom: 0.5mm;
+}
+.seq-number {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 10.3pt;
+  font-weight: bold;
+  text-align: right;
+  color: var(--c-black);
+}
+
+/* ════════════════ LINHAS DE CAMPOS GENÉRICAS ════════════════ */
+.field-row {
+  display: flex;
+  border-bottom: var(--border);
+  flex-shrink: 0;
+}
+.field-cell {
+  display: flex;
+  flex-direction: column;
+  padding: 0.6mm 1mm 0.5mm 1mm;
+  border-right: var(--border);
+  min-width: 0;
+}
+.field-cell:last-child { border-right: none; }
+.field-label {
+  font-size: 4.7pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  white-space: nowrap;
+  margin-bottom: 0.3mm;
+  line-height: 1.1;
+}
+.field-sub-label {
+  font-size: 3.8pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  white-space: nowrap;
+  margin-bottom: 0.2mm;
+}
+.field-value {
+  font-size: 4.7pt;
+  color: var(--c-black);
+  min-height: 4mm;
+  border-bottom: 0.3px solid #999;
+  line-height: 1.4;
+}
+.field-chars {
+  font-size: 4.7pt;
+  color: var(--c-mid);
+  letter-spacing: 0.8pt;
+  min-height: 3.5mm;
+  font-family: 'Courier New', monospace;
+}
+
+/* ════════════════ HEADERS DE SEÇÃO ════════════════ */
+.section-header {
+  background: var(--c-section);
+  font-size: 8.5pt;
+  font-weight: bold;
+  color: var(--c-black);
+  padding: 0.6mm 1.5mm;
+  border-bottom: var(--border);
+  flex-shrink: 0;
+}
+
+/* ════════════════ ÁREA DE TEXTO ════════════════ */
+.textarea-block {
+  padding: 1mm 1.5mm;
+  flex-shrink: 0;
+  border-bottom: var(--border);
+}
+.textarea-label {
+  font-size: 4.7pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  margin-bottom: 0.5mm;
+}
+.textarea-content {
+  font-size: 4.7pt;
+  color: var(--c-black);
+  line-height: 1.5;
+  width: 100%;
+  min-height: 100%;
+}
+
+/* ════════════════ TABELA OPME ════════════════ */
+.opme-table-wrap {
+  flex-shrink: 0;
+  border-bottom: var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.opme-table-header {
+  display: flex;
+  background: var(--c-section);
+  border-bottom: var(--border);
+  flex-shrink: 0;
+}
+.opme-table-subheader {
+  display: flex;
+  background: var(--c-section);
+  border-bottom: var(--border);
+  flex-shrink: 0;
+}
+.th {
+  font-size: 4.2pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  padding: 0.4mm 0.7mm;
+  border-right: var(--border);
+  line-height: 1.2;
+}
+.th:last-child { border-right: none; }
+
+/* Larguras das colunas OPME (proporcionais ao PDF original) */
+.col-idx   { width: 5mm;  flex-shrink: 0; }
+.col-tab   { width: 9mm;  flex-shrink: 0; }
+.col-cod   { width: 22mm; flex-shrink: 0; }
+.col-desc  { flex: 1;     min-width: 0; }
+.col-opc   { width: 7mm;  flex-shrink: 0; }
+.col-qts   { width: 14mm; flex-shrink: 0; }
+.col-vus   { width: 22mm; flex-shrink: 0; }
+.col-qta   { width: 14mm; flex-shrink: 0; }
+.col-vua   { width: 22mm; flex-shrink: 0; }
+.col-anvisa{ width: 28mm; flex-shrink: 0; }
+.col-ref   { flex: 1;     min-width: 0; }
+.col-af    { width: 28mm; flex-shrink: 0; }
+
+.opme-row-main {
+  display: flex;
+  border-bottom: 0.3px solid #999;
+  min-height: 5.5mm;
+}
+.opme-row-sub {
+  display: flex;
+  border-bottom: var(--border);
+  background: #f8f8f8;
+  min-height: 4mm;
+}
+.td {
+  font-size: 4.7pt;
+  color: var(--c-black);
+  padding: 0.4mm 0.7mm;
+  border-right: var(--border);
+  line-height: 1.4;
+  overflow: hidden;
+}
+.td-sub {
+  font-size: 3.8pt;
+  color: var(--c-dark);
+  padding: 0.3mm 0.7mm;
+  border-right: var(--border);
+  line-height: 1.3;
+}
+.td:last-child, .td-sub:last-child { border-right: none; }
+.td-idx {
+  font-size: 4.7pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  padding: 0.4mm 0.7mm;
+  border-right: var(--border);
+  display: flex;
+  align-items: flex-start;
+}
+.td-idx-sub {
+  border-right: var(--border);
+  background: #f8f8f8;
+}
+.num-right { text-align: right; }
+
+/* ════════════════ RODAPÉ ════════════════ */
+.footer-row {
+  display: flex;
+  border-top: var(--border);
+  flex-shrink: 0;
+  margin-top: auto;
+}
+.footer-cell {
+  flex: 1;
+  border-right: var(--border);
+  padding: 0.5mm 1mm;
+  display: flex;
+  flex-direction: column;
+}
+.footer-cell:last-child { border-right: none; }
+.footer-label {
+  font-size: 4.7pt;
+  font-weight: bold;
+  color: var(--c-dark);
+  margin-bottom: 0.3mm;
+}
+.footer-version {
+  font-size: 4.7pt;
+  color: var(--c-mid);
+  padding: 0.5mm 1mm;
+  flex-shrink: 0;
+}
+.sig-line {
+  border-bottom: 0.5px solid #000;
+  margin-top: 3mm;
+  height: 1mm;
+}
+
+/* ════════════════ PRINT UTILS ════════════════ */
+@media print {
+  body { background: white; margin: 0; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: avoid; }
+}
+
+/* Screen preview scaling */
+@media screen {
+  body { background: #d0d0d0; padding: 10mm; }
+  .page {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    margin-bottom: 10mm;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+<div class="form-wrap">
+
+  <!-- ════════ CABEÇALHO ════════ -->
+  <div class="header">
+    <div class="header-logo">
+      <div class="logo-box">
+        <!-- Logo Unimed SVG inline (verde Unimed #00743B) -->
+        <svg class="logo-svg" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="8" width="18" height="18" fill="#00743B"/>
+          <rect x="6" y="2" width="6" height="6" fill="#00743B"/>
+          <rect x="6" y="26" width="6" height="6" fill="#00743B"/>
+          <text x="24" y="22" font-family="Arial" font-weight="bold" font-size="16" fill="#00743B">Unimed</text>
+          <text x="24" y="34" font-family="Arial" font-size="9" fill="#00743B">Cooperativa Médica</text>
+        </svg>
+      </div>
+      <span class="logo-city">Cariri</span>
+    </div>
+
+    <div class="header-title">
+      <div class="header-title-main">
+        ANEXO DE SOLICITAÇÃO DE ÓRTESES, PRÓTESES E<br>
+        MATERIAIS ESPECIAIS - OPME
+      </div>
+    </div>
+
+    <div class="header-right">
+      <span class="form-name-top">OPME {{PROCEDIMENTO_NOME}}</span>
+      <span class="guia-prestador-label">2- Nº Guia no Prestador</span>
+      <span class="guia-prestador-val">{{GUIA_PRESTADOR}}</span>
+      <div class="seq-number">{{NUMERO_SEQUENCIA}}</div>
+    </div>
+  </div>
+
+  <!-- ════════ IDENTIFICAÇÃO DA GUIA ════════ -->
+  <div class="field-row" style="min-height:8mm">
+    <div class="field-cell" style="width:16mm">
+      <span class="field-label">1 - Registro ANS</span>
+      <span class="field-chars">{{REGISTRO_ANS}}</span>
+    </div>
+    <div class="field-cell" style="flex:1">
+      <span class="field-label">3 - Número da Guia Referenciada</span>
+      <span class="field-chars">{{GUIA_REFERENCIADA}}</span>
+    </div>
+    <div class="field-cell" style="flex:1">
+      <span class="field-label">4 - Senha</span>
+      <span class="field-chars">{{SENHA}}</span>
+    </div>
+    <div class="field-cell" style="width:22mm">
+      <span class="field-label">5 - Data da Autorização</span>
+      <span class="field-chars">{{DATA_AUTORIZACAO}}</span>
+    </div>
+    <div class="field-cell" style="flex:1">
+      <span class="field-label">6 - Número da Guia Atribuído pela Operadora</span>
+      <span class="field-chars">{{GUIA_OPERADORA}}</span>
+    </div>
+  </div>
+
+  <!-- ════════ DADOS DO BENEFICIÁRIO ════════ -->
+  <div class="section-header">Dados do Beneficiário</div>
+  <div class="field-row" style="min-height:8mm">
+    <div class="field-cell" style="flex:1">
+      <span class="field-label">7 - Número da Carteira</span>
+      <span class="field-chars">{{NUMERO_CARTEIRA}}</span>
+    </div>
+    <div class="field-cell" style="flex:3">
+      <span class="field-label">8 - Nome</span>
+      <span class="field-value">{{NOME_PACIENTE}}</span>
+    </div>
+    <div class="field-cell" style="width:24mm">
+      <span class="field-label">4 - Data da Autorização</span>
+      <span class="field-chars">{{DATA_AUTORIZACAO}}</span>
+    </div>
+  </div>
+
+  <!-- ════════ DADOS DO PROFISSIONAL SOLICITANTE ════════ -->
+  <div class="section-header">Dados do Profissional Solicitante</div>
+  <div class="field-row" style="min-height:8mm">
+    <div class="field-cell" style="flex:3">
+      <span class="field-label">9 - Nome do Profissional Solicitante</span>
+      <span class="field-value">{{NOME_SOLICITANTE}}</span>
+    </div>
+    <div class="field-cell" style="width:30mm">
+      <span class="field-label">10 - Telefone</span>
+      <span class="field-chars">{{TELEFONE_SOLICITANTE}}</span>
+    </div>
+    <div class="field-cell" style="flex:2">
+      <span class="field-label">11 - E-mail</span>
+      <span class="field-value">{{EMAIL_SOLICITANTE}}</span>
+    </div>
+  </div>
+
+  <!-- ════════ DADOS DA CIRURGIA ════════ -->
+  <div class="section-header">Dados da Cirurgia</div>
+  <div class="textarea-block" style="height:27mm">
+    <div class="textarea-label">12 – Justificativa Técnica</div>
+    <div class="textarea-content">{{JUSTIFICATIVA_TECNICA}}</div>
+  </div>
+
+  <!-- ════════ OPME SOLICITADAS ════════ -->
+  <div class="section-header" style="font-size:7pt">OPME Solicitadas</div>
+
+  <div class="opme-table-wrap">
+    <!-- Header principal -->
+    <div class="opme-table-header">
+      <div class="th col-idx">&nbsp;</div>
+      <div class="th col-tab">13-Tabela</div>
+      <div class="th col-cod">14-Código do Material</div>
+      <div class="th col-desc">15-Descrição</div>
+      <div class="th col-opc">16-Opção</div>
+      <div class="th col-qts">17- Qtde. Solicitada</div>
+      <div class="th col-vus">18- Valor Unitário Solicitado</div>
+      <div class="th col-qta">19- Qtde. Autorizada</div>
+      <div class="th col-vua">20- Valor Unitário Autorizado</div>
+    </div>
+    <!-- Sub-header ANVISA -->
+    <div class="opme-table-subheader">
+      <div class="th col-idx">&nbsp;</div>
+      <div class="th col-tab">&nbsp;</div>
+      <div class="th col-cod">&nbsp;</div>
+      <div class="th" style="width:45mm">21-Registro ANVISA do Material</div>
+      <div class="th" style="flex:1">22-Referência do material no fabricante</div>
+      <div class="th" style="width:28mm">23-Nº Autorização de Funcionamento</div>
+      <div class="th col-qts">&nbsp;</div>
+      <div class="th col-vus">&nbsp;</div>
+      <div class="th col-qta">&nbsp;</div>
+      <div class="th col-vua">&nbsp;</div>
+    </div>
+
+    <!-- 6 linhas OPME -->
+    <!-- LINHA 01 -->
+    <div class="opme-row-main">
+      <div class="td-idx col-idx">01-</div>
+      <div class="td col-tab">{{OPME_01_TAB}}</div>
+      <div class="td col-cod">{{OPME_01_COD}}</div>
+      <div class="td col-desc">{{OPME_01_DESC}}</div>
+      <div class="td col-opc">{{OPME_01_OPC}}</div>
+      <div class="td col-qts num-right">{{OPME_01_QTDS}}</div>
+      <div class="td col-vus num-right">{{OPME_01_VUS}}</div>
+      <div class="td col-qta num-right">{{OPME_01_QTDA}}</div>
+      <div class="td col-vua num-right">{{OPME_01_VUA}}</div>
+    </div>
+    <div class="opme-row-sub">
+      <div class="td-sub td-idx-sub col-idx">&nbsp;</div>
+      <div class="td-sub" style="width:9mm">&nbsp;</div>
+      <div class="td-sub" style="width:22mm">&nbsp;</div>
+      <div class="td-sub" style="width:45mm">{{OPME_01_ANVISA}}</div>
+      <div class="td-sub" style="flex:1">{{OPME_01_REF}}</div>
+      <div class="td-sub" style="width:28mm">{{OPME_01_AF}}</div>
+      <div class="td-sub col-qts">&nbsp;</div>
+      <div class="td-sub col-vus">&nbsp;</div>
+      <div class="td-sub col-qta">&nbsp;</div>
+      <div class="td-sub col-vua">&nbsp;</div>
+    </div>
+
+    <!-- LINHA 02 -->
+    <div class="opme-row-main">
+      <div class="td-idx col-idx">02-</div>
+      <div class="td col-tab">{{OPME_02_TAB}}</div>
+      <div class="td col-cod">{{OPME_02_COD}}</div>
+      <div class="td col-desc">{{OPME_02_DESC}}</div>
+      <div class="td col-opc">{{OPME_02_OPC}}</div>
+      <div class="td col-qts num-right">{{OPME_02_QTDS}}</div>
+      <div class="td col-vus num-right">{{OPME_02_VUS}}</div>
+      <div class="td col-qta num-right">{{OPME_02_QTDA}}</div>
+      <div class="td col-vua num-right">{{OPME_02_VUA}}</div>
+    </div>
+    <div class="opme-row-sub">
+      <div class="td-sub td-idx-sub col-idx">&nbsp;</div>
+      <div class="td-sub" style="width:9mm">&nbsp;</div>
+      <div class="td-sub" style="width:22mm">&nbsp;</div>
+      <div class="td-sub" style="width:45mm">{{OPME_02_ANVISA}}</div>
+      <div class="td-sub" style="flex:1">{{OPME_02_REF}}</div>
+      <div class="td-sub" style="width:28mm">{{OPME_02_AF}}</div>
+      <div class="td-sub col-qts">&nbsp;</div>
+      <div class="td-sub col-vus">&nbsp;</div>
+      <div class="td-sub col-qta">&nbsp;</div>
+      <div class="td-sub col-vua">&nbsp;</div>
+    </div>
+
+    <!-- LINHA 03 -->
+    <div class="opme-row-main">
+      <div class="td-idx col-idx">03-</div>
+      <div class="td col-tab">{{OPME_03_TAB}}</div>
+      <div class="td col-cod">{{OPME_03_COD}}</div>
+      <div class="td col-desc">{{OPME_03_DESC}}</div>
+      <div class="td col-opc">{{OPME_03_OPC}}</div>
+      <div class="td col-qts num-right">{{OPME_03_QTDS}}</div>
+      <div class="td col-vus num-right">{{OPME_03_VUS}}</div>
+      <div class="td col-qta num-right">{{OPME_03_QTDA}}</div>
+      <div class="td col-vua num-right">{{OPME_03_VUA}}</div>
+    </div>
+    <div class="opme-row-sub">
+      <div class="td-sub td-idx-sub col-idx">&nbsp;</div>
+      <div class="td-sub" style="width:9mm">&nbsp;</div>
+      <div class="td-sub" style="width:22mm">&nbsp;</div>
+      <div class="td-sub" style="width:45mm">{{OPME_03_ANVISA}}</div>
+      <div class="td-sub" style="flex:1">{{OPME_03_REF}}</div>
+      <div class="td-sub" style="width:28mm">{{OPME_03_AF}}</div>
+      <div class="td-sub col-qts">&nbsp;</div>
+      <div class="td-sub col-vus">&nbsp;</div>
+      <div class="td-sub col-qta">&nbsp;</div>
+      <div class="td-sub col-vua">&nbsp;</div>
+    </div>
+
+    <!-- LINHA 04 -->
+    <div class="opme-row-main">
+      <div class="td-idx col-idx">04-</div>
+      <div class="td col-tab">{{OPME_04_TAB}}</div>
+      <div class="td col-cod">{{OPME_04_COD}}</div>
+      <div class="td col-desc">{{OPME_04_DESC}}</div>
+      <div class="td col-opc">{{OPME_04_OPC}}</div>
+      <div class="td col-qts num-right">{{OPME_04_QTDS}}</div>
+      <div class="td col-vus num-right">{{OPME_04_VUS}}</div>
+      <div class="td col-qta num-right">{{OPME_04_QTDA}}</div>
+      <div class="td col-vua num-right">{{OPME_04_VUA}}</div>
+    </div>
+    <div class="opme-row-sub">
+      <div class="td-sub td-idx-sub col-idx">&nbsp;</div>
+      <div class="td-sub" style="width:9mm">&nbsp;</div>
+      <div class="td-sub" style="width:22mm">&nbsp;</div>
+      <div class="td-sub" style="width:45mm">{{OPME_04_ANVISA}}</div>
+      <div class="td-sub" style="flex:1">{{OPME_04_REF}}</div>
+      <div class="td-sub" style="width:28mm">{{OPME_04_AF}}</div>
+      <div class="td-sub col-qts">&nbsp;</div>
+      <div class="td-sub col-vus">&nbsp;</div>
+      <div class="td-sub col-qta">&nbsp;</div>
+      <div class="td-sub col-vua">&nbsp;</div>
+    </div>
+
+    <!-- LINHA 05 -->
+    <div class="opme-row-main">
+      <div class="td-idx col-idx">05-</div>
+      <div class="td col-tab">{{OPME_05_TAB}}</div>
+      <div class="td col-cod">{{OPME_05_COD}}</div>
+      <div class="td col-desc">{{OPME_05_DESC}}</div>
+      <div class="td col-opc">{{OPME_05_OPC}}</div>
+      <div class="td col-qts num-right">{{OPME_05_QTDS}}</div>
+      <div class="td col-vus num-right">{{OPME_05_VUS}}</div>
+      <div class="td col-qta num-right">{{OPME_05_QTDA}}</div>
+      <div class="td col-vua num-right">{{OPME_05_VUA}}</div>
+    </div>
+    <div class="opme-row-sub">
+      <div class="td-sub td-idx-sub col-idx">&nbsp;</div>
+      <div class="td-sub" style="width:9mm">&nbsp;</div>
+      <div class="td-sub" style="width:22mm">&nbsp;</div>
+      <div class="td-sub" style="width:45mm">{{OPME_05_ANVISA}}</div>
+      <div class="td-sub" style="flex:1">{{OPME_05_REF}}</div>
+      <div class="td-sub" style="width:28mm">{{OPME_05_AF}}</div>
+      <div class="td-sub col-qts">&nbsp;</div>
+      <div class="td-sub col-vus">&nbsp;</div>
+      <div class="td-sub col-qta">&nbsp;</div>
+      <div class="td-sub col-vua">&nbsp;</div>
+    </div>
+
+    <!-- LINHA 06 -->
+    <div class="opme-row-main">
+      <div class="td-idx col-idx">06-</div>
+      <div class="td col-tab">{{OPME_06_TAB}}</div>
+      <div class="td col-cod">{{OPME_06_COD}}</div>
+      <div class="td col-desc">{{OPME_06_DESC}}</div>
+      <div class="td col-opc">{{OPME_06_OPC}}</div>
+      <div class="td col-qts num-right">{{OPME_06_QTDS}}</div>
+      <div class="td col-vus num-right">{{OPME_06_VUS}}</div>
+      <div class="td col-qta num-right">{{OPME_06_QTDA}}</div>
+      <div class="td col-vua num-right">{{OPME_06_VUA}}</div>
+    </div>
+    <div class="opme-row-sub" style="border-bottom:none">
+      <div class="td-sub td-idx-sub col-idx">&nbsp;</div>
+      <div class="td-sub" style="width:9mm">&nbsp;</div>
+      <div class="td-sub" style="width:22mm">&nbsp;</div>
+      <div class="td-sub" style="width:45mm">{{OPME_06_ANVISA}}</div>
+      <div class="td-sub" style="flex:1">{{OPME_06_REF}}</div>
+      <div class="td-sub" style="width:28mm">{{OPME_06_AF}}</div>
+      <div class="td-sub col-qts">&nbsp;</div>
+      <div class="td-sub col-vus">&nbsp;</div>
+      <div class="td-sub col-qta">&nbsp;</div>
+      <div class="td-sub col-vua">&nbsp;</div>
+    </div>
+  </div><!-- /opme-table-wrap -->
+
+  <!-- ════════ ESPECIFICAÇÃO DO MATERIAL ════════ -->
+  <div class="textarea-block" style="height:10mm; border-bottom:var(--border)">
+    <div class="textarea-label">24 - Especificação do Material</div>
+    <div class="textarea-content">{{ESPECIFICACAO_MATERIAL}}</div>
+  </div>
+
+  <!-- ════════ OBSERVAÇÃO / JUSTIFICATIVA ════════ -->
+  <div class="textarea-block" style="flex:1; min-height:6mm; border-bottom:var(--border)">
+    <div class="textarea-label">25 - Observação / Justificativa</div>
+    <div class="textarea-content">{{OBSERVACAO_JUSTIFICATIVA}}</div>
+  </div>
+
+  <!-- ════════ RODAPÉ ════════ -->
+  <div style="display:flex; flex-shrink:0; align-items:stretch; border-top:var(--border)">
+    <div style="padding:0.5mm 1mm; border-right:var(--border); font-size:4.2pt; color:var(--c-mid); display:flex;align-items:flex-end;">Versão 3</div>
+    <div class="footer-cell" style="width:30mm">
+      <span class="footer-label">26 - Data da Solicitação</span>
+      <span class="field-chars">{{DATA_SOLICITACAO}}</span>
+    </div>
+    <div class="footer-cell" style="flex:1">
+      <span class="footer-label">27 - Assinatura do Profissional Solicitante</span>
+      <div class="sig-line"></div>
+    </div>
+    <div class="footer-cell" style="flex:1">
+      <span class="footer-label">28 - Assinatura do Responsável pela Autorização</span>
+      <div class="sig-line"></div>
+    </div>
+  </div>
+
+</div><!-- /form-wrap -->
+</div><!-- /page -->
+
+</body>
+</html>
