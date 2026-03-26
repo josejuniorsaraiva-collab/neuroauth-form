@@ -894,18 +894,27 @@ async function naHandleLogin(response){
 /* ── PROFILE FETCH (Make.com webhook) ───────────────────────────── */
 async function naFetchPerfil(email){
   // 🔓 DEV BYPASS — TEMPORÁRIO (REMOVER APÓS TESTE)
+  const _emailNorm = (email||'').trim().toLowerCase();
   const DEV_BYPASS_USERS = ['josejuniorsaraiva@gmail.com'];
-  if(DEV_BYPASS_USERS.includes(email)){
+  console.log('[NEUROAUTH] naFetchPerfil chamado com email:', _emailNorm);
+  if(DEV_BYPASS_USERS.indexOf(_emailNorm) !== -1){
+    console.log('[NEUROAUTH] ✅ DEV BYPASS acionado para:', _emailNorm);
     return {
-      user_email: email,
-      ativo: true,
-      nome: 'Dev Bypass',
-      especialidade: 'Neurocirurgia',
-      crm: 'DEV-000',
-      convenio: 'Unimed',
-      bypass: true
+      user_email:            _emailNorm,
+      email:                 _emailNorm,
+      ativo:                 true,
+      plano:                 'dev',
+      role:                  'founder',
+      medico_nome:           'Jose Jr (Dev)',
+      perfil_tipo:           'cirurgiao',
+      crm:                   'DEV-000',
+      cbo:                   '225135',
+      hospital_padrao:       'Hospital Dev',
+      convenios_habilitados: 'Unimed',
+      bypass:                true
     };
   }
+  console.log('[NEUROAUTH] Email não está no bypass, seguindo para webhook:', _emailNorm);
   // fim DEV BYPASS
 
   /* PRODUÇÃO — sem fallback para perfil fake. Toda falha bloqueia acesso. */
