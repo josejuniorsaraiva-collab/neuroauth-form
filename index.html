@@ -893,6 +893,21 @@ async function naHandleLogin(response){
 
 /* ── PROFILE FETCH (Make.com webhook) ───────────────────────────── */
 async function naFetchPerfil(email){
+  // 🔓 DEV BYPASS — TEMPORÁRIO (REMOVER APÓS TESTE)
+  const DEV_BYPASS_USERS = ['josejuniorsaraiva@gmail.com'];
+  if(DEV_BYPASS_USERS.includes(email)){
+    return {
+      user_email: email,
+      ativo: true,
+      nome: 'Dev Bypass',
+      especialidade: 'Neurocirurgia',
+      crm: 'DEV-000',
+      convenio: 'Unimed',
+      bypass: true
+    };
+  }
+  // fim DEV BYPASS
+
   /* PRODUÇÃO — sem fallback para perfil fake. Toda falha bloqueia acesso. */
   if(!NA_PROFILE_WH||NA_PROFILE_WH==='SEU_MAKE_PROFILE_WEBHOOK_URL'){
     throw new Error('Sistema não configurado. Contate o administrador do NEUROAUTH.');
