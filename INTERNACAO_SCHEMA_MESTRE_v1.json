@@ -1,0 +1,195 @@
+{
+  "_schema": {
+    "id":        "NEUROAUTH_INTERNACAO_MESTRE_v1",
+    "descricao": "Schema mestre aninhado — Guia de Solicitação de Internação Unimed Ceará",
+    "padrao":    "TISS ANS RN 501/2022 / Unimed Ceará",
+    "versao":    "1.0.0",
+    "nota":      "Este é o único documento de verdade do sistema. O schema achatado é derivado deste. Limitações de papel (ex: 12 linhas de proc.) não existem aqui."
+  },
+
+  "meta": {
+    "case_id":         "2026-UNIMED-INTERN-00001",
+    "neuroauth_versao":"3.0.0",
+    "criado_em":       "2026-03-27T21:00:00Z",
+    "atualizado_em":   "2026-03-27T21:00:00Z",
+    "usuario_email":   "secretaria@clinica.com.br",
+    "perfil_tipo":     "secretaria",
+    "origem_envio":    "neuroauth_form_v3",
+    "convenio_slug":   "unimed-ceara"
+  },
+
+  "workflow": {
+    "status":           "pendente_autorizacao",
+    "status_historico": [
+      { "status": "rascunho",             "em": "2026-03-27T20:00:00Z", "por": "secretaria@clinica.com.br" },
+      { "status": "pendente_autorizacao", "em": "2026-03-27T21:00:00Z", "por": "secretaria@clinica.com.br" }
+    ],
+    "prioridade":       "Alta",
+    "data_limite_auth": null,
+    "tentativas_envio": 1,
+    "make_scenario_id": null,
+    "make_execution_id": null,
+    "webhook_status":   null,
+    "pdfs_gerados": {
+      "internacao": null,
+      "sadt":       null,
+      "opme":       null,
+      "resumo":     null
+    }
+  },
+
+  "solicitacao": {
+
+    "identificacao_guia": {
+      "registro_ans":          "311269",
+      "numero_guia_prestador": "2026-INTERN-00001",
+      "convenio":              "UNIMED",
+      "data_solicitacao":      "2026-03-27"
+    },
+
+    "beneficiario": {
+      "nome":              "CARLOS EDUARDO MENDONÇA FIGUEIREDO",
+      "data_nascimento":   "1961-08-14",
+      "sexo":              "Masculino",
+      "cpf":               "000.000.000-00",
+      "cns":               "707 4512 3618 2049",
+      "numero_carteira":   "9123456789012345",
+      "validade_carteira": "2027-12",
+      "atendimento_rn":    false,
+      "telefone":          "(88) 99999-0000",
+      "email":             "paciente@email.com",
+      "comorbidades":      "HAS, DM2"
+    },
+
+    "profissional_solicitante": {
+      "nome":               "DR. RAFAEL AUGUSTO MONTEIRO",
+      "conselho":           "CRM",
+      "numero_conselho":    "123456",
+      "uf_conselho":        "CE",
+      "cbo":                "225125",
+      "descricao_cbo":      "Médico Neurocirurgião",
+      "telefone":           "(88) 3521-0000",
+      "email":              "dr.rafael@clinica.com.br",
+      "nome_contratado":    "CENTRO DE NEUROCIÊNCIAS DR. RAFAEL MONTEIRO S/C",
+      "codigo_operadora_sol": "12345678901234",
+      "cnes_sol":           "2748193"
+    },
+
+    "hospital": {
+      "nome":                 "HOSPITAL REGIONAL DO CARIRI",
+      "codigo_operadora_exec":"98765432101234",
+      "cnes":                 "2345678",
+      "data_sugerida":        "2026-03-28",
+      "data_admissao_prevista":"2026-03-28"
+    },
+
+    "parametros_internacao": {
+      "carater_atendimento":    { "codigo": "1", "descricao": "Eletivo" },
+      "tipo_internacao":        { "codigo": "2", "descricao": "Cirúrgica" },
+      "regime_internacao":      { "codigo": "3", "descricao": "Hospital Dia" },
+      "qtde_diarias_solicitadas": 5,
+      "previsao_opme":          true,
+      "previsao_quimioterapico": false
+    },
+
+    "clinica": {
+      "indicacao_clinica":   "Paciente com glioblastoma multiforme WHO Grau IV em região frontal direita, confirmado por biópsia estereotáxica. Indicação de craniotomia para exérese de neoplasia cerebral.",
+      "deficit_neuro":       "Motor",
+      "dor_refrataria":      true,
+      "tto_conservador":     false,
+      "duracao_tto":         null,
+      "exame_principal":     "Ressonância magnética (RM)",
+      "achados_exame":       "RM crânio com contraste: lesão expansiva frontal direita 4,8 x 3,9 cm, realce heterogêneo, edema perilesional, desvio linha média 6 mm.",
+      "cid": {
+        "principal":    "C71.1",
+        "secundarios":  ["G35", "", ""]
+      },
+      "indicacao_acidente": false
+    },
+
+    "procedimentos": [
+      {
+        "seq":             1,
+        "tabela":          "22",
+        "codigo":          "3.01.05.03-9",
+        "descricao":       "CRANIOTOMIA PARA EXÉRESE DE NEOPLASIA CEREBRAL",
+        "qtde_solicitada": 1,
+        "via_acesso":      "Aberta convencional",
+        "regiao":          "Craniana",
+        "lateralidade":    "Direita"
+      },
+      {
+        "seq":             2,
+        "tabela":          "22",
+        "codigo":          "3.01.05.10-1",
+        "descricao":       "MONITORAÇÃO NEUROFISIOLÓGICA INTRAOPERATÓRIA",
+        "qtde_solicitada": 1,
+        "via_acesso":      null,
+        "regiao":          null,
+        "lateralidade":    null
+      },
+      {
+        "seq":             3,
+        "tabela":          "00",
+        "codigo":          "2.03.01.03-8",
+        "descricao":       "ANESTESIA GERAL",
+        "qtde_solicitada": 1,
+        "via_acesso":      null,
+        "regiao":          null,
+        "lateralidade":    null
+      }
+    ],
+
+    "opme": {
+      "necessita":  true,
+      "justificativa": "Necessário sistema de mapeamento cortical e monitoração contínua para preservação de áreas eloquentes durante ressecção oncológica em região frontal dominante.",
+      "materiais": [
+        {
+          "seq":         1,
+          "tabela":      "98",
+          "codigo":      "10.11.00.001",
+          "descricao":   "KIT MONITORAÇÃO NEUROFISIOLÓGICA INTRA-OPERATÓRIA",
+          "quantidade":  1,
+          "anvisa":      "80053140001",
+          "fabricante":  "NATUS MEDICAL",
+          "valor_unit":  null
+        }
+      ],
+      "especificacao_material": "",
+      "observacao_opme":        ""
+    },
+
+    "observacao": "Paciente necessita de internação para craniotomia oncológica de alta complexidade. Tumor primário de SNC grau IV sem alternativa conservadora.",
+
+    "assinaturas": {
+      "profissional_assinatura_digital": null,
+      "beneficiario_assinatura_digital": null,
+      "data_assinatura": null
+    }
+  },
+
+  "autorizacao_operadora": {
+    "_nota": "Campos preenchidos APENAS após retorno da operadora. Nunca são entrada do médico/secretária.",
+    "numero_guia_operadora":      null,
+    "data_autorizacao":           null,
+    "senha":                      null,
+    "data_validade_senha":        null,
+    "data_validade_atendimento":  null,
+    "qtde_diarias_autorizadas":   null,
+    "tipo_acomodacao_autorizada": null,
+    "hospital_autorizado": {
+      "nome":               null,
+      "codigo_operadora":   null,
+      "cnes":               null
+    },
+    "procedimentos_autorizados": [],
+    "opme_autorizada":            null,
+    "justificativa_negativa":     null,
+    "recurso": {
+      "necessario":  false,
+      "protocolo":   null,
+      "data_recurso":null,
+      "resultado":   null
+    }
+  }
+}
