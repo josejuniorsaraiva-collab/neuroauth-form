@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NEUROAUTH — Prompt Planilha-Mãe Convênios</title>
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#2d333b;
+  --bd:#30363d;--bd2:#444c56;
+  --tx:#e6edf3;--tx2:#adbac7;--tx3:#768390;
+  --red:#f85149;--red-bg:#2d0f0e;--red-bd:#6e1c1c;
+  --orange:#f0883e;--orange-bg:#2b1a0d;--orange-bd:#6e3a15;
+  --yellow:#e3b341;--yellow-bg:#261d07;--yellow-bd:#614a11;
+  --green:#3fb950;--green-bg:#0d2b14;--green-bd:#1d5728;
+  --blue:#58a6ff;--blue-bg:#0d1f38;--blue-bd:#1f487e;
+  --teal:#39d353;--teal-bg:#062c15;--teal-bd:#0e5a2d;
+  --mono:'Consolas','Monaco',monospace;
+  --rad:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+.topbar{background:#0d1117;border-bottom:1px solid var(--bd);padding:10px 24px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.tb-logo{width:28px;height:28px;background:var(--blue-bg);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--blue);border:1px solid var(--blue-bd)}
+.tb-name{font-size:14px;font-weight:700}
+.tb-sub{font-size:10px;color:var(--tx3);font-family:var(--mono)}
+.tb-r{margin-left:auto;font-size:11px;color:var(--tx3)}
+.wrap{max-width:960px;margin:0 auto;padding:28px 20px 80px}
+.page-hdr{margin-bottom:24px}
+.page-hdr h1{font-size:22px;font-weight:700;margin-bottom:6px}
+.page-hdr p{color:var(--tx2);font-size:13px;max-width:660px;line-height:1.7}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badge{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid;font-weight:600}
+.b-blue{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd)}
+.b-green{background:var(--green-bg);color:var(--green);border-color:var(--green-bd)}
+.b-orange{background:var(--orange-bg);color:var(--orange);border-color:var(--orange-bd)}
+.b-gray{background:var(--bg3);color:var(--tx3);border-color:var(--bd)}
+.diff{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:16px 20px;margin-bottom:20px}
+.diff-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx3);font-family:var(--mono);margin-bottom:12px}
+.diff-row{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd);font-size:12px;align-items:flex-start}
+.diff-row:last-child{border-bottom:none}
+.di{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:2px}
+.di.add{background:var(--green-bg);color:var(--green)}
+.di.fix{background:var(--orange-bg);color:var(--orange)}
+.di.rem{background:var(--red-bg);color:var(--red)}
+.dt{color:var(--tx2);line-height:1.55}
+.dt strong{color:var(--tx)}
+.dt code{font-family:var(--mono);font-size:11px;background:var(--bg3);padding:1px 4px;border-radius:3px}
+.sec-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);font-family:var(--mono);padding:5px 0 9px;border-bottom:1px solid var(--bd);margin:24px 0 12px}
+.arch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:4px}
+.aba-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:14px}
+.aba-id{font-family:var(--mono);font-size:11px;font-weight:700;margin-bottom:5px}
+.aba-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.aba-desc{font-size:11px;color:var(--tx3);line-height:1.55}
+.aba-when{font-size:10px;margin-top:6px;padding:4px 8px;border-radius:4px;background:var(--bg3);color:var(--tx3)}
+.aba-card.a1{border-left:3px solid var(--green)}
+.aba-card.a2{border-left:3px solid var(--blue)}
+.aba-card.a3{border-left:3px solid var(--red)}
+.aba-card.a4{border-left:3px solid var(--orange)}
+.aba-card.a5{border-left:3px solid var(--yellow)}
+.aba-card.a6{border-left:3px solid #bc8cff}
+.aba-card.a7{border-left:3px solid var(--teal)}
+.prompt-wrap{position:relative}
+.prompt-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.prompt-label{font-size:10px;color:var(--tx3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em}
+.btn-copy{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);border-radius:5px;font-size:11px;padding:5px 14px;cursor:pointer;font-family:var(--mono)}
+.btn-copy:hover{background:var(--blue);color:#fff}
+.btn-copy.ok{background:var(--green-bg);color:var(--green);border-color:var(--green-bd)}
+.btn-expand{background:none;border:1px solid var(--bd);color:var(--tx3);font-size:11px;padding:3px 9px;border-radius:4px;cursor:pointer}
+.btn-expand:hover{background:var(--bg3);color:var(--tx)}
+.prompt-box{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rad);padding:18px 20px;font-size:13px;line-height:1.75;color:var(--tx2);white-space:pre-wrap;word-break:break-word;max-height:280px;overflow-y:auto;transition:max-height .35s ease}
+.prompt-box.expanded{max-height:3000px}
+.logic-flow{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:16px 20px;margin-top:4px}
+.lf-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:12px;align-items:flex-start}
+.lf-row:last-child{border-bottom:none}
+.lf-n{font-family:var(--mono);font-size:10px;font-weight:700;min-width:22px;padding-top:2px;color:var(--tx3)}
+.lf-c{flex:1;color:var(--tx2);line-height:1.55}
+.lf-c strong{color:var(--tx)}
+.lf-c em{color:var(--yellow);font-style:normal}
+.lf-tag{font-size:9px;padding:1px 6px;border-radius:10px;font-family:var(--mono);font-weight:700;flex-shrink:0;margin-top:3px}
+.lf-tag.pri{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
+.lf-tag.sec{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-bd)}
+.lf-tag.ter{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-bd)}
+.lf-tag.info{background:var(--bg3);color:var(--tx3);border:1px solid var(--bd)}
+@media(max-width:600px){.wrap{padding:16px 12px 60px}.arch-grid{grid-template-columns:1fr}.topbar{padding:8px 14px}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-logo">N</div>
+  <div>
+    <div class="tb-name">NEUROAUTH</div>
+    <div class="tb-sub">Planilha-Mãe Convênios — Prompt v2.0</div>
+  </div>
+  <div class="tb-r">Arquitetura de compliance por operadora</div>
+</div>
+
+<div class="wrap">
+
+<div class="page-hdr">
+  <h1>Prompt — Arquitetura de Compliance por Operadora</h1>
+  <p>Versão melhorada do prompt original. Contexto de código preciso, critérios de aceitação objetivos, lógica de prioridade entre regras globais e overrides, e arquitetura das 7 abas com colunas exatas.</p>
+  <div class="meta">
+    <span class="badge b-blue">7 abas estruturadas</span>
+    <span class="badge b-green">5 operadoras</span>
+    <span class="badge b-orange">Planilha Excel entregue</span>
+    <span class="badge b-gray">Cowork-ready</span>
+  </div>
+</div>
+
+<!-- O QUE MUDOU -->
+<div class="diff">
+  <div class="diff-title">⚡ O que foi melhorado em relação ao prompt original</div>
+  <div class="diff-row"><div class="di add">+</div><div class="dt"><strong>Lógica de prioridade explícita entre as 3 camadas:</strong> o prompt original não definia a ordem de consulta do motor. Agora está especificado: 03_REGRAS (global ANS) → 03_REGRAS (override operadora) → 04_DOCUMENTOS. Sem esta hierarquia o motor pode aplicar regras na ordem errada.</div></div>
+  <div class="diff-row"><div class="di add">+</div><div class="dt"><strong>Critério objetivo de conclusão em cada aba:</strong> para cada aba, o prompt agora define o que "aba pronta" significa — não "preencher exemplos", mas "motor consegue validar campo X da operadora Y usando apenas esta aba".</div></div>
+  <div class="diff-row"><div class="di add">+</div><div class="dt"><strong>Separação entre bloqueia_envio e gera_alerta especificada por regra:</strong> o original apenas definia as colunas. Agora o prompt define a lógica: regras globais ANS <em>sempre</em> bloqueiam; overrides de portal <em>sempre</em> geram alerta sem bloquear.</div></div>
+  <div class="diff-row"><div class="di add">+</div><div class="dt"><strong>Compatibilidade com Planilha-Mãe v3 existente:</strong> o prompt original não mencionava as abas já existentes (PROC001–PROC040, MAT001+, etc.). A versão melhorada especifica que as 7 novas abas são <em>adicionais</em> — não substituem o que já existe.</div></div>
+  <div class="diff-row"><div class="di fix">≠</div><div class="dt"><strong>Aba 03_REGRAS reescrita como matriz única:</strong> o original sugeria uma aba por operadora. A versão correta é uma única aba com coluna <code>operadora_id</code> — mais fácil de consultar por filtro e menos manutenção futura.</div></div>
+  <div class="diff-row"><div class="di fix">≠</div><div class="dt"><strong>07_MAPEAMENTO é a aba crítica para o Make.com:</strong> o original a listou por último como se fosse auxiliar. Na arquitetura correta, é a primeira que o Make consulta para montar o payload — reposicionada na hierarquia.</div></div>
+  <div class="diff-row"><div class="di rem">−</div><div class="dt"><strong>Removida sugestão de "aba por operadora":</strong> criaria 5–7 abas duplicadas com a mesma estrutura. Substituída por coluna <code>operadora_id</code> com filtro — mais limpo, mais escalável, menos erro de manutenção.</div></div>
+</div>
+
+<!-- ARQUITETURA -->
+<div class="sec-label">// arquitetura — 7 abas</div>
+<div class="arch-grid">
+  <div class="aba-card a1">
+    <div class="aba-id" style="color:var(--green)">01_OPERADORAS</div>
+    <div class="aba-title">Cadastro de Operadoras</div>
+    <div class="aba-desc">Metadados: ANS, canal, portal, prazos, tipo de guia, CBOs aceitos, tabela de códigos.</div>
+    <div class="aba-when">Motor consulta: ao identificar o convênio do paciente</div>
+  </div>
+  <div class="aba-card a2">
+    <div class="aba-id" style="color:var(--blue)">02_CAMPOS_TISS</div>
+    <div class="aba-title">Campos Base TISS</div>
+    <div class="aba-desc">Todos os campos numerados da guia padrão TISS. Referência canônica de obrigatoriedade base.</div>
+    <div class="aba-when">Motor consulta: para saber quais campos são obrigatórios em qualquer convênio</div>
+  </div>
+  <div class="aba-card a3">
+    <div class="aba-id" style="color:var(--red)">03_REGRAS</div>
+    <div class="aba-title">Matriz de Compliance — ABA PRINCIPAL</div>
+    <div class="aba-desc">Regras globais ANS + overrides por operadora. Uma linha por regra, coluna operadora_id. Inclui bloqueia_envio, gera_alerta, fonte normativa.</div>
+    <div class="aba-when">Motor consulta: PRIMEIRO — antes de qualquer validação</div>
+  </div>
+  <div class="aba-card a4">
+    <div class="aba-id" style="color:var(--orange)">04_DOCUMENTOS</div>
+    <div class="aba-title">Documentos Exigidos</div>
+    <div class="aba-desc">Checklist por operadora e cenário. Define o dossiê a montar antes de submeter autorização.</div>
+    <div class="aba-when">Motor consulta: SEGUNDO — para gerar checklist da secretária</div>
+  </div>
+  <div class="aba-card a5">
+    <div class="aba-id" style="color:var(--yellow)">05_OPME</div>
+    <div class="aba-title">Regras e Materiais OPME</div>
+    <div class="aba-desc">Regras de OPME por operadora + tabela de materiais neurocirurgia com códigos TUSS e marcas comuns.</div>
+    <div class="aba-when">Motor consulta: quando necessita_opme = Sim</div>
+  </div>
+  <div class="aba-card a6">
+    <div class="aba-id" style="color:#bc8cff">06_GLOSA</div>
+    <div class="aba-title">Base Anti-Glosa</div>
+    <div class="aba-desc">Top 17 motivos de glosa por operadora com causa-raiz, campo relacionado e ação preventiva.</div>
+    <div class="aba-when">Motor consulta: TERCEIRO — para alertas preventivos finais</div>
+  </div>
+  <div class="aba-card a7">
+    <div class="aba-id" style="color:var(--teal)">07_MAPEAMENTO</div>
+    <div class="aba-title">Mapeamento NEUROAUTH ↔ TISS</div>
+    <div class="aba-desc">Ponte entre cada campo do index.html e o campo TISS correspondente. Funda o payload JSON enviado ao Make.</div>
+    <div class="aba-when">Make consulta: ao montar o payload e validar estrutura JSON</div>
+  </div>
+</div>
+
+<!-- LÓGICA DE PRIORIDADE -->
+<div class="sec-label">// lógica de prioridade — ordem de consulta do motor</div>
+<div class="logic-flow">
+  <div class="lf-row">
+    <div class="lf-n">1°</div>
+    <div class="lf-c"><strong>03_REGRAS — regras GLOBAL (operadora_id = "GLOBAL")</strong><br>Regras da ANS. Aplicam-se a todos. Sempre bloqueiam se <code>bloqueia_envio = SIM</code>. Nenhuma operadora pode sobrepor.</div>
+    <div class="lf-tag pri">SEMPRE</div>
+  </div>
+  <div class="lf-row">
+    <div class="lf-n">2°</div>
+    <div class="lf-c"><strong>03_REGRAS — regras da operadora específica (operadora_id = "UNI" | "BRA" | "SUL" | "HAP" | "AMI")</strong><br>Overrides da operadora. Podem bloquear ou apenas alertar. Aplicam-se somente ao convênio selecionado.</div>
+    <div class="lf-tag sec">SE CONVÊNIO</div>
+  </div>
+  <div class="lf-row">
+    <div class="lf-n">3°</div>
+    <div class="lf-c"><strong>04_DOCUMENTOS — checklist do cenário</strong><br>Filtrar por operadora + cenário (cirurgia coluna, OPME, neurocirurgia). Gerar lista de documentos que a secretária precisa anexar.</div>
+    <div class="lf-tag sec">SEMPRE</div>
+  </div>
+  <div class="lf-row">
+    <div class="lf-n">4°</div>
+    <div class="lf-c"><strong>05_OPME — validações OPME</strong><br>Executar somente se <code>necessita_opme = Sim</code>. Verificar: 3 marcas, ANVISA, código TUSS, justificativa individual.</div>
+    <div class="lf-tag ter">SE OPME</div>
+  </div>
+  <div class="lf-row">
+    <div class="lf-n">5°</div>
+    <div class="lf-c"><strong>06_GLOSA — alertas preventivos finais</strong><br>Cruzar campos do formulário com top motivos de glosa. Gerar alertas visuais antes do envio. Não bloqueia — apenas avisa.</div>
+    <div class="lf-tag info">ALERTA</div>
+  </div>
+  <div class="lf-row">
+    <div class="lf-n">✓</div>
+    <div class="lf-c"><strong>Envio liberado → 07_MAPEAMENTO constrói o payload JSON</strong><br>Traduz campos do formulário para estrutura TISS + campos extras do Make. Este é o contrato entre frontend e automação.</div>
+    <div class="lf-tag info">PAYLOAD</div>
+  </div>
+</div>
+
+<!-- PROMPT -->
+<div class="sec-label">// prompt — colar no Cowork</div>
+<div class="prompt-wrap">
+  <div class="prompt-top">
+    <span class="prompt-label">prompt completo — arquitetura + população</span>
+    <div style="display:flex;gap:6px">
+      <button class="btn-expand" onclick="ex(this)">expandir</button>
+      <button class="btn-copy" onclick="cp(this)">📋 Copiar</button>
+    </div>
+  </div>
+  <div class="prompt-box">Você é o arquiteto operacional do NEUROAUTH — sistema de autorização cirúrgica para neurocirurgia na Unimed Cariri.
+
+ESTADO ATUAL DA PLANILHA-MÃE:
+A Planilha-Mãe v3 já existe com 9 abas (ÍNDICE, 01_PROCEDIMENTOS, 02_CODIGOS_CBHPM, 03_REGRAS_UNIMED, 04_OPME_MATERIAIS, 05_PROC_MATERIAIS, 06_JUSTIFICATIVAS, 07_NEGATIVAS, 08_HISTORICO, 09_CONVENIOS).
+
+O que vamos fazer AGORA é adicionar 7 novas abas dedicadas à arquitetura de compliance por operadora. Essas abas são ADICIONAIS — não substituem nenhuma das 9 abas existentes.
+
+OPERADORAS A COBRIR (em ordem de prioridade):
+1. Unimed Cariri (UNI) — baseline — 100% do volume atual
+2. Bradesco Saúde (BRA) — exige formulário próprio via portal Senha Web
+3. SulAmérica (SUL) — formulário próprio para internação; rigorosa em tto. conservador
+4. Hapvida/NotreDame (HAP) — rede própria no Nordeste; número da guia gerado pela Hapvida
+5. Amil (AMI) — rigorosa em relatório médico e auditoria de OPME
+6. GLOBAL — regras federais ANS que se aplicam a todos sem exceção
+
+BASE NORMATIVA QUE VOCÊ DEVE USAR:
+- Padrão TISS RN 501/2022 — campos obrigatórios da guia SP/SADT
+- RN 424/2017 — OPME: 3 marcas obrigatórias, ANVISA, justificativa individual
+- RN 623/2024 — prazos: 21 dias úteis internação eletiva, 10 dias corridos para OPME, 10 dias úteis para justificativa de negativa
+- Regras operacionais de cada convênio (portal, formulário, numeração)
+
+AS 7 ABAS A CRIAR:
+
+ABA 01_OPERADORAS
+Colunas exatas (nesta ordem):
+operadora_id | nome_operadora | registro_ans | canal_autorizacao | usa_tiss_puro | usa_formulario_proprio | exige_portal | prazo_internacao_du | prazo_opme_dc | validade_guia_dias | cbo_aceito_principal | cbo_aceito_alt | tabela_codigos | observacoes_operacionais
+
+ABA 02_CAMPOS_TISS
+Colunas exatas:
+id_campo | numero_campo_tiss | nome_campo | descricao | tipo_dado | obrigatorio_base | bloco_formulario | campo_neuroauth | exemplo | observacao
+
+ABA 03_REGRAS (aba principal de compliance)
+Colunas exatas:
+operadora_id | codigo_regra | categoria | subcategoria | campo_neuroauth | campo_tiss | condicao | obrigatoriedade | regra_texto | acao_se_falhar | mensagem_usuario | bloqueia_envio | gera_alerta | prioridade | fonte_normativa | observacoes
+
+REGRA DE OURO para 03_REGRAS:
+- operadora_id = "GLOBAL" → regras ANS → bloqueia_envio = SIM sempre
+- operadora_id = "BRA" | "SUL" | "HAP" | "AMI" → override da operadora → pode bloquear OU apenas alertar
+- Regras de portal/canal (Bradesco usar Senha Web, Hapvida usar app) → gera_alerta = SIM, bloqueia_envio = NÃO
+
+ABA 04_DOCUMENTOS
+Colunas exatas:
+operadora_id | cenario | documento | obrigatoriedade | formato | ordem | observacao
+
+ABA 05_OPME
+Colunas exatas:
+operadora_id | tipo_material | campo | regra | obrigatoriedade | mensagem_usuario | bloqueia_envio | fonte_normativa
+
+Além das regras, esta aba deve conter uma SEGUNDA tabela com os materiais mais usados em neurocirurgia:
+material_id | nome_material | codigo_tuss_ref | uso_cirurgico | marcas_comuns | unidade | observacao_clinica
+
+ABA 06_GLOSA
+Colunas exatas:
+operadora_id | rank | motivo_glosa | causa_raiz | campo_neuroauth | como_evitar | criticidade | acao_preventiva
+
+ABA 07_MAPEAMENTO
+Colunas exatas:
+campo_neuroauth | campo_tiss_numero | nome_campo_tiss | campo_portal_bradesco | campo_portal_hapvida | tipo_dado | obrigatorio_base | valida_regra | impacto_glosa | observacoes
+
+LÓGICA DE PRIORIDADE DO MOTOR:
+O motor de compliance deve consultar as abas nesta ordem:
+1. 03_REGRAS WHERE operadora_id = "GLOBAL" → bloqueia se falhar
+2. 03_REGRAS WHERE operadora_id = operadora_do_caso → bloqueia ou alerta conforme bloqueia_envio
+3. 04_DOCUMENTOS WHERE operadora_id = operadora_do_caso → gera checklist
+4. 05_OPME WHERE operadora_id = operadora_do_caso (SOMENTE se necessita_opme = Sim) → bloqueia se falhar
+5. 06_GLOSA WHERE operadora_id = "GLOBAL" ou operadora_do_caso → gera alertas preventivos
+6. 07_MAPEAMENTO → constrói payload JSON para o Make
+
+EXEMPLOS REAIS OBRIGATÓRIOS POR OPERADORA:
+Para cada operadora (UNI, BRA, SUL, HAP, AMI), popular ao mínimo:
+- 03_REGRAS: 3 regras reais com código_regra, condição precisa e mensagem para o usuário
+- 04_DOCUMENTOS: 4 documentos com obrigatoriedade marcada
+- 05_OPME: 2 regras específicas da operadora
+- 06_GLOSA: 2 motivos específicos com causa-raiz
+
+ENTREGÁVEIS OBRIGATÓRIOS:
+1. Conteúdo completo das 7 abas em formato de tabela Markdown, com cabeçalhos exatos
+2. Para cada aba: uma linha de comentário explicando a finalidade operacional
+3. Lógica de prioridade (já descrita acima) confirmada como implementada
+4. Listagem dos campos do 07_MAPEAMENTO que SEMPRE bloqueiam o envio (impacto_glosa = CRITICA)
+5. Listagem dos campos que SÃO obrigatórios para o Make processar o payload
+
+RESTRIÇÕES OBRIGATÓRIAS:
+- Não alterar nem remover as 9 abas existentes da Planilha-Mãe v3
+- Usar Unimed como operadora base (todas as outras são overrides)
+- Manter terminologia em português (nome das colunas = snake_case português)
+- Cada regra em 03_REGRAS deve ter fonte_normativa preenchida (RN 501, RN 424, RN 623, ou "regra operacional [operadora]")
+- Regras sem fundamento normativo devem ser marcadas como "regra operacional" + nome da operadora
+
+CRITÉRIO DE CONCLUSÃO:
+A arquitetura está pronta quando, dado um payload de teste com:
+  operadora = "Bradesco", necessita_opme = Sim, opme_items[0].fabricante = [apenas 1 marca], indicacao_clinica = "dor lombar"
+O motor consegue identificar automaticamente usando apenas estas abas:
+  - 3 falhas bloqueantes (ANS001: 3 marcas, ANS005: indicação clínica curta, BRA002: código TUSS ausente)
+  - 1 alerta não bloqueante (BRA001: usar portal Senha Web)
+  - 1 documento exigido não informado (formulário próprio Bradesco)</div>
+</div>
+
+<div style="margin-top:24px;padding:12px 16px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);font-size:11px;color:var(--tx3);font-family:var(--mono)">
+  NEUROAUTH_COMPLIANCE_ARCH_PROMPT_v2.md · 7 abas · 5 operadoras · ANS + overrides · Cowork-ready
+</div>
+
+</div>
+
+<script>
+function ex(btn){
+  var box=btn.closest('.prompt-wrap').querySelector('.prompt-box');
+  var exp=box.classList.toggle('expanded');
+  btn.textContent=exp?'recolher':'expandir';
+}
+function cp(btn){
+  var box=btn.closest('.prompt-wrap').querySelector('.prompt-box');
+  navigator.clipboard.writeText(box.innerText).then(function(){
+    btn.textContent='✅ Copiado';btn.classList.add('ok');
+    setTimeout(function(){btn.textContent='📋 Copiar';btn.classList.remove('ok');},2000);
+  });
+}
+</script>
+</body>
+</html>
