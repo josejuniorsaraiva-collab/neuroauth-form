@@ -1,0 +1,13 @@
+/docs
+    NEUROAUTH_compliance_prompt_v2.html
+
+/data
+    NEUROAUTH_PlanilhaMae_Convenios_v1.xlsx
+
+/src
+    (mantém seus .js depois)
+
+/public
+    index.html
+    manifest.json
+    sw.js
