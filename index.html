@@ -133,6 +133,11 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 /* OPME ROWS */
 .opme-row{display:grid;grid-template-columns:2fr 1fr 60px 60px auto;gap:7px;align-items:end;
   padding:9px 10px;background:var(--s1);border-radius:7px;border:1px solid var(--s2);margin-bottom:6px}
+@media(max-width:599px){
+  .opme-row{grid-template-columns:1fr 1fr;gap:6px}
+  .opme-row>*:first-child{grid-column:1/-1}
+  .opme-row .del{grid-column:1/-1;width:100%}
+}
 .del{background:var(--rp);color:var(--r1);border:1px solid #fca5a5;border-radius:6px;
   padding:7px 9px;cursor:pointer;font-size:13px;font-weight:700}
 .del:hover{background:#fee2e2}
@@ -899,12 +904,16 @@ async function naHandleLogin(response){
 
 /* ── PROFILE FETCH (Make.com webhook) ───────────────────────────── */
 async function naFetchPerfil(email){
-  // 🔓 DEV BYPASS — TEMPORÁRIO (REMOVER APÓS TESTE)
   const _emailNorm = (email||'').trim().toLowerCase();
-  const DEV_BYPASS_USERS = ['josejuniorsaraiva@gmail.com'];
   console.log('[NEUROAUTH] naFetchPerfil chamado com email:', _emailNorm);
+
+  // ─────────────────────────────────────────────────────────────────
+  // CAMADA 1 — DEV BYPASS (founder, acesso irrestrito)
+  // Remover apenas quando Make.com estiver estável e testado
+  // ─────────────────────────────────────────────────────────────────
+  const DEV_BYPASS_USERS = ['josejuniorsaraiva@gmail.com'];
   if(DEV_BYPASS_USERS.indexOf(_emailNorm) !== -1){
-    console.log('[NEUROAUTH] ✅ DEV BYPASS acionado para:', _emailNorm);
+    console.log('[NEUROAUTH] ✅ CAMADA 1 — DEV BYPASS acionado para:', _emailNorm);
     return {
       user_email:            _emailNorm,
       email:                 _emailNorm,
@@ -920,8 +929,59 @@ async function naFetchPerfil(email){
       bypass:                true
     };
   }
-  console.log('[NEUROAUTH] Email não está no bypass, seguindo para webhook:', _emailNorm);
-  // fim DEV BYPASS
+
+  // ─────────────────────────────────────────────────────────────────
+  // CAMADA 2 — LOCAL ALPHA WHITELIST (médicos autorizados — offline-first)
+  // Funciona independente do Make.com — fallback garantido para o alpha
+  //
+  // Para adicionar um médico:
+  //   1. Adicione a entrada no objeto abaixo (email em lowercase)
+  //   2. Preencha os campos reais do médico
+  //   3. Faça push no GitHub — entra em produção imediatamente
+  // ─────────────────────────────────────────────────────────────────
+  const LOCAL_ALPHA_WHITELIST = {
+    // 'medico1@gmail.com': {
+    //   medico_nome:           'Dr. Nome Completo',
+    //   perfil_tipo:           'cirurgiao',
+    //   crm:                   'SP-00000',
+    //   cbo:                   '225135',
+    //   hospital_padrao:       'Hospital X',
+    //   convenios_habilitados: 'Unimed'
+    // },
+    // 'medico2@hospital.com.br': {
+    //   medico_nome:           'Dr. Segundo Médico',
+    //   perfil_tipo:           'cirurgiao',
+    //   crm:                   'RJ-00000',
+    //   cbo:                   '225135',
+    //   hospital_padrao:       'Hospital Y',
+    //   convenios_habilitados: 'Bradesco,Unimed'
+    // }
+  };
+
+  if(LOCAL_ALPHA_WHITELIST.hasOwnProperty(_emailNorm)){
+    const _perfil = LOCAL_ALPHA_WHITELIST[_emailNorm];
+    console.log('[NEUROAUTH] ✅ CAMADA 2 — ALPHA WHITELIST liberou:', _emailNorm);
+    return Object.assign({
+      user_email: _emailNorm,
+      email:      _emailNorm,
+      ativo:      true,
+      plano:      'alpha',
+      role:       'medico',
+      bypass:     false
+    }, _perfil);
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // CAMADA 3 — EMAIL NÃO AUTORIZADO (antes de tentar Make.com)
+  // Bloqueia cedo com mensagem amigável — evita erro técnico cru
+  // Comente este bloco quando Make.com estiver ativo e com whitelist remota
+  // ─────────────────────────────────────────────────────────────────
+  // NOTA: enquanto Make.com estiver com webhook inativo (HTTP 410),
+  // todo email fora das camadas 1 e 2 cai aqui com mensagem amigável.
+  // Remova este bloco quando o webhook estiver estável.
+  throw new Error('Seu acesso ainda não foi liberado para esta fase inicial do NEUROAUTH. Se necessário, solicite liberação ao administrador.');
+  // fim CAMADA 3
+  /* eslint-disable no-unreachable */
 
   /* PRODUÇÃO — sem fallback para perfil fake. Toda falha bloqueia acesso. */
   if(!NA_PROFILE_WH||NA_PROFILE_WH==='SEU_MAKE_PROFILE_WEBHOOK_URL'){
@@ -1066,6 +1126,8 @@ function naEnterForm(){
   goTab(0);
   // Attach live invalidation: qualquer mudança de campo invalida cache de compliance
   naAttachLiveValidation();
+  // Controller — init idempotente; seguro chamar aqui mesmo se já inicializado no DOMContentLoaded
+  if (typeof NA !== 'undefined' && typeof NA.init === 'function') NA.init();
 }
 
 function naAttachLiveValidation() {
@@ -1816,6 +1878,10 @@ function renderSADT(d,procs){
         <td style="border:1px solid #000;padding:1px 3px;width:180px">
           <span class="fn">11 – Cartão Nacional de Saúde</span>
           <span class="fv">${d.cns||''}</span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px;width:110px">
+          <span class="fn">12 – Data de Nascimento</span>
+          <span class="fv">${d.data_nascimento?d.data_nascimento.split('-').reverse().join('/'):'&nbsp;'}</span>
         </td>
       </tr>
     </table>
@@ -3216,6 +3282,15 @@ function naBuildPrintData(payload) {
     return null;
   }
 }
+</script>
+
+<!-- App Controller — camada fina de orquestração (adapter/state/observability) -->
+<script src="neuroauth_app_controller.js"></script>
+<script>
+  // Inicialização do controller após todos os scripts inline estarem prontos
+  if (typeof NA !== 'undefined' && typeof NA.init === 'function') {
+    NA.init();
+  }
 </script>
 
 </body>
