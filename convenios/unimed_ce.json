@@ -1,0 +1,95 @@
+{
+  "_schema_ref": "CONVENIO_SCHEMA_MESTRE_v1",
+  "_nota": "Implementação concreta da Unimed Ceará — primeira instância do modelo multi-convênio",
+
+  "identificacao": {
+    "id_convenio": "unimed_ce",
+    "nome_exibicao": "Unimed Ceará",
+    "nome_interno": "UNIMED-CE",
+    "tipo_operadora": "cooperativa_medica",
+    "registro_ans": "303860",
+    "cnpj": "11.343.935/0001-00",
+    "ativo": true
+  },
+
+  "cobertura_geografica": {
+    "abrangencia": "estadual",
+    "estados_ativos": ["CE"],
+    "municipios_referencia": ["Fortaleza", "Barbalha", "Crato", "Juazeiro do Norte", "Sobral"]
+  },
+
+  "documentos_suportados": {
+    "exige_sadt": true,
+    "exige_opme": true,
+    "exige_guia_internacao": true,
+    "exige_resumo_clinico": false,
+    "exige_anexo_justificativa": false
+  },
+
+  "templates": {
+    "sadt": "blank_sadt_template.pdf",
+    "opme": "blank_opme_template.pdf",
+    "internacao": "blank_internacao_template.pdf",
+    "motor_sadt": "fill_unimed_sadt_v2",
+    "motor_opme": "fill_unimed_opme_v2",
+    "motor_internacao": "fill_unimed_internacao_v1"
+  },
+
+  "codificacao": {
+    "tabela_procedimentos_preferencial": "TUSS",
+    "aceita_codigo_proprio": false,
+    "exige_porte_anestesico": true,
+    "exige_via_acesso": false,
+    "max_procedimentos_por_guia": 5,
+    "max_materiais_opme_por_guia": 6,
+    "max_cids_por_guia": 4
+  },
+
+  "regras_autorizacao": {
+    "prazo_resposta_horas": 72,
+    "aceita_autorizacao_verbal": false,
+    "exige_senha_autorizacao": true,
+    "canais_envio": ["portal_web", "make_webhook"],
+    "url_portal": "https://www.unimedce.com.br",
+    "webhook_make": "https://hook.us2.make.com/yerhrppm26aylw9jj2efmapq6ny8jlif"
+  },
+
+  "comportamento_pos_autorizacao": {
+    "campos": [
+      "senha_autorizacao",
+      "data_autorizacao",
+      "validade_autorizacao",
+      "diarias_autorizadas",
+      "procedimentos_autorizados",
+      "codigo_glosa",
+      "motivo_glosa"
+    ],
+    "acao_em_glosa": "notificar_medico"
+  },
+
+  "campos_obrigatorios_por_tipo_guia": {
+    "sadt": ["cid10_principal", "indicacao_clinica"],
+    "opme": ["justificativa_opme", "empresa_opme", "anvisa"],
+    "internacao": ["indicacao_clinica", "tipo_internacao", "regime_internacao", "cid10_principal", "carater_atendimento"],
+    "resumo_clinico": []
+  },
+
+  "campos_recomendados_por_tipo_guia": {
+    "sadt": ["achados_exame", "deficit_neuro", "via_acesso"],
+    "opme": ["fabricante", "valor_unitario"],
+    "internacao": ["tto_conservador", "duracao_tto", "deficit_neuro", "achados_exame"]
+  },
+
+  "billing": {
+    "modelo_cobranca": "por_guia",
+    "sku_sadt": "guia_neuroauth_sadt",
+    "sku_opme": "guia_neuroauth_sadt_opme_premium",
+    "sku_internacao": "guia_neuroauth_internacao"
+  },
+
+  "hospitais_habilitados": [
+    "hosp_santo_antonio_barbalha",
+    "hosp_coracao_cariri",
+    "hosp_regional_cariri"
+  ]
+}

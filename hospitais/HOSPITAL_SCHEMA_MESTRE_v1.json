@@ -1,0 +1,202 @@
+{
+  "_schema": {
+    "id": "HOSPITAL_SCHEMA_MESTRE",
+    "versao": "1.0.0",
+    "data_criacao": "2026-03-27",
+    "descricao": "Schema mestre para entidades de hospital no NEUROAUTH. Todo hospital operado pelo sistema é uma instância concreta deste schema."
+  },
+
+  "identificacao": {
+    "id_hospital": {
+      "tipo": "string",
+      "formato": "snake_case",
+      "exemplo": "hosp_santo_antonio_barbalha",
+      "required": true,
+      "nota": "Identificador interno único. Chave em HOSPITAL_RULES e referência cruzada em schemas de médico e convênio."
+    },
+    "nome_hospital": {
+      "tipo": "string",
+      "exemplo": "Hospital Santo Antônio",
+      "required": true
+    },
+    "nome_fantasia": {
+      "tipo": "string",
+      "exemplo": "HSA Barbalha",
+      "required": false
+    },
+    "cnpj": {
+      "tipo": "string",
+      "formato": "XX.XXX.XXX/XXXX-XX",
+      "required": true
+    },
+    "cnes": {
+      "tipo": "string",
+      "formato": "7 dígitos",
+      "exemplo": "2517753",
+      "required": true,
+      "nota": "Cadastro Nacional de Estabelecimentos de Saúde. Obrigatório em documentos TISS."
+    },
+    "ativo": {
+      "tipo": "boolean",
+      "default": true,
+      "required": true
+    }
+  },
+
+  "localizacao": {
+    "endereco_logradouro": {
+      "tipo": "string",
+      "exemplo": "Rua São Pedro, 100"
+    },
+    "bairro": {
+      "tipo": "string"
+    },
+    "cidade": {
+      "tipo": "string",
+      "required": true
+    },
+    "estado": {
+      "tipo": "string",
+      "formato": "UF 2 chars",
+      "required": true
+    },
+    "cep": {
+      "tipo": "string",
+      "formato": "XXXXX-XXX"
+    },
+    "telefone_principal": {
+      "tipo": "string",
+      "exemplo": "(88) 3512-0000"
+    },
+    "email_autorizacoes": {
+      "tipo": "string",
+      "formato": "email",
+      "nota": "Email da central de autorizações do hospital"
+    }
+  },
+
+  "convenios_ativos": {
+    "tipo": "array",
+    "items": "id_convenio (ref CONVENIO_SCHEMA_MESTRE)",
+    "exemplo": ["unimed_ce", "bradesco_saude", "sulamerica"],
+    "required": true,
+    "nota": "Lista dos convênios credenciados neste hospital. Filtro para o select do formulário."
+  },
+
+  "medicos_habilitados": {
+    "tipo": "array",
+    "items": "medico_id (ref MEDICO_SCHEMA_MESTRE)",
+    "nota": "Lista dos médicos com habilitação para operar neste hospital."
+  },
+
+  "capacidade_operacional": {
+    "possui_uti": {
+      "tipo": "boolean",
+      "default": true
+    },
+    "possui_centro_cirurgico": {
+      "tipo": "boolean",
+      "default": true
+    },
+    "especialidades_habilitadas": {
+      "tipo": "array",
+      "items": "string",
+      "exemplo": ["neurocirurgia", "ortopedia", "cardiologia", "oncologia"]
+    },
+    "nivel_complexidade": {
+      "tipo": "enum",
+      "valores": ["baixa", "media", "alta", "referencia"],
+      "required": true
+    }
+  },
+
+  "padrao_documentacao": {
+    "padrao_acomodacao": {
+      "tipo": "enum",
+      "valores": ["enfermaria", "apartamento", "uti", "unidade_intermediaria"],
+      "default": "apartamento",
+      "nota": "Padrão de acomodação preenchido por default na guia de internação"
+    },
+    "regime_padrao": {
+      "tipo": "enum",
+      "valores": ["internação", "hospital_dia", "ambulatorial"],
+      "default": "internação"
+    },
+    "carater_atendimento_padrao": {
+      "tipo": "enum",
+      "valores": ["eletivo", "urgencia", "emergencia"],
+      "default": "eletivo"
+    }
+  },
+
+  "fluxo_interno_autorizacao": {
+    "possui_setor_autorizacao_proprio": {
+      "tipo": "boolean",
+      "default": true
+    },
+    "contato_autorizacao": {
+      "tipo": "string",
+      "exemplo": "ramal 203 — Central de Autorizações"
+    },
+    "prazo_interno_horas": {
+      "tipo": "integer",
+      "exemplo": 24,
+      "nota": "Prazo interno para o hospital encaminhar ao convênio após receber do médico"
+    },
+    "exige_laudo_assinado": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "exige_pre_internacao": {
+      "tipo": "boolean",
+      "default": false,
+      "nota": "Se true, paciente precisa comparecer ao hospital antes da internação para triagem documental"
+    }
+  },
+
+  "documentos_utilizados": {
+    "tipo": "array",
+    "items": "tipo_guia",
+    "exemplo": ["sadt", "opme", "internacao", "resumo_clinico"],
+    "nota": "Tipos de documento emitidos pelo NEUROAUTH para este hospital"
+  },
+
+  "assinatura_padrao": {
+    "usa_assinatura_digital": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "texto_rodape_padrao": {
+      "tipo": "string",
+      "exemplo": "Hospital Santo Antônio — Barbalha/CE | CNES 2517753"
+    }
+  },
+
+  "contatos_secretaria": {
+    "tipo": "array",
+    "items": {
+      "nome": "string",
+      "cargo": "string",
+      "telefone": "string",
+      "whatsapp": "string",
+      "email": "string"
+    },
+    "nota": "Contatos das secretarias médicas que operam o NEUROAUTH neste hospital"
+  },
+
+  "observacoes_operacionais": {
+    "tipo": "string",
+    "exemplo": "Este hospital exige que a SADT seja entregue em 2 vias físicas além do envio digital.",
+    "nota": "Observações livres visíveis apenas para o operador interno"
+  },
+
+  "metadados": {
+    "criado_em": "2026-03-27",
+    "versao_schema": "1.0.0"
+  },
+
+  "_implementacoes_concretas": {
+    "hosp_santo_antonio_barbalha": "schemas/hospitais/hosp_santo_antonio_barbalha.json",
+    "hosp_coracao_cariri": "schemas/hospitais/hosp_coracao_cariri.json"
+  }
+}

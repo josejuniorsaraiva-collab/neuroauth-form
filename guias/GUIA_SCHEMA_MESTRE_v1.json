@@ -1,0 +1,206 @@
+{
+  "_schema": {
+    "id": "GUIA_SCHEMA_MESTRE",
+    "versao": "1.0.0",
+    "data_criacao": "2026-03-27",
+    "descricao": "Schema mestre raiz para qualquer documento assistencial ou autorizativo no NEUROAUTH. SADT, OPME, Internação e futuros tipos são especializações deste schema, não sistemas independentes.",
+    "principio": "Toda guia tem: tipo, contexto (convênio+hospital+médico+paciente), conteúdo clínico, procedimentos, autorização e ciclo de vida."
+  },
+
+  "identificacao_guia": {
+    "guia_id": {
+      "tipo": "string",
+      "formato": "uuid ou case_id",
+      "exemplo": "2026-UNIMED-SADT-00031",
+      "required": true
+    },
+    "tipo_guia": {
+      "tipo": "enum",
+      "valores": ["sadt", "opme", "internacao", "resumo_clinico", "anexo_justificativa", "apac", "consulta", "prorrogacao"],
+      "required": true
+    },
+    "versao_guia": {
+      "tipo": "integer",
+      "default": 1,
+      "nota": "Incrementa a cada reenvio ou correção"
+    },
+    "numero_guia_prestador": {
+      "tipo": "string",
+      "exemplo": "2026-00031",
+      "nota": "Numeração interna do prestador (médico/hospital)"
+    },
+    "numero_guia_convenio": {
+      "tipo": "string",
+      "nota": "Número gerado pelo convênio após recebimento"
+    },
+    "data_solicitacao": {
+      "tipo": "string",
+      "formato": "DD/MM/YYYY",
+      "required": true
+    },
+    "status": {
+      "tipo": "enum",
+      "valores": ["rascunho", "preenchimento", "validacao", "pronto_preview", "enviado_make", "documento_gerado", "pendente_autorizacao", "autorizado", "negado", "pendente_reenvio", "faturado", "arquivado"],
+      "default": "rascunho"
+    }
+  },
+
+  "contexto": {
+    "convenio": {
+      "id_convenio": { "tipo": "string", "exemplo": "unimed_ce", "required": true },
+      "nome_exibicao": { "tipo": "string", "exemplo": "Unimed Ceará" },
+      "registro_ans": { "tipo": "string", "exemplo": "303860" }
+    },
+    "hospital": {
+      "id_hospital": { "tipo": "string", "exemplo": "hosp_santo_antonio_barbalha", "required": true },
+      "nome_hospital": { "tipo": "string", "required": true },
+      "cnes": { "tipo": "string" }
+    },
+    "medico_solicitante": {
+      "medico_id": { "tipo": "string" },
+      "nome": { "tipo": "string", "required": true },
+      "crm": { "tipo": "string", "required": true },
+      "crm_numero": { "tipo": "string" },
+      "uf_crm": { "tipo": "string" },
+      "cbo": { "tipo": "string", "required": true }
+    }
+  },
+
+  "paciente": {
+    "nome_paciente": { "tipo": "string", "required": true },
+    "data_nascimento": { "tipo": "string", "formato": "DD/MM/YYYY" },
+    "sexo": { "tipo": "enum", "valores": ["Masculino", "Feminino"] },
+    "cns": { "tipo": "string", "nota": "Cartão Nacional de Saúde — nunca gravado em localStorage" },
+    "cpf": { "tipo": "string", "nota": "Nunca gravado em localStorage" },
+    "numero_carteira": { "tipo": "string" },
+    "validade_carteira": { "tipo": "string", "formato": "MM/YYYY" },
+    "plano_paciente": { "tipo": "string" }
+  },
+
+  "contexto_clinico": {
+    "carater_atendimento": {
+      "tipo": "enum",
+      "valores": ["eletivo", "urgencia", "emergencia"],
+      "required": true
+    },
+    "tipo_guia_tiss": {
+      "tipo": "string",
+      "nota": "Código TISS do tipo de guia (ex: '1' = consulta, '2' = SADT)"
+    },
+    "indicacao_clinica": {
+      "tipo": "string",
+      "max_chars": 1000,
+      "required": true,
+      "nota": "Texto clínico livre. Campo mais auditado pelos convênios."
+    },
+    "cids": {
+      "tipo": "array",
+      "items": { "codigo": "string", "descricao": "string", "ordem": "integer" },
+      "max_items": 4,
+      "nota": "Array dinâmico — normalizado para CID_01..04 no schema achatado"
+    },
+    "achados_exame": { "tipo": "string", "max_chars": 500 },
+    "deficit_neurologico": { "tipo": "string" },
+    "tratamento_conservador": { "tipo": "string" },
+    "duracao_tratamento": { "tipo": "string" }
+  },
+
+  "procedimentos": {
+    "tipo": "array",
+    "nota": "Array dinâmico sem limite no schema mestre. Normalizado para slots fixos no schema achatado.",
+    "items": {
+      "ordem": { "tipo": "integer", "required": true },
+      "tabela": { "tipo": "enum", "valores": ["TUSS", "CBHPM", "AMB", "proprio"] },
+      "codigo": { "tipo": "string", "required": true },
+      "descricao": { "tipo": "string", "required": true },
+      "quantidade_solicitada": { "tipo": "integer", "default": 1 },
+      "quantidade_autorizada": { "tipo": "integer", "nota": "Preenchido pós-autorização" },
+      "via_acesso": { "tipo": "string" },
+      "tecnica": { "tipo": "string" },
+      "lateralidade": { "tipo": "enum", "valores": ["Direita", "Esquerda", "Bilateral", "N/A"] }
+    }
+  },
+
+  "materiais_opme": {
+    "tipo": "array",
+    "nota": "Presentes apenas em guias do tipo opme ou internacao com previsão de OPME",
+    "items": {
+      "ordem": { "tipo": "integer" },
+      "descricao": { "tipo": "string", "required": true },
+      "fabricante": { "tipo": "string" },
+      "anvisa": { "tipo": "string" },
+      "quantidade": { "tipo": "integer", "default": 1 },
+      "valor_unitario": { "tipo": "number" },
+      "codigo_af": { "tipo": "string" }
+    }
+  },
+
+  "render_strategy": {
+    "nota": "Define como esta guia será renderizada",
+    "motor_pdf": {
+      "tipo": "string",
+      "exemplo": "fill_unimed_sadt_v2",
+      "nota": "Derivado de schemas/convenios/<id>.json::templates.motor_<tipo_guia>"
+    },
+    "template_pdf": {
+      "tipo": "string",
+      "exemplo": "blank_sadt_template.pdf"
+    },
+    "orientacao": {
+      "tipo": "enum",
+      "valores": ["portrait", "landscape"]
+    },
+    "preview_template": {
+      "tipo": "string",
+      "nota": "Função JS que renderiza o preview HTML (ex: renderSadt, renderInternacao)"
+    }
+  },
+
+  "dados_autorizacao": {
+    "nota": "Bloco _pos_autorizacao — sempre vazio na solicitação, preenchido no retorno do convênio",
+    "senha_autorizacao": { "tipo": "string" },
+    "data_autorizacao": { "tipo": "string", "formato": "DD/MM/YYYY" },
+    "validade_autorizacao": { "tipo": "string", "formato": "DD/MM/YYYY" },
+    "codigo_glosa": { "tipo": "string" },
+    "motivo_glosa": { "tipo": "string" },
+    "codigo_recurso": { "tipo": "string" }
+  },
+
+  "assinaturas": {
+    "assinatura_medico_solicitante": { "tipo": "boolean", "default": false },
+    "data_assinatura": { "tipo": "string", "formato": "DD/MM/YYYY" },
+    "assinatura_digital": { "tipo": "boolean", "default": false }
+  },
+
+  "ciclo_vida": {
+    "criado_em": { "tipo": "string", "formato": "ISO 8601" },
+    "enviado_em": { "tipo": "string", "formato": "ISO 8601" },
+    "respondido_em": { "tipo": "string", "formato": "ISO 8601" },
+    "faturado_em": { "tipo": "string", "formato": "ISO 8601" },
+    "arquivado_em": { "tipo": "string", "formato": "ISO 8601" },
+    "historico_status": {
+      "tipo": "array",
+      "items": {
+        "status": "string",
+        "timestamp": "ISO 8601",
+        "operador": "string",
+        "observacao": "string"
+      }
+    }
+  },
+
+  "origem_dados": {
+    "canal": {
+      "tipo": "enum",
+      "valores": ["formulario_web", "api_direta", "importacao", "duplicata"],
+      "default": "formulario_web"
+    },
+    "neuroauth_version": { "tipo": "string", "exemplo": "3.0.0" },
+    "session_token_hash": { "tipo": "string", "nota": "Hash do token de sessão — não o token em si" }
+  },
+
+  "metadados": {
+    "versao_schema": "1.0.0",
+    "criado_em": "2026-03-27"
+  }
+}

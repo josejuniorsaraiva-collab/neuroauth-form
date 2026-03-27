@@ -1,0 +1,253 @@
+{
+  "_schema": {
+    "id": "MEDICO_SCHEMA_MESTRE",
+    "versao": "1.0.0",
+    "data_criacao": "2026-03-27",
+    "descricao": "Schema mestre para perfil operacional de médico no NEUROAUTH. Separado explicitamente entre autenticação (Google), cadastro (dados fixos), preferências (defaults operacionais) e permissões (acesso ao sistema)."
+  },
+
+  "identificacao": {
+    "medico_id": {
+      "tipo": "string",
+      "formato": "uuid ou email_normalizado",
+      "exemplo": "med_jose_correia_jr",
+      "required": true,
+      "nota": "Chave interna imutável. Não é o email Google — é um ID do sistema."
+    },
+    "nome": {
+      "tipo": "string",
+      "exemplo": "Dr. José Correia Jr.",
+      "required": true
+    },
+    "nome_curto": {
+      "tipo": "string",
+      "exemplo": "Dr. Correia Jr.",
+      "nota": "Usado em notificações e toasts"
+    },
+    "email": {
+      "tipo": "string",
+      "formato": "email",
+      "required": true,
+      "nota": "Email Google usado para autenticação. Chave de lookup no Sheets."
+    },
+    "ativo": {
+      "tipo": "boolean",
+      "default": true,
+      "required": true
+    }
+  },
+
+  "dados_profissionais": {
+    "crm": {
+      "tipo": "string",
+      "formato": "CRM/<UF> NNNNN",
+      "exemplo": "CRM/CE 18227",
+      "required": true
+    },
+    "crm_numero": {
+      "tipo": "string",
+      "exemplo": "18227",
+      "nota": "Número limpo, extraído do CRM completo. Usado nos PDFs."
+    },
+    "uf_crm": {
+      "tipo": "string",
+      "formato": "UF 2 chars",
+      "exemplo": "CE",
+      "required": true
+    },
+    "cbo": {
+      "tipo": "string",
+      "formato": "6 dígitos",
+      "exemplo": "225118",
+      "required": true,
+      "nota": "Classificação Brasileira de Ocupações. 225118 = neurocirurgião."
+    },
+    "especialidade": {
+      "tipo": "string",
+      "exemplo": "Neurocirurgia",
+      "required": true
+    },
+    "subespecialidade": {
+      "tipo": "array",
+      "items": "string",
+      "exemplo": ["Coluna", "Neuro-oncologia", "Neurovascular"],
+      "required": false
+    },
+    "rqe": {
+      "tipo": "string",
+      "exemplo": "12345",
+      "nota": "Registro de Qualificação de Especialista. Usado em alguns convênios."
+    }
+  },
+
+  "hospitais_habilitados": {
+    "tipo": "array",
+    "items": "id_hospital (ref HOSPITAL_SCHEMA_MESTRE)",
+    "exemplo": ["hosp_santo_antonio_barbalha", "hosp_coracao_cariri"],
+    "required": true
+  },
+
+  "convenios_habilitados": {
+    "tipo": "array",
+    "items": "id_convenio (ref CONVENIO_SCHEMA_MESTRE)",
+    "exemplo": ["unimed_ce", "bradesco_saude"],
+    "required": true,
+    "nota": "Convênios em que este médico está credenciado. Filtra opções no formulário."
+  },
+
+  "defaults_clinicos": {
+    "nota": "Valores pré-preenchidos no formulário ao fazer login. Reduzem trabalho repetitivo.",
+    "hospital_padrao": {
+      "tipo": "string",
+      "exemplo": "hosp_santo_antonio_barbalha"
+    },
+    "convenio_padrao": {
+      "tipo": "string",
+      "exemplo": "unimed_ce"
+    },
+    "carater_atendimento_padrao": {
+      "tipo": "enum",
+      "valores": ["eletivo", "urgencia", "emergencia"],
+      "default": "eletivo"
+    },
+    "regime_padrao": {
+      "tipo": "string",
+      "default": "internação"
+    },
+    "indicacao_clinica_templates": {
+      "tipo": "array",
+      "items": {
+        "id": "string",
+        "procedimento": "string",
+        "texto_template": "string"
+      },
+      "nota": "Templates de indicação clínica por procedimento. Autofill no campo."
+    }
+  },
+
+  "procedimentos_favoritos": {
+    "tipo": "array",
+    "items": {
+      "id_procedimento": "string",
+      "nome": "string",
+      "codigo_tuss": "string",
+      "codigo_cbhpm": "string",
+      "convenio": "string (ou * para todos)",
+      "opme_associadas": "array de id_opme"
+    },
+    "nota": "Aparece primeiro no autocomplete de procedimentos"
+  },
+
+  "opme_favoritas": {
+    "tipo": "array",
+    "items": {
+      "id_opme": "string",
+      "descricao": "string",
+      "fabricante": "string",
+      "anvisa": "string",
+      "procedimentos_associados": "array de id_procedimento"
+    },
+    "nota": "Lista de OPME frequentemente usadas. Autofill ao selecionar procedimento."
+  },
+
+  "permissoes": {
+    "perfil_acesso": {
+      "tipo": "enum",
+      "valores": ["medico", "cirurgiao", "secretaria", "admin", "founder"],
+      "required": true
+    },
+    "pode_ver_billing": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "pode_editar_regras": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "pode_exportar_dados": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "pode_ver_historico_outros": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "limite_guias_mes": {
+      "tipo": "integer",
+      "default": null,
+      "nota": "null = sem limite (plano ilimitado)"
+    }
+  },
+
+  "billing_profile": {
+    "plano": {
+      "tipo": "enum",
+      "valores": ["free", "alpha", "starter", "pro", "enterprise", "dev"],
+      "required": true
+    },
+    "guias_incluidas_mes": {
+      "tipo": "integer",
+      "default": null
+    },
+    "guias_usadas_mes_atual": {
+      "tipo": "integer",
+      "nota": "Calculado em runtime, não armazenado aqui"
+    },
+    "desconto_percentual": {
+      "tipo": "number",
+      "default": 0
+    },
+    "asaas_customer_id": {
+      "tipo": "string",
+      "nota": "ID do cliente no Asaas para billing recorrente"
+    }
+  },
+
+  "contato_secretaria": {
+    "email_secretaria": {
+      "tipo": "string",
+      "formato": "email"
+    },
+    "telefone_secretaria": {
+      "tipo": "string"
+    },
+    "whatsapp_secretaria": {
+      "tipo": "string"
+    },
+    "nome_secretaria": {
+      "tipo": "string"
+    }
+  },
+
+  "calendario": {
+    "calendario_id": {
+      "tipo": "string",
+      "nota": "ID do Google Calendar para agendamento cirúrgico"
+    },
+    "timezone": {
+      "tipo": "string",
+      "default": "America/Fortaleza"
+    }
+  },
+
+  "assinatura": {
+    "assinatura_digital_habilitada": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "certificado_icpbrasil": {
+      "tipo": "string",
+      "nota": "Path ou referência ao certificado ICP-Brasil (futuro)"
+    },
+    "texto_carimbo": {
+      "tipo": "string",
+      "exemplo": "Dr. José Correia Jr. | CRM/CE 18227 | Neurocirurgia"
+    }
+  },
+
+  "metadados": {
+    "criado_em": "2026-03-27",
+    "ultima_atualizacao": "2026-03-27",
+    "versao_schema": "1.0.0"
+  }
+}

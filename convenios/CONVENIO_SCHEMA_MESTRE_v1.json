@@ -1,0 +1,273 @@
+{
+  "_schema": {
+    "id": "CONVENIO_SCHEMA_MESTRE",
+    "versao": "1.0.0",
+    "data_criacao": "2026-03-27",
+    "descricao": "Schema mestre para entidades de convênio/operadora de saúde no NEUROAUTH",
+    "nota": "Todo convênio no sistema é uma instância concreta deste schema. Campos marcados com required:true são obrigatórios para operação."
+  },
+
+  "identificacao": {
+    "id_convenio": {
+      "tipo": "string",
+      "formato": "snake_case",
+      "exemplo": "unimed_ce",
+      "required": true,
+      "nota": "Identificador interno único. Nunca muda após criado. Usado como chave em CONVENIO_RULES e nos nomes de arquivos."
+    },
+    "nome_exibicao": {
+      "tipo": "string",
+      "exemplo": "Unimed Ceará",
+      "required": true,
+      "nota": "Nome exibido para o usuário no formulário e nos documentos."
+    },
+    "nome_interno": {
+      "tipo": "string",
+      "exemplo": "UNIMED-CE",
+      "required": true,
+      "nota": "Sigla usada em nomes de arquivos PDF, case_id e logs internos."
+    },
+    "tipo_operadora": {
+      "tipo": "enum",
+      "valores": ["cooperativa_medica", "seguradora", "autogestao", "filantropia", "particular", "plano_odontologico"],
+      "required": true
+    },
+    "registro_ans": {
+      "tipo": "string",
+      "formato": "6 dígitos",
+      "exemplo": "303860",
+      "required": true,
+      "nota": "Código ANS obrigatório em todos os documentos TISS."
+    },
+    "cnpj": {
+      "tipo": "string",
+      "formato": "XX.XXX.XXX/XXXX-XX",
+      "required": false
+    },
+    "ativo": {
+      "tipo": "boolean",
+      "default": true,
+      "required": true
+    }
+  },
+
+  "cobertura_geografica": {
+    "abrangencia": {
+      "tipo": "enum",
+      "valores": ["nacional", "regional", "estadual", "municipal"],
+      "required": true
+    },
+    "estados_ativos": {
+      "tipo": "array",
+      "items": "string (UF 2 chars)",
+      "exemplo": ["CE", "PI", "MA"],
+      "required": true
+    },
+    "municipios_referencia": {
+      "tipo": "array",
+      "items": "string",
+      "exemplo": ["Fortaleza", "Barbalha", "Crato"],
+      "required": false
+    }
+  },
+
+  "documentos_suportados": {
+    "exige_sadt": {
+      "tipo": "boolean",
+      "default": true
+    },
+    "exige_opme": {
+      "tipo": "boolean",
+      "default": true
+    },
+    "exige_guia_internacao": {
+      "tipo": "boolean",
+      "default": true
+    },
+    "exige_resumo_clinico": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "exige_anexo_justificativa": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "documentos_adicionais": {
+      "tipo": "array",
+      "items": "string",
+      "exemplo": ["laudo_medico", "exames_pre_op", "relatorio_tecnico"],
+      "required": false
+    }
+  },
+
+  "templates": {
+    "nota": "Mapeamento tipo_guia → arquivo template PDF em TEMPLATES_OFICIAIS/",
+    "sadt": {
+      "tipo": "string",
+      "exemplo": "blank_sadt_template.pdf"
+    },
+    "opme": {
+      "tipo": "string",
+      "exemplo": "blank_opme_template.pdf"
+    },
+    "internacao": {
+      "tipo": "string",
+      "exemplo": "blank_internacao_template.pdf"
+    },
+    "motor_sadt": {
+      "tipo": "string",
+      "exemplo": "fill_unimed_sadt_v2",
+      "nota": "Nome do módulo Python sem .py"
+    },
+    "motor_opme": {
+      "tipo": "string",
+      "exemplo": "fill_unimed_opme_v2"
+    },
+    "motor_internacao": {
+      "tipo": "string",
+      "exemplo": "fill_unimed_internacao_v1"
+    }
+  },
+
+  "codificacao": {
+    "tabela_procedimentos_preferencial": {
+      "tipo": "enum",
+      "valores": ["TUSS", "CBHPM", "AMB", "proprio"],
+      "default": "TUSS",
+      "required": true,
+      "nota": "Define qual tabela de codificação este convênio aceita como primária."
+    },
+    "aceita_codigo_proprio": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "exige_porte_anestesico": {
+      "tipo": "boolean",
+      "default": true
+    },
+    "exige_via_acesso": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "max_procedimentos_por_guia": {
+      "tipo": "integer",
+      "default": 5,
+      "nota": "Limite de linhas de procedimento na guia física. NÃO é limite de negócio."
+    },
+    "max_materiais_opme_por_guia": {
+      "tipo": "integer",
+      "default": 6
+    },
+    "max_cids_por_guia": {
+      "tipo": "integer",
+      "default": 4
+    }
+  },
+
+  "regras_autorizacao": {
+    "prazo_resposta_horas": {
+      "tipo": "integer",
+      "exemplo": 72,
+      "nota": "Prazo legal de resposta da operadora em horas."
+    },
+    "aceita_autorizacao_verbal": {
+      "tipo": "boolean",
+      "default": false
+    },
+    "exige_senha_autorizacao": {
+      "tipo": "boolean",
+      "default": true
+    },
+    "canais_envio": {
+      "tipo": "array",
+      "valores": ["portal_web", "email", "sistema_proprio", "make_webhook", "api_direta"],
+      "required": true
+    },
+    "url_portal": {
+      "tipo": "string",
+      "formato": "URL",
+      "required": false
+    },
+    "webhook_make": {
+      "tipo": "string",
+      "formato": "URL",
+      "required": false,
+      "nota": "URL do webhook Make.com específico para este convênio."
+    }
+  },
+
+  "comportamento_pos_autorizacao": {
+    "nota": "Campos que só ficam disponíveis após retorno do convênio",
+    "campos": [
+      "senha_autorizacao",
+      "data_autorizacao",
+      "validade_autorizacao",
+      "diarias_autorizadas",
+      "procedimentos_autorizados",
+      "codigo_glosa",
+      "motivo_glosa",
+      "codigo_recurso"
+    ],
+    "acao_em_glosa": {
+      "tipo": "enum",
+      "valores": ["recurso_automatico", "notificar_medico", "arquivar", "reabrir_formulario"]
+    }
+  },
+
+  "campos_obrigatorios_por_tipo_guia": {
+    "nota": "Sobrepõe ou adiciona ao padrão TISS geral. Usado pelo compliance engine.",
+    "sadt": [],
+    "opme": ["justificativa_opme", "empresa_opme"],
+    "internacao": ["indicacao_clinica", "tipo_internacao", "regime_internacao", "cid10_principal"],
+    "resumo_clinico": ["indicacao_clinica", "achados_exame"]
+  },
+
+  "campos_recomendados_por_tipo_guia": {
+    "sadt": ["achados_exame", "deficit_neuro"],
+    "opme": ["anvisa", "fabricante"],
+    "internacao": ["tto_conservador", "duracao_tto", "deficit_neuro"]
+  },
+
+  "billing": {
+    "modelo_cobranca": {
+      "tipo": "enum",
+      "valores": ["por_guia", "por_paciente_mes", "assinatura_fixa", "freemium"],
+      "default": "por_guia"
+    },
+    "sku_sadt": {
+      "tipo": "string",
+      "exemplo": "guia_neuroauth_sadt"
+    },
+    "sku_opme": {
+      "tipo": "string",
+      "exemplo": "guia_neuroauth_sadt_opme_premium"
+    },
+    "sku_internacao": {
+      "tipo": "string",
+      "exemplo": "guia_neuroauth_internacao"
+    }
+  },
+
+  "hospitais_habilitados": {
+    "tipo": "array",
+    "items": "id_hospital (ref HOSPITAL_SCHEMA_MESTRE)",
+    "exemplo": ["hosp_santo_antonio_barbalha", "hosp_coracao_cariri"],
+    "nota": "Lista de hospitais credenciados neste convênio."
+  },
+
+  "metadados": {
+    "criado_em": "2026-03-27",
+    "criado_por": "arquitetura_neuroauth",
+    "versao_schema": "1.0.0",
+    "ultima_revisao": "2026-03-27"
+  },
+
+  "_implementacoes_concretas": {
+    "nota": "Referência às implementações reais deste schema",
+    "unimed_ce": "schemas/convenios/unimed_ce.json",
+    "bradesco_saude": "schemas/convenios/bradesco_saude.json (pendente)",
+    "sulamerica": "schemas/convenios/sulamerica.json (pendente)",
+    "amil": "schemas/convenios/amil.json (pendente)",
+    "hapvida": "schemas/convenios/hapvida.json (pendente)"
+  }
+}

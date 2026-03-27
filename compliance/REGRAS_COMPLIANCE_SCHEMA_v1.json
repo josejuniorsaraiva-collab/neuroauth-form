@@ -1,0 +1,235 @@
+{
+  "_schema": {
+    "id": "REGRAS_COMPLIANCE_SCHEMA",
+    "versao": "1.0.0",
+    "data_criacao": "2026-03-27",
+    "descricao": "Schema canônico para definição de regras de compliance clínico-operacional. Toda regra do sistema deve ser uma instância deste schema. Regras não são código — são dados parametrizáveis.",
+    "principio": "Uma regra é uma declaração. O engine é o intérprete. Regra + engine = compliance dinâmico."
+  },
+
+  "estrutura_de_regra": {
+    "id_regra": {
+      "tipo": "string",
+      "formato": "<PREFIX>-<CONTEXTO>-<NUMERO>",
+      "exemplos": ["R-TISS-001", "R-UNIMED-CE-012", "R-HSA-UNIMED-003", "R-NEURO-OPME-001"],
+      "required": true,
+      "nota": "Prefixos: R-TISS (padrão ANS), R-<CONVENIO> (por convênio), R-<HOSPITAL> (por hospital), R-<ESPECIALIDADE> (por especialidade)"
+    },
+    "tipo_regra": {
+      "tipo": "enum",
+      "valores": [
+        "campo_obrigatorio",
+        "campo_recomendado",
+        "formato_invalido",
+        "valor_fora_de_range",
+        "combinacao_invalida",
+        "texto_insuficiente",
+        "codigo_incorreto",
+        "campo_condicional",
+        "limite_excedido",
+        "anti_glosa_texto"
+      ],
+      "required": true
+    },
+    "nivel": {
+      "tipo": "enum",
+      "valores": ["bloqueante", "alerta_alto", "alerta_medio", "sugestao"],
+      "required": true,
+      "nota": "bloqueante=impede envio | alerta=avisa mas permite | sugestao=melhoria opcional"
+    },
+    "convenio": {
+      "tipo": "string",
+      "valores_especiais": ["*", "particular"],
+      "exemplo": "unimed_ce",
+      "nota": "* = aplica a todos os convênios"
+    },
+    "hospital": {
+      "tipo": "string",
+      "valores_especiais": ["*"],
+      "nota": "* = aplica a todos os hospitais"
+    },
+    "regiao": {
+      "tipo": "string",
+      "valores_especiais": ["*"],
+      "exemplo": "CE",
+      "nota": "UF ou * para todas as regiões"
+    },
+    "especialidade": {
+      "tipo": "string",
+      "valores_especiais": ["*"],
+      "exemplo": "neurocirurgia",
+      "nota": "Especialidade médica ou * para todas"
+    },
+    "tipo_guia": {
+      "tipo": "string",
+      "valores": ["sadt", "opme", "internacao", "resumo_clinico", "*"],
+      "required": true
+    },
+    "campo": {
+      "tipo": "string",
+      "exemplo": "indicacao_clinica",
+      "nota": "Nome exato do campo em collect(). Pode ser null para regras de combinação."
+    },
+    "condicao": {
+      "tipo": "string",
+      "nota": "Expressão que define quando a regra é avaliada. 'sempre', ou condição JS-like: 'necessita_opme==Sim', 'procedimentos.length > 1'",
+      "exemplos": [
+        "sempre",
+        "necessita_opme == 'Sim'",
+        "carater_atendimento == 'urgencia'",
+        "procedimentos.length > 5"
+      ]
+    },
+    "validacao": {
+      "tipo": "object",
+      "nota": "Critério de validação. Depende do tipo_regra.",
+      "por_tipo": {
+        "campo_obrigatorio": { "nao_vazio": true },
+        "texto_insuficiente": { "min_chars": 50 },
+        "valor_fora_de_range": { "min": 1, "max": 999 },
+        "formato_invalido": { "regex": "^[A-Z][0-9]{2}\\.[0-9]$" },
+        "limite_excedido": { "max_items": 6 }
+      }
+    },
+    "mensagem": {
+      "tipo": "string",
+      "required": true,
+      "nota": "Mensagem clara e acionável para o usuário. Deve dizer o que corrigir, não só o que está errado."
+    },
+    "sugestao_reescrita": {
+      "tipo": "string",
+      "nota": "Para regras anti_glosa_texto: exemplo de como o campo deve ser reescrito.",
+      "exemplo": "Indicar: 'Paciente com hernia de disco L4-L5 com falha de tratamento conservador por X semanas, apresentando [déficit]...'"
+    },
+    "ativo": {
+      "tipo": "boolean",
+      "default": true
+    },
+    "versao": {
+      "tipo": "string",
+      "default": "1.0"
+    }
+  },
+
+  "exemplos_concretos": [
+    {
+      "id_regra": "R-TISS-001",
+      "tipo_regra": "campo_obrigatorio",
+      "nivel": "bloqueante",
+      "convenio": "*",
+      "hospital": "*",
+      "regiao": "*",
+      "especialidade": "*",
+      "tipo_guia": "*",
+      "campo": "cid10_principal",
+      "condicao": "sempre",
+      "validacao": { "nao_vazio": true },
+      "mensagem": "CID-10 principal é obrigatório em todas as guias TISS.",
+      "sugestao_reescrita": null,
+      "ativo": true
+    },
+    {
+      "id_regra": "R-TISS-002",
+      "tipo_regra": "campo_obrigatorio",
+      "nivel": "bloqueante",
+      "convenio": "*",
+      "hospital": "*",
+      "regiao": "*",
+      "especialidade": "*",
+      "tipo_guia": "*",
+      "campo": "nome_paciente",
+      "condicao": "sempre",
+      "validacao": { "nao_vazio": true },
+      "mensagem": "Nome do paciente é obrigatório.",
+      "ativo": true
+    },
+    {
+      "id_regra": "R-TISS-010",
+      "tipo_regra": "texto_insuficiente",
+      "nivel": "alerta_alto",
+      "convenio": "*",
+      "hospital": "*",
+      "regiao": "*",
+      "especialidade": "*",
+      "tipo_guia": "internacao",
+      "campo": "indicacao_clinica",
+      "condicao": "sempre",
+      "validacao": { "min_chars": 80 },
+      "mensagem": "Indicação clínica muito curta. Convênios rejeitam indicações genéricas. Descreva o quadro clínico, falha do tratamento conservador e justificativa da internação.",
+      "sugestao_reescrita": "Paciente com [diagnóstico], apresentando [sintomas], sem melhora com tratamento conservador por [período]. Indicada internação para [procedimento] devido [justificativa].",
+      "ativo": true
+    },
+    {
+      "id_regra": "R-UNIMED-CE-001",
+      "tipo_regra": "campo_obrigatorio",
+      "nivel": "bloqueante",
+      "convenio": "unimed_ce",
+      "hospital": "*",
+      "regiao": "CE",
+      "especialidade": "*",
+      "tipo_guia": "internacao",
+      "campo": "regime_internacao",
+      "condicao": "sempre",
+      "validacao": { "nao_vazio": true },
+      "mensagem": "Regime de internação é obrigatório para a Unimed Ceará.",
+      "ativo": true
+    },
+    {
+      "id_regra": "R-UNIMED-CE-002",
+      "tipo_regra": "campo_obrigatorio",
+      "nivel": "bloqueante",
+      "convenio": "unimed_ce",
+      "hospital": "*",
+      "regiao": "CE",
+      "especialidade": "neurocirurgia",
+      "tipo_guia": "opme",
+      "campo": "justificativa_opme",
+      "condicao": "necessita_opme == 'Sim'",
+      "validacao": { "nao_vazio": true, "min_chars": 30 },
+      "mensagem": "Justificativa de OPME obrigatória para Unimed Ceará. Descreva a necessidade clínica do material.",
+      "ativo": true
+    },
+    {
+      "id_regra": "R-NEURO-001",
+      "tipo_regra": "anti_glosa_texto",
+      "nivel": "alerta_alto",
+      "convenio": "*",
+      "hospital": "*",
+      "regiao": "*",
+      "especialidade": "neurocirurgia",
+      "tipo_guia": "sadt",
+      "campo": "indicacao_clinica",
+      "condicao": "procedimento contém 'artrodese' ou 'fusão'",
+      "validacao": { "deve_conter_algum": ["conservador", "fisioterapia", "sem melhora", "fracasso"] },
+      "mensagem": "Para artrodese, indicar explicitamente o fracasso do tratamento conservador (fisioterapia, medicamentos, infiltração). Convênios frequentemente glosam por ausência desta informação.",
+      "sugestao_reescrita": "Paciente com [diagnóstico] submetido a tratamento conservador por [período] com [fisioterapia/medicamentos/infiltração], sem melhora satisfatória, evoluindo com [piora do déficit/dor incapacitante]. Indicada artrodese de [nível] para [objetivo].",
+      "ativo": true
+    },
+    {
+      "id_regra": "R-OPME-001",
+      "tipo_regra": "campo_obrigatorio",
+      "nivel": "bloqueante",
+      "convenio": "unimed_ce",
+      "hospital": "*",
+      "regiao": "*",
+      "especialidade": "*",
+      "tipo_guia": "opme",
+      "campo": "anvisa",
+      "condicao": "opme_items.length > 0",
+      "validacao": { "todos_os_itens_nao_vazios": true },
+      "mensagem": "Registro ANVISA obrigatório para todos os itens OPME na Unimed Ceará.",
+      "ativo": true
+    }
+  ],
+
+  "estrutura_de_arquivo": {
+    "nota": "Regras são armazenadas em arquivos JSON por contexto para carregamento eficiente",
+    "arquivos": {
+      "schemas/compliance/regras_tiss_geral.json": "Regras ANS — aplicam a todos (convenio: *, hospital: *)",
+      "schemas/compliance/regras_unimed_ce.json": "Regras específicas Unimed Ceará",
+      "schemas/compliance/regras_bradesco_saude.json": "Regras específicas Bradesco",
+      "schemas/compliance/regras_neurocirurgia.json": "Regras por especialidade",
+      "schemas/compliance/regras_anti_glosa.json": "Sugestões de melhoria de texto — não bloqueantes"
+    }
+  }
+}
