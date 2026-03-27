@@ -497,10 +497,12 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
         <div class="ptabs">
           <div class="ptab active" onclick="showPTab('pv-sadt',this)">Guia SADT</div>
           <div class="ptab" onclick="showPTab('pv-opme',this)">Guia OPME</div>
+          <div class="ptab" onclick="showPTab('pv-internacao',this)">🏥 Internação</div>
           <div class="ptab" onclick="showPTab('pv-dados',this)">Payload</div>
         </div>
         <div class="ppage active" id="pv-sadt"><div id="sadt-render"></div></div>
         <div class="ppage" id="pv-opme"><div id="opme-render"></div></div>
+        <div class="ppage" id="pv-internacao"><div id="internacao-render"></div></div>
         <div class="ppage" id="pv-dados"><pre id="dados-render" style="font-size:11px;background:#f8f8f8;padding:14px;border-radius:8px;overflow-x:auto;white-space:pre-wrap"></pre></div>
       </div>
     </div>
@@ -514,6 +516,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <button class="btn btn-sec" onclick="closeModal('pvModal')">Fechar</button>
       <button class="btn btn-out" onclick="printGuia('sadt')">🖨️ Imprimir SADT</button>
       <button class="btn btn-out" onclick="printGuia('opme')">🖨️ Imprimir OPME</button>
+      <button class="btn btn-out" onclick="printGuia('internacao')">🏥 Imprimir Internação</button>
       <button class="btn btn-ok" id="confirmSendBtn" onclick="confirmedSend()">
         <span class="spinner" id="sp"></span> ✅ Confirmar Envio
       </button>
@@ -609,6 +612,8 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
           <option value="">Selecionar</option>
           <option value="SADT">SADT</option><option value="Internação">Internação</option>
           <option value="SADT + OPME">SADT + OPME</option></select></div>
+      <div class="field"><label>Nº Guia (Prestador)</label>
+        <input id="numero_guia_prestador" type="text" placeholder="Ex: 2026-00001"/></div>
       <div class="field"><label>Hospital / Clínica <span class="req">*</span></label>
         <select id="hospital" required>
           <option value="">Selecionar</option>
@@ -616,11 +621,24 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
           <option>Hospital do Coração do Cariri</option>
           <option>Hospital Regional do Cariri</option>
           <option>Outro</option></select></div>
+      <div class="field"><label>Tipo de internação</label>
+        <select id="tipo_internacao">
+          <option value="">Selecionar</option>
+          <option value="1">1 — Clínica</option>
+          <option value="2">2 — Cirúrgica</option>
+          <option value="3">3 — Obstétrica</option>
+          <option value="4">4 — Psiquiátrica</option>
+          <option value="5">5 — Pediátrica</option>
+          <option value="6">6 — Berçário</option>
+          <option value="7">7 — UTI</option>
+          <option value="8">8 — Hospital-Dia</option></select></div>
       <div class="field"><label>Regime de internação</label>
         <select id="regime">
           <option value="">Selecionar</option>
           <option>Ambulatorial</option><option>Internação 1 dia</option>
           <option>Internação curta (2–3 dias)</option><option>Internação prolongada</option></select></div>
+      <div class="field"><label>Diárias solicitadas</label>
+        <input id="qtde_diarias_solicitadas" type="number" min="1" max="999" placeholder="Ex: 5"/></div>
       <div class="field full"><label>Observações do convênio</label>
         <textarea id="obs_convenio" placeholder="Pré-autorizações, contatos, protocolos…"></textarea></div>
     </div>
@@ -771,6 +789,10 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div class="field"><label>Necessita SADT?</label>
         <select id="necessita_sadt"><option value="">Selecionar</option>
           <option value="Sim">Sim</option><option value="Não">Não</option></select></div>
+      <div class="field"><label>Previsão de quimioterápico</label>
+        <select id="previsao_quimioterapico">
+          <option value="N">Não</option>
+          <option value="S">Sim</option></select></div>
     </div>
     <div id="opme_sec" style="margin-top:14px">
       <div class="sec" style="margin-bottom:8px">Itens OPME</div>
@@ -1629,6 +1651,11 @@ function collect(){
     crm:g('crm'),
     cbo:g('cbo'),
     tel_medico:g('tel_medico'),
+    // ── INTERNAÇÃO (campos novos) ──
+    numero_guia_prestador:     g('numero_guia_prestador'),
+    tipo_internacao:           g('tipo_internacao'),
+    qtde_diarias_solicitadas:  g('qtde_diarias_solicitadas'),
+    previsao_quimioterapico:   g('previsao_quimioterapico')||'N',
     necessita_opme:g('necessita_opme'),
     necessita_sadt:g('necessita_sadt'),
     opme_items:opme,
@@ -2274,11 +2301,142 @@ function renderOPME(d){
 }
 
 /* ──────────────────────────────────────────────
+   RENDER INTERNAÇÃO (preview HTML)
+────────────────────────────────────────────── */
+function buildInternacaoVars(d){
+  function fmtDate(v){
+    if(!v)return'';
+    if(/^\d{2}\/\d{2}\/\d{4}$/.test(v))return v;
+    try{const p=new Date(v);if(isNaN(p))return v;
+      return[String(p.getUTCDate()).padStart(2,'0'),String(p.getUTCMonth()+1).padStart(2,'0'),p.getUTCFullYear()].join('/');}
+    catch(e){return v;}
+  }
+  function regimaCode(r){
+    if(!r)return'';
+    if(r.includes('1 dia'))return'3';
+    if(r.includes('curta'))return'3';
+    if(r.includes('prolongada'))return'4';
+    return'3';
+  }
+  function buildObs(d){
+    const parts=[];
+    if(d.tto_conservador==='Sim')parts.push('Tratamento conservador prévio realizado por '+( d.duracao_tto||'período adequado')+'.');
+    if(d.deficit_neuro&&d.deficit_neuro!=='Não')parts.push('Déficit neurológico presente: '+d.deficit_neuro+'.');
+    if(d.achados_exame)parts.push(d.achados_exame);
+    return parts.join(' ');
+  }
+  const crmNum=(d.crm||'').replace(/[^\d]/g,'');
+  const ufCrm=(d.crm||'').match(/\/([A-Z]{2})/)?.[1]||'CE';
+  const diarias=String(d.qtde_diarias_solicitadas||'').replace(/\D/g,'').padStart(3,'0');
+  return {
+    registro_ans:               d.codigo_ans||'311269',
+    numero_guia_prestador:      d.numero_guia_prestador||'',
+    numero_carteira:            d.numero_carteira||'',
+    validade_carteira:          d.validade_carteira?fmtDate(d.validade_carteira):'',
+    atendimento_rn:             'N',
+    nome_paciente:              (d.nome_paciente||'').toUpperCase(),
+    cns:                        d.cns||'',
+    nome_profissional:          d.medico_solicitante||d.medico_nome||'',
+    conselho_profissional:      'CRM',
+    numero_conselho:            crmNum,
+    uf_crm:                     ufCrm,
+    cbo:                        d.cbo||'225125',
+    nome_hospital:              d.hospital||'',
+    data_sugerida_internacao:   fmtDate(d.data_cirurgia),
+    carater_atendimento:        d.carater_cod||'1',
+    tipo_internacao:            d.tipo_internacao||'2',
+    regime_internacao:          regimaCode(d.regime),
+    qtde_diarias_solicitadas:   diarias,
+    previsao_opme:              d.necessita_opme==='Sim'?'S':'N',
+    previsao_quimioterapico:    d.previsao_quimioterapico||'N',
+    indicacao_clinica:          d.indicacao_clinica||'',
+    cid10_principal:            d.cid_principal||'',
+    cid10_2:                    d.cid2||'',
+    cid10_3:                    '',cid10_4:'',
+    indicacao_acidente:         'N',
+    tabela_1:                   '22',
+    codigo_procedimento_1:      d.cod_cbhpm||'',
+    descricao_procedimento_1:   (d.procedimento||'').toUpperCase(),
+    quantidade_solicitada_1:    '001',
+    data_admissao:              fmtDate(d.data_cirurgia),
+    observacao_justificativa:   buildObs(d),
+    data_solicitacao:           new Date().toLocaleDateString('pt-BR'),
+  };
+}
+
+function renderInternacao(d){
+  const v=buildInternacaoVars(d);
+  const fv=(x)=>x?`<span style="font-weight:600;color:#000">${x}</span>`:'&nbsp;';
+  const fd=(x)=>x?`<b>${x}</b>`:'&nbsp;';
+  return `<div style="font-family:Arial,sans-serif;font-size:8px;line-height:1.3;padding:8px;background:#fff;max-width:840px;margin:0 auto;border:1px solid #ccc">
+  <table width="100%" style="border-collapse:collapse;margin-bottom:4px">
+    <tr>
+      <td style="width:140px;font-size:11px;font-weight:700">Unimed<br><small>Ceará</small></td>
+      <td style="text-align:center;font-size:13px;font-weight:700">GUIA DE SOLICITAÇÃO<br>DE INTERNAÇÃO</td>
+      <td style="text-align:right;font-size:8px"><b>2- Nº Guia no Prestador</b><br>${fv(v.numero_guia_prestador)}</td>
+    </tr>
+  </table>
+  <table width="100%" style="border-collapse:collapse;font-size:7.5px">
+    <tr>
+      <td style="border:1px solid #000;padding:1px 3px;width:90px"><span style="color:#555">1 - Registro ANS</span><br>${fv(v.registro_ans)}</td>
+      <td style="border:1px solid #000;padding:1px 3px"><span style="color:#555">3 - Nº Guia Atribuído pela Operadora</span><br>&nbsp;</td>
+    </tr>
+    <tr><td colspan="2" style="background:#ddd;font-weight:700;padding:1px 3px">Dados do Beneficiário</td></tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:1px 3px"><span style="color:#555">7 - Número da Carteira</span><br>${fv(v.numero_carteira)}</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:1px 3px"><span style="color:#555">10 - Nome</span><br>${fv(v.nome_paciente)}</td>
+    </tr>
+    <tr><td colspan="2" style="background:#ddd;font-weight:700;padding:1px 3px">Dados do Profissional Solicitante</td></tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:1px 3px"><span style="color:#555">14 - Nome do Profissional Solicitante</span><br>${fv(v.nome_profissional)}</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #000;padding:1px 3px"><span style="color:#555">16 - Número no Conselho</span><br>${fv(v.numero_conselho)}</td>
+      <td style="border:1px solid #000;padding:1px 3px"><span style="color:#555">17 - UF &nbsp;&nbsp; 18 - CBO</span><br>${fv(v.uf_crm)} &nbsp;&nbsp; ${fv(v.cbo)}</td>
+    </tr>
+    <tr><td colspan="2" style="background:#ddd;font-weight:700;padding:1px 3px">Hospital / Local Solicitado</td></tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:1px 3px"><span style="color:#555">20 - Nome do Hospital</span><br>${fv(v.nome_hospital)}</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #000;padding:1px 3px"><span style="color:#555">22 - Caráter</span><br>${fv(v.carater_atendimento)}</td>
+      <td style="border:1px solid #000;padding:1px 3px"><span style="color:#555">23 - Tipo &nbsp; 24 - Regime &nbsp; 25 - Diárias &nbsp; 26 - OPME &nbsp; 27 - Quimio</span><br>${fv(v.tipo_internacao)} &nbsp; ${fv(v.regime_internacao)} &nbsp; ${fv(v.qtde_diarias_solicitadas)} &nbsp; ${fv(v.previsao_opme)} &nbsp; ${fv(v.previsao_quimioterapico)}</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:2px 3px;min-height:50px"><span style="color:#555">28 - Indicação Clínica</span><br>${fv(v.indicacao_clinica)}</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #000;padding:1px 3px"><span style="color:#555">29 - CID 10 Principal</span><br>${fv(v.cid10_principal)}</td>
+      <td style="border:1px solid #000;padding:1px 3px"><span style="color:#555">30 - CID 10 (2)</span><br>${fv(v.cid10_2)}</td>
+    </tr>
+    <tr><td colspan="2" style="background:#ddd;font-weight:700;padding:1px 3px">Procedimentos Solicitados</td></tr>
+    <tr>
+      <td style="border:1px solid #000;padding:1px 3px;width:40px"><span style="color:#555">Tabela</span><br>${fv(v.tabela_1)}</td>
+      <td style="border:1px solid #000;padding:1px 3px"><span style="color:#555">Cód. Procedimento</span><br>${fv(v.codigo_procedimento_1)}</td>
+    </tr>
+    <tr><td colspan="2" style="border:1px solid #000;padding:1px 3px"><span style="color:#555">Descrição</span><br>${fv(v.descricao_procedimento_1)}</td></tr>
+    <tr>
+      <td colspan="2" style="border:1px solid #000;padding:2px 3px"><span style="color:#555">45 - Observação / Justificativa</span><br>${fv(v.observacao_justificativa)}</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid #000;padding:1px 3px"><span style="color:#555">46 - Data da Solicitação</span><br>${fv(v.data_solicitacao)}</td>
+      <td style="border:1px solid #000;padding:1px 3px"><span style="color:#555">47 - Assinatura do Médico</span><br>&nbsp;</td>
+    </tr>
+  </table>
+</div>`;
+}
+
+/* ──────────────────────────────────────────────
    PREVIEW MODAL
 ────────────────────────────────────────────── */
 function openPreview(){
   const d=collect();
   document.getElementById('sadt-render').innerHTML=renderSADT(d,[]);
+  // render internação se já existir o container
+  const internDiv=document.getElementById('internacao-render');
+  if(internDiv) internDiv.innerHTML=renderInternacao(d);
   populateSidebar(d);
   updateGuiaFromSidebar();
   naUpdateAuditUI();
@@ -2624,6 +2782,8 @@ function updateGuiaFromSidebar(){
     : '';
   document.getElementById('sadt-render').innerHTML=renderSADT(enriched,selProcs);
   document.getElementById('opme-render').innerHTML=renderOPME(enriched);
+  const internDiv=document.getElementById('internacao-render');
+  if(internDiv) internDiv.innerHTML=renderInternacao(enriched);
   document.getElementById('dados-render').textContent=JSON.stringify({
     ...enriched,
     profile_id:profileId,
@@ -2659,7 +2819,9 @@ function naGetPrintHeader(which){
 function printGuia(which){
   const html = which==='sadt'
     ? document.getElementById('sadt-render').innerHTML
-    : document.getElementById('opme-render').innerHTML;
+    : which==='internacao'
+      ? document.getElementById('internacao-render').innerHTML
+      : document.getElementById('opme-render').innerHTML;
   const w=window.open('','_blank');
   w.document.write(`<html><head><title>Guia ${which.toUpperCase()} – NEUROAUTH</title>
     <style>

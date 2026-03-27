@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "schema_id": "NEUROAUTH_INTERNACAO_v1",
+    "formulario": "Guia de Solicitação de Internação — Unimed Ceará",
+    "padrao": "TISS ANS v3 / RN 501/2022",
+    "versao": "1.0.0",
+    "campos_total": 49,
+    "procedimentos_linhas": 12,
+    "cid_campos": 4
+  },
+
+  "identificacao_guia": {
+    "registro_ans":           "311269",
+    "numero_guia_prestador":  "2026-INTERN-00001",
+    "numero_guia_operadora":  "",
+    "data_autorizacao":       "",
+    "senha":                  "",
+    "data_validade_senha":    ""
+  },
+
+  "beneficiario": {
+    "numero_carteira":        "9123456789012345",
+    "validade_carteira":      "12/2027",
+    "atendimento_rn":         "N",
+    "nome_paciente":          "NOME COMPLETO DO PACIENTE",
+    "cns":                    "000 0000 0000 0000"
+  },
+
+  "contratado_solicitante": {
+    "codigo_operadora_sol":   "12345678901234",
+    "nome_contratado":        "CENTRO / CLÍNICA DO MÉDICO SOLICITANTE"
+  },
+
+  "profissional_solicitante": {
+    "nome_profissional":      "DR. NOME DO MÉDICO",
+    "conselho_profissional":  "CRM",
+    "numero_conselho":        "000000",
+    "uf_crm":                 "CE",
+    "cbo":                    "225125"
+  },
+
+  "hospital_local": {
+    "codigo_operadora_exec":  "",
+    "nome_hospital":          "NOME DO HOSPITAL / LOCAL SOLICITADO",
+    "data_sugerida_internacao": "DD/MM/AAAA"
+  },
+
+  "dados_internacao": {
+    "carater_atendimento":        "1",
+    "tipo_internacao":            "1",
+    "regime_internacao":          "3",
+    "qtde_diarias_solicitadas":   "005",
+    "previsao_opme":              "N",
+    "previsao_quimioterapico":    "N"
+  },
+
+  "indicacao_clinica": {
+    "indicacao_clinica": "Texto livre com indicação clínica completa, diagnóstico, evolução e justificativa cirúrgica. Mínimo 40 caracteres. Campo 28 da guia."
+  },
+
+  "cid": {
+    "cid10_principal":   "M51.1",
+    "cid10_2":           "",
+    "cid10_3":           "",
+    "cid10_4":           "",
+    "indicacao_acidente": "N"
+  },
+
+  "procedimentos": [
+    {
+      "linha":       1,
+      "tabela":      "22",
+      "codigo":      "3.05.06.04-1",
+      "descricao":   "ARTROPLASTIA CERVICAL ANTERIOR COM PRÓTESE DISCAL",
+      "qtde_solic":  "001",
+      "qtde_aut":    ""
+    },
+    {
+      "linha":       2,
+      "tabela":      "22",
+      "codigo":      "2.03.01.03-8",
+      "descricao":   "ANESTESIA GERAL",
+      "qtde_solic":  "001",
+      "qtde_aut":    ""
+    }
+  ],
+
+  "autorizacao": {
+    "data_admissao":               "",
+    "qtde_diarias_autorizadas":    "",
+    "tipo_acomodacao_autorizada":  "",
+    "codigo_operadora_autorizado": "",
+    "nome_hospital_autorizado":    "",
+    "codigo_cnes_autorizado":      ""
+  },
+
+  "observacao": {
+    "observacao_justificativa": "Texto de observação / justificativa final. Campo 45.",
+    "data_solicitacao":         "DD/MM/AAAA"
+  }
+}
