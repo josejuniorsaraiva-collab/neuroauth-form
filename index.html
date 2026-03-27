@@ -499,6 +499,12 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
         <div class="ppage" id="pv-dados"><pre id="dados-render" style="font-size:11px;background:#f8f8f8;padding:14px;border-radius:8px;overflow-x:auto;white-space:pre-wrap"></pre></div>
       </div>
     </div>
+    <!-- COMPLIANCE PANEL — injetado pelo naRunCompliance() -->
+    <div id="na-compliance-panel" style="display:none;margin:0 18px 10px;border-radius:8px;overflow:hidden;font-size:12px;border:1px solid var(--s2)">
+      <div id="na-compliance-header" style="padding:8px 12px;font-weight:700;display:flex;align-items:center;gap:8px"></div>
+      <div id="na-compliance-blocks" style="display:none;padding:8px 12px;background:#fff5f5;border-top:1px solid #fecaca"></div>
+      <div id="na-compliance-warnings" style="display:none;padding:8px 12px;background:#fffbeb;border-top:1px solid #fde68a"></div>
+    </div>
     <div class="mo-ft">
       <button class="btn btn-sec" onclick="closeModal('pvModal')">Fechar</button>
       <button class="btn btn-out" onclick="printGuia('sadt')">🖨️ Imprimir SADT</button>
@@ -1048,7 +1054,6 @@ function naEnterForm(){
   const perfil=window._naSelectedProfile||{};
   const sess=window._naSess||{};
   if(perfil._selectedTipo)perfil.perfil_tipo=perfil._selectedTipo;
-  // Persist updated profile tipo in session
   try{
     const raw=sessionStorage.getItem('na_session');
     if(raw){const s=JSON.parse(raw);s.perfil=perfil;sessionStorage.setItem('na_session',JSON.stringify(s));}
@@ -1056,10 +1061,34 @@ function naEnterForm(){
   naPreencherFormulario(perfil);
   naUpdateTopbar(sess,perfil);
   naLogLGPD(sess.email,perfil.perfil_tipo);
-  // Init app (moved from DOMContentLoaded)
   restoreDraft();
   if(!document.querySelectorAll('[id^="or"]').length)addOpme();
   goTab(0);
+  // Attach live invalidation: qualquer mudança de campo invalida cache de compliance
+  naAttachLiveValidation();
+}
+
+function naAttachLiveValidation() {
+  if (window.__NA_VALIDATION_ATTACHED__) return; // guard: evita acúmulo de listeners em sessão longa
+  var form = document.getElementById('nf');
+  if (!form) return;
+  // change → invalida imediatamente (commit semântico: blur, select, checkbox)
+  var immediate = function() {
+    if(window.__NA_STATE__) window.__NA_STATE__.dirty = true;
+    window.__NA_LAST_COMPLIANCE__ = null;
+  };
+  // input → debounced 450ms (evita invalidação em cada keystroke)
+  var _debTimer;
+  var debounced = function() {
+    clearTimeout(_debTimer);
+    _debTimer = setTimeout(immediate, 450);
+  };
+  form.querySelectorAll('input, select, textarea').forEach(function(el) {
+    el.addEventListener('change', immediate);
+    el.addEventListener('input',  debounced);
+  });
+  window.__NA_VALIDATION_ATTACHED__ = true;
+  naLog('live_validation_attached');
 }
 
 /* ── AUTO-FILL FORM ─────────────────────────────────────────────── */
@@ -2183,13 +2212,11 @@ function renderOPME(d){
 ────────────────────────────────────────────── */
 function openPreview(){
   const d=collect();
-  // Renderiza SADT com placeholder vazio (sidebar ainda não está montada)
   document.getElementById('sadt-render').innerHTML=renderSADT(d,[]);
-  // Monta sidebar com perfil + itens de formulário
   populateSidebar(d);
-  // updateGuiaFromSidebar faz render definitivo de SADT+OPME com dados reais da sidebar
   updateGuiaFromSidebar();
   naUpdateAuditUI();
+  naRunCompliance(d); // ← compliance engine
   openModal('pvModal');
 }
 
@@ -2503,6 +2530,9 @@ function getSelectedOpmesFull(){
 }
 
 function updateGuiaFromSidebar(){
+  // SSoT: sidebar mudou → estado desatualizado
+  if(window.__NA_STATE__) window.__NA_STATE__.dirty = true;
+  window.__NA_LAST_COMPLIANCE__ = null;
   const d=collect();
   const selOpmes=getSelectedOpmesFull();
   const selProcs=getSelectedProcs();
@@ -2535,7 +2565,7 @@ function updateGuiaFromSidebar(){
     opmes_selecionados:selOpmes,
     procedimentos_formatados,
     opmes_formatadas,
-    neuroauth_version:'2.1.2'
+    neuroauth_version:__NA_VERSION__
   },null,2);
 }
 
@@ -2624,10 +2654,37 @@ function trySubmit(){
 }
 
 async function confirmedSend(){
+  // Proteção contra duplo envio
+  if(window.__NA_SENDING__) return;
+
   const sp=document.getElementById('sp');
   const btn=document.getElementById('confirmSendBtn');
-  sp.classList.add('on');btn.disabled=true;
+
+  // SSoT: collect exatamente UMA vez — mesma base para compliance gate e payload final
   const d=collect();
+
+  // Compliance gate — usa __NA_STATE__ se fresco (dirty=false), senão revalida agora
+  var _cv;
+  if(window.__NA_STATE__ && !window.__NA_STATE__.dirty && window.__NA_STATE__.compliance){
+    _cv = window.__NA_STATE__.compliance;
+  } else {
+    _cv = naRunCompliance(d); // popula __NA_STATE__ com payload atual
+  }
+  if(_cv && !_cv.can_print){
+    toast('⛔ Envio bloqueado — corrija os campos obrigatórios antes de enviar.','er');
+    naLog('send_blocked', {blocks:_cv.blocks.length});
+    return;
+  }
+
+  window.__NA_SENDING__ = true;
+  var _watchdog = setTimeout(function() {
+    window.__NA_SENDING__ = false;
+    sp.classList.remove('on'); if(btn){btn.disabled=false;}
+    naLog('send_watchdog_reset');
+    toast('⏱ O envio demorou mais que o esperado. Tente novamente.','er');
+  }, 15000);
+  sp.classList.add('on');btn.disabled=true;
+  // d já foi coletado acima — sem segundo collect()
   // Enriquecer com seleções do sidebar builder
   const selProcs=getSelectedProcs();
   const selOpmes=getSelectedOpmesFull();
@@ -2659,7 +2716,7 @@ async function confirmedSend(){
     opme_1:opmeFinalSend[0]?.descricao||d.opme_1,
     opme_2:opmeFinalSend[1]?.descricao||d.opme_2,
     opme_3:opmeFinalSend[2]?.descricao||d.opme_3,
-    neuroauth_version:'2.1.2',
+    neuroauth_version:__NA_VERSION__,
     timestamp:new Date().toISOString()
   };
   try{
@@ -2669,17 +2726,24 @@ async function confirmedSend(){
       closeModal('pvModal');
       toast('🎉 Enviado! Documento sendo gerado no Make.com…','ok');
       localStorage.removeItem('neuroauth_draft');
-      /* NEUROAUTH DRAFT CONTROL — marcar guia como oficialmente registrada */
       guiaRegistrada    = true;
       envioConfirmadoEm = new Date().toISOString();
       envioUserEmail    = naGetSessionField('email') || '';
+      // Limpar SSoT após envio confirmado — próxima guia começa fresh
+      window.__NA_STATE__ = {payload: null, compliance: null, ts: null, dirty: true};
+      window.__NA_LAST_COMPLIANCE__ = null;
       naUpdateAuditUI();
+      naLog('send_ok', {ts: envioConfirmadoEm});
     } else {
       throw new Error('HTTP '+r.status);
     }
   } catch(e){
     sp.classList.remove('on');btn.disabled=false;
     toast('❌ Erro: '+e.message,'er');
+    naLog('send_error', {message: e.message});
+  } finally {
+    clearTimeout(_watchdog);
+    window.__NA_SENDING__ = false;
   }
 }
 
@@ -2896,6 +2960,262 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
 })();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     NEUROAUTH COMPLIANCE ENGINE v1.0.1 — embutido
+     Motor de Conformidade TISS + Anti-Glosa em 3 Camadas
+     Não editar aqui — fonte canônica: neuroauth_compliance_engine.js
+     ═══════════════════════════════════════════════════════════════════════ -->
+<script>
+(function(root,factory){
+  'use strict';
+  if(typeof module!=='undefined'&&module.exports){module.exports=factory();}
+  else{root.NEUROAUTH_COMPLIANCE=factory();}
+}(typeof window!=='undefined'?window:this,function(){
+  'use strict';
+  var VERSION='1.0.1';
+  var TISS_REQUIRED={
+    source_type:'ans_oficial',
+    source_reference:'Padrão TISS ANS — RN 501/2022',
+    confidence_level:'alta',
+    sadt:['codigo_ans','numero_carteira','nome_paciente','medico_solicitante','crm','cbo','carater_cod','data_solicitacao','indicacao_clinica','procedimento','cod_cbhpm'],
+    opme:['codigo_ans','numero_carteira','nome_paciente','medico_solicitante','crm','cbo','procedimento','justificativa_opme','opme_items'],
+    recommended_fields:['cns','validade_carteira','cid_principal','hospital']
+  };
+  function _isOpmeAtivo(val){
+    if(val===true)return true;
+    if(!val)return false;
+    var s=String(val).trim().toLowerCase();
+    return s==='sim'||s==='true'||s==='1'||s==='yes';
+  }
+  function _dedupe(arr){
+    var seen={};
+    return(arr||[]).filter(function(item){if(seen[item])return false;seen[item]=true;return true;});
+  }
+  var ANTI_GLOSA=[
+    {id:'cid_obrigatorio',label:'CID principal preenchido',description:'Ausência de CID é a causa mais comum de glosa administrativa.',severity:'alto',fields:['cid_principal'],
+      check:function(d){return!!(d.cid_principal&&d.cid_principal.trim().length>=3);}},
+    {id:'indicacao_minima',label:'Indicação clínica ≥ 40 caracteres',description:'Campo 23 superficial é glosado por falta de justificativa.',severity:'alto',fields:['indicacao_clinica'],
+      check:function(d){return!!(d.indicacao_clinica&&d.indicacao_clinica.trim().length>=40);}},
+    {id:'opme_com_justificativa',label:'OPME acompanhada de justificativa',description:'OPME sem justificativa clínica é glosa certa.',severity:'critico',fields:['justificativa_opme','necessita_opme'],
+      check:function(d){if(!_isOpmeAtivo(d.necessita_opme))return true;return!!(d.justificativa_opme&&d.justificativa_opme.trim().length>=30);}},
+    {id:'tto_conservador_documentado',label:'Tratamento conservador documentado (eletivos)',description:'Para eletivos: ausência de conservador é argumento de negativa.',severity:'medio',fields:['tto_conservador','carater_cod'],
+      check:function(d){if(d.carater_cod!=='E')return true;return!!(d.tto_conservador&&d.tto_conservador!=='');}},
+    {id:'achados_exame_presentes',label:'Achados de imagem documentados',description:'Achados RM/TC fundamentam indicação cirúrgica.',severity:'alto',fields:['achados_resumo','achados_exame'],
+      check:function(d){return!!(d.achados_resumo&&d.achados_resumo.trim().length>10)||!!(d.achados_exame&&d.achados_exame.trim().length>10);}},
+    {id:'opme_descricao_completa',label:'Itens OPME com descrição e quantidade',description:'Item OPME sem descrição ou qtd é glosado na fatura.',severity:'critico',fields:['opme_items'],
+      check:function(d){if(!d.opme_items||d.opme_items.length===0)return true;return d.opme_items.every(function(item){return item&&item.descricao&&item.descricao.trim().length>3&&Number(item.qtd)>0;});}},
+    {id:'medico_dados_completos',label:'Médico com CRM e CBO',description:'Guia sem CRM ou CBO é rejeitada por auditoria eletrônica.',severity:'critico',fields:['medico_solicitante','crm','cbo'],
+      check:function(d){return!!(d.medico_solicitante&&d.crm&&d.cbo);}}
+  ];
+  var CONVENIO_RULES={
+    default_tiss:{id:'default_tiss',nome:'Padrão TISS ANS',source_type:'ans_oficial',source_reference:'RN 501/2022',confidence_level:'alta',
+      required_fields:TISS_REQUIRED.sadt,recommended_fields:TISS_REQUIRED.recommended_fields,
+      validation_messages:{codigo_ans:'Registro ANS obrigatório (campo 1)',numero_carteira:'Nº carteira obrigatório (campo 8)',nome_paciente:'Nome beneficiário obrigatório (campo 10)',medico_solicitante:'Nome médico obrigatório (campo 15)',crm:'CRM obrigatório (campo 17)',cbo:'CBO obrigatório (campo 19)',indicacao_clinica:'Indicação clínica obrigatória (campo 23)',procedimento:'Procedimento obrigatório (campo 26)'}},
+    unimed:{id:'unimed',nome:'Unimed',source_type:'regra_interna',source_reference:'Manual oficial pendente',confidence_level:'baixa',required_fields:[],recommended_fields:['justificativa_opme','achados_resumo','cid_principal','tto_conservador'],validation_messages:{justificativa_opme:'Recomendado anti-glosa: justificativa OPME detalhada',achados_resumo:'Recomendado anti-glosa: achados de imagem'}},
+    bradesco:{id:'bradesco',nome:'Bradesco Saúde',source_type:'regra_interna',source_reference:'Manual oficial pendente',confidence_level:'baixa',required_fields:[],recommended_fields:['cid_principal','justificativa_opme'],validation_messages:{}},
+    hapvida:{id:'hapvida',nome:'Hapvida',source_type:'regra_interna',source_reference:'Manual oficial pendente',confidence_level:'baixa',required_fields:[],recommended_fields:['cid_principal','justificativa_opme'],validation_messages:{}},
+    particular:{id:'particular',nome:'Particular',source_type:'regra_interna',source_reference:'Sem operadora',confidence_level:'alta',required_fields:[],recommended_fields:[],validation_messages:{}}
+  };
+  function validateBeforePrint(payload,operatorId){
+    var result={can_print:true,blocks:[],warnings:[]};
+    if(!payload){result.can_print=false;result.blocks.push({field:'payload',message:'Dados não encontrados.',layer:1});return result;}
+    var opId=(operatorId||'default_tiss').toLowerCase().replace(/\s+/g,'_');
+    var rules=CONVENIO_RULES[opId]||CONVENIO_RULES['default_tiss'];
+    var tissRequired=TISS_REQUIRED.sadt.slice();
+    if(_isOpmeAtivo(payload.necessita_opme)){
+      TISS_REQUIRED.opme.forEach(function(f){if(tissRequired.indexOf(f)===-1)tissRequired.push(f);});
+    }
+    tissRequired.forEach(function(field){
+      var val=payload[field];
+      var missing=!val||(typeof val==='string'&&val.trim()==='');
+      if(field==='opme_items'){missing=!val||!Array.isArray(val)||val.length===0||!val.some(function(item){return item&&item.descricao&&item.descricao.trim().length>0&&Number(item.qtd)>0;});}
+      if(missing){result.can_print=false;var msg=(CONVENIO_RULES['default_tiss'].validation_messages||{})[field]||('Campo obrigatório TISS: '+field);result.blocks.push({field:field,message:msg,layer:1,source:'ANS/TISS RN 501/2022'});}
+    });
+    if(rules.source_type!=='regra_interna'&&rules.confidence_level==='alta'){
+      (rules.required_fields||[]).forEach(function(field){var val=payload[field];if(!val||(typeof val==='string'&&val.trim()==='')){result.can_print=false;result.blocks.push({field:field,message:(rules.validation_messages||{})[field]||('Obrigatório pela operadora: '+field),layer:3,source:rules.source_reference});}});
+    }
+    ANTI_GLOSA.forEach(function(rule){try{if(!rule.check(payload)){result.warnings.push({id:rule.id,fields:rule.fields,message:rule.label,detail:rule.description,severity:rule.severity,layer:2});}}catch(e){}});
+    var warnIds=result.warnings.map(function(w){return w.id;});
+    var warnFields=result.warnings.reduce(function(acc,w){(w.fields||[]).forEach(function(f){acc[f]=true;});return acc;},{});
+    (rules.recommended_fields||[]).forEach(function(field){
+      if(warnFields[field])return;
+      var val=payload[field];var empty=!val||(typeof val==='string'&&val.trim()==='');
+      if(empty){var id='op_rec_'+field;if(warnIds.indexOf(id)!==-1)return;result.warnings.push({id:id,fields:[field],message:(rules.validation_messages||{})[field]||('Recomendado '+rules.nome+': '+field),severity:'baixo',layer:3,source:rules.source_reference});}
+    });
+    return result;
+  }
+  function adjustUIForOperator(operatorId){
+    var opId=(operatorId||'').toLowerCase().replace(/\s+/g,'_');
+    var rules=CONVENIO_RULES[opId]||null;
+    var base=CONVENIO_RULES['default_tiss'];
+    return{
+      operator_id:opId,operator_name:rules?rules.nome:operatorId,
+      highlight_required:_dedupe((rules&&rules.source_type!=='regra_interna')?base.required_fields.concat(rules.required_fields||[]):base.required_fields),
+      highlight_recommended:_dedupe((rules?rules.recommended_fields:[]).concat(base.recommended_fields)),
+      field_hints:rules?(rules.validation_messages||{}):base.validation_messages,
+      disclaimer:(rules&&rules.source_type==='regra_interna')?'Regras '+rules.nome+' sem fonte oficial — exibindo recomendações anti-glosa.':null
+    };
+  }
+  return{VERSION:VERSION,validateBeforePrint:validateBeforePrint,adjustUIForOperator:adjustUIForOperator,CONVENIO_RULES:CONVENIO_RULES,_helpers:{isOpmeAtivo:_isOpmeAtivo,dedupe:_dedupe}};
+}));
+
+/* ── __NA_STATE__ — SSoT central: payload validado + resultado compliance + flag dirty ── */
+window.__NA_STATE__ = window.__NA_STATE__ || {
+  payload:    null,   // último payload safe (naSafePayload) que passou pela compliance
+  compliance: null,   // último resultado validateBeforePrint
+  ts:         null,   // ISO timestamp da última validação
+  dirty:      true    // true = cache inválido, revalidar antes de enviar
+};
+
+/* ── naLog — log silencioso estruturado de produção ── */
+var __NA_VERSION__ = '3.0.0'; // versão canônica — única fonte de verdade para UI, payload e logs
+function naLog(event, data) {
+  try {
+    console.debug('[NA]', Object.assign({ event: event, ts: new Date().toISOString(), v: __NA_VERSION__ }, data || {}));
+  } catch(e) {}
+}
+
+/* ── naSafePayload — failsafe deep: garante campos mínimos + normaliza opme_items ── */
+function naSafePayload(p) {
+  var safe = Object.assign({
+    cid_principal:    '',
+    indicacao_clinica:'',
+    crm:              '',
+    cbo:              '',
+    necessita_opme:   'Não',
+    opme_items:       []
+  }, p || {});
+  // Deep-safe opme_items: normaliza qtd (string→number), descricao (campos alternativos), filtra vazios
+  if (Array.isArray(safe.opme_items)) {
+    safe.opme_items = safe.opme_items
+      .map(function(item) {
+        return {
+          descricao:   String(item.descricao  || item.nome      || '').trim(),
+          qtd:         Number(item.qtd        || item.quantidade || 1) || 1,
+          fabricante:  String(item.fabricante || item.empresa   || '').trim(),
+          codigo:      String(item.codigo     || '').trim(),
+          anvisa:      String(item.anvisa     || '').trim(),
+          af:          String(item.af         || '').trim()
+        };
+      })
+      .filter(function(item) { return item.descricao.length > 0; });
+  }
+  return safe;
+}
+
+/* ── naRunCompliance — integração com painel visual do modal ── */
+function naRunCompliance(payload) {
+  if(typeof NEUROAUTH_COMPLIANCE==='undefined') return;
+  var safe    = naSafePayload(payload);
+  var convenio = (safe.convenio||'').toLowerCase().replace(/\s+/g,'_');
+  var result = NEUROAUTH_COMPLIANCE.validateBeforePrint(safe, convenio);
+  // SSoT: atualiza estado central
+  window.__NA_STATE__ = {payload: safe, compliance: result, ts: new Date().toISOString(), dirty: false};
+  window.__NA_LAST_COMPLIANCE__ = result; // alias backwards-compat
+
+  var panel   = document.getElementById('na-compliance-panel');
+  var header  = document.getElementById('na-compliance-header');
+  var blocksEl = document.getElementById('na-compliance-blocks');
+  var warnsEl  = document.getElementById('na-compliance-warnings');
+  var sendBtn  = document.getElementById('confirmSendBtn');
+  if(!panel) return;
+
+  // Blocks
+  if(result.blocks.length > 0) {
+    blocksEl.innerHTML = '<strong style="color:#dc2626">⛔ Bloqueios TISS (impedem envio):</strong><ul style="margin:4px 0 0 16px">'
+      + result.blocks.map(function(b){ return '<li>'+b.message+'</li>'; }).join('') + '</ul>';
+    blocksEl.style.display = 'block';
+  } else {
+    blocksEl.style.display = 'none';
+  }
+
+  // Warnings
+  var criticals = result.warnings.filter(function(w){ return w.severity==='critico'||w.severity==='alto'; });
+  if(criticals.length > 0) {
+    warnsEl.innerHTML = '<strong style="color:#92400e">⚠️ Alertas anti-glosa ('+criticals.length+'):</strong><ul style="margin:4px 0 0 16px">'
+      + criticals.map(function(w){ return '<li>'+w.message+'</li>'; }).join('') + '</ul>';
+    warnsEl.style.display = 'block';
+  } else {
+    warnsEl.style.display = 'none';
+  }
+
+  // Header + cor do painel
+  if(!result.can_print) {
+    panel.style.borderColor = '#fca5a5';
+    header.style.background = '#fef2f2';
+    header.innerHTML = '<span style="color:#dc2626">⛔</span> <span style="color:#dc2626">'+result.blocks.length+' bloqueio'+(result.blocks.length>1?'s':'')+' — envio desabilitado</span>';
+    if(sendBtn){ sendBtn.disabled=true; sendBtn.style.opacity='0.5'; }
+  } else if(criticals.length > 0) {
+    panel.style.borderColor = '#fde68a';
+    header.style.background = '#fffbeb';
+    header.innerHTML = '<span>⚠️</span> <span style="color:#92400e">'+criticals.length+' alerta'+(criticals.length>1?'s':'')+' anti-glosa — revise antes de imprimir</span>';
+    if(sendBtn){ sendBtn.disabled=false; sendBtn.style.opacity=''; }
+  } else {
+    panel.style.borderColor = '#bbf7d0';
+    header.style.background = '#f0fdf4';
+    header.innerHTML = '<span>✅</span> <span style="color:#15803d">Campos TISS OK — pronto para envio</span>';
+    if(sendBtn){ sendBtn.disabled=false; sendBtn.style.opacity=''; }
+  }
+
+  panel.style.display = 'block';
+
+  naLog('compliance_run', {can_print:result.can_print, blocks:result.blocks.length, warnings:result.warnings.length, operador:convenio});
+  return result;
+}
+
+/* ── naBuildPrintData — estrutura limpa para PDF determinístico (fase futura) ──
+ *  Pure function: sem side-effects, sem DOM, sem exceções propagadas.
+ *  Entrada: payload bruto (ou nulo).  Saída: objeto estável para renderização.
+ * ─────────────────────────────────────────────────────────────────────────── */
+function naBuildPrintData(payload) {
+  try {
+    var s = naSafePayload(payload);
+    return {
+      v:          __NA_VERSION__,
+      ts:         new Date().toISOString(),
+      paciente: {
+        nome:         s.nome_paciente      || '',
+        carteirinha:  s.numero_carteira    || '',
+        convenio:     s.convenio           || '',
+        plano:        s.plano              || '',
+        data_nasc:    s.data_nascimento    || ''
+      },
+      medico: {
+        nome:         s.medico_solicitante || '',
+        crm:          s.crm               || '',
+        cbo:          s.cbo               || '',
+        telefone:     s.tel_medico        || '',
+        hospital:     s.hospital          || ''
+      },
+      clinico: {
+        indicacao:    s.indicacao_clinica  || '',
+        cid:          s.cid_principal      || '',
+        carater:      s.carater_cod        || '',
+        data_sol:     s.data_solicitacao   || '',
+        deficit_neuro: s.deficit_neuro    || '',
+        tto_conservador: s.tto_conservador || ''
+      },
+      procedimento: {
+        descricao:    s.procedimento      || '',
+        codigo:       s.cod_cbhpm         || ''
+      },
+      opme: {
+        necessita:    s.necessita_opme !== 'Não',
+        items:        Array.isArray(s.opme_items) ? s.opme_items : []
+      },
+      meta: {
+        codigo_ans:   s.codigo_ans        || '',
+        numero_guia:  s.numero_guia       || '',
+        tipo_guia:    s.tipo_guia         || 'SADT'
+      }
+    };
+  } catch(e) {
+    naLog('build_print_data_error', {message: e.message});
+    return null;
+  }
+}
 </script>
 
 </body>
