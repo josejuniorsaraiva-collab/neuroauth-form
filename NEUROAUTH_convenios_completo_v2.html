@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NEUROAUTH — Planilha-Mãe Convênios + Prompt v2.0</title>
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#2d333b;
+  --bd:#30363d;--bd2:#444c56;
+  --tx:#e6edf3;--tx2:#adbac7;--tx3:#768390;
+  --red:#f85149;--rdbg:#2d0f0e;--rdbd:#6e1c1c;
+  --orange:#f0883e;--orbg:#2b1a0d;--orbd:#6e3a15;
+  --yellow:#e3b341;--yebg:#261d07;--yebd:#614a11;
+  --green:#3fb950;--grbg:#0d2b14;--grbd:#1d5728;
+  --blue:#58a6ff;--blbg:#0d1f38;--blbd:#1f487e;
+  --purple:#bc8cff;--pubg:#1e1235;--pubd:#4c2a8a;
+  --teal:#39d353;--tebg:#062c15;--tebd:#0e5a2d;
+  --rad:8px;--mono:'Consolas','Monaco',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;line-height:1.55}
+
+/* TOP */
+.topbar{background:#0d1117;border-bottom:1px solid var(--bd);padding:0 20px;height:52px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:300}
+.tb-logo{width:28px;height:28px;background:rgba(59,130,246,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--blue);border:1px solid var(--blbd)}
+.tb-name{font-size:14px;font-weight:700}
+.tb-sub{font-size:9px;color:var(--tx3);font-family:var(--mono)}
+.tb-r{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+/* TABS */
+.tabs{background:var(--bg2);border-bottom:1px solid var(--bd);padding:0 20px;display:flex;gap:0;overflow-x:auto;position:sticky;top:52px;z-index:200}
+.tab{padding:10px 14px;font-size:11px;font-weight:600;color:var(--tx3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;user-select:none;display:flex;align-items:center;gap:5px}
+.tab:hover{color:var(--tx);background:var(--bg3)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab .tab-dot{width:7px;height:7px;border-radius:50%}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:20px 16px 80px}
+.page{display:none}
+.page.active{display:block}
+
+/* PAGE HEADER */
+.ph{margin-bottom:18px}
+.ph h1{font-size:17px;font-weight:700;margin-bottom:4px}
+.ph p{font-size:12px;color:var(--tx3);max-width:700px;line-height:1.55}
+.ph-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.ptag{font-size:10px;padding:2px 8px;border-radius:12px;border:1px solid;font-weight:600}
+
+/* TABLE */
+.tbl-wrap{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);overflow:hidden;margin-bottom:14px}
+.tbl-hdr{padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.tbl-title{font-size:12px;font-weight:700;color:var(--tx)}
+.tbl-meta{font-size:10px;color:var(--tx3);font-family:var(--mono)}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:var(--bg3);border-bottom:1px solid var(--bd2);padding:7px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid var(--bd);vertical-align:middle;line-height:1.45;max-width:320px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+td code{font-family:var(--mono);font-size:10px;background:var(--bg3);padding:1px 4px;border-radius:3px;color:var(--blue)}
+td strong{color:var(--tx)}
+
+/* PILLS */
+.pill{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.pill.ob{background:var(--rdbg);color:var(--red);border:1px solid var(--rdbd)}
+.pill.re{background:var(--yebg);color:var(--yellow);border:1px solid var(--yebd)}
+.pill.op{background:var(--grbg);color:var(--green);border:1px solid var(--grbd)}
+.pill.si{background:var(--rdbg);color:var(--red)}
+.pill.no{background:var(--grbg);color:var(--green)}
+.pill.al{background:var(--yebg);color:var(--yellow)}
+.pill.cr{background:var(--rdbg);color:var(--red)}
+.pill.al2{background:var(--orbg);color:var(--orange)}
+.pill.me{background:var(--yebg);color:var(--yellow)}
+.pill.in{background:var(--bg3);color:var(--tx3)}
+
+/* OP BADGE */
+.op{display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:700;letter-spacing:.04em}
+.op.UNI{background:#062c15;color:var(--green);border:1px solid var(--grbd)}
+.op.BRA{background:var(--blbg);color:var(--blue);border:1px solid var(--blbd)}
+.op.SUL{background:var(--yebg);color:var(--yellow);border:1px solid var(--yebd)}
+.op.HAP{background:var(--pubg);color:var(--purple);border:1px solid var(--pubd)}
+.op.AMI{background:var(--rdbg);color:var(--red);border:1px solid var(--rdbd)}
+.op.GLOBAL{background:var(--bg3);color:var(--tx2);border:1px solid var(--bd2)}
+.op.GEN{background:var(--bg3);color:var(--tx3);border:1px solid var(--bd)}
+
+/* ALERT */
+.alert{border-radius:var(--rad);padding:10px 14px;font-size:12px;line-height:1.6;margin-bottom:12px}
+.alert.blue{background:var(--blbg);border:1px solid var(--blbd);color:var(--blue)}
+.alert.orange{background:var(--orbg);border:1px solid var(--orbd);color:var(--orange)}
+.alert.green{background:var(--grbg);border:1px solid var(--grbd);color:var(--green)}
+.alert.red{background:var(--rdbg);border:1px solid var(--rdbd);color:var(--red)}
+.alert strong{color:inherit}
+
+/* SECTION HDR */
+.sh{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx3);font-family:var(--mono);padding:5px 0 8px;border-bottom:1px solid var(--bd);margin:20px 0 10px}
+
+/* LOGIC FLOW */
+.lf{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);overflow:hidden;margin-bottom:14px}
+.lf-row{display:flex;gap:10px;padding:9px 14px;border-bottom:1px solid var(--bd);align-items:flex-start}
+.lf-row:last-child{border-bottom:none}
+.lf-n{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--tx3);min-width:20px;padding-top:2px}
+.lf-c{flex:1;font-size:12px;color:var(--tx2);line-height:1.55}
+.lf-c strong{color:var(--tx)}
+.lf-c em{color:var(--yellow);font-style:normal}
+.lf-t{font-size:9px;padding:2px 6px;border-radius:8px;font-family:var(--mono);font-weight:700;flex-shrink:0;white-space:nowrap}
+.lf-t.p1{background:var(--rdbg);color:var(--red);border:1px solid var(--rdbd)}
+.lf-t.p2{background:var(--orbg);color:var(--orange);border:1px solid var(--orbd)}
+.lf-t.p3{background:var(--yebg);color:var(--yellow);border:1px solid var(--yebd)}
+.lf-t.pi{background:var(--bg3);color:var(--tx3);border:1px solid var(--bd)}
+
+/* PROMPT BOX */
+.pb-wrap{position:relative;margin-top:10px}
+.pb-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.pb-lbl{font-size:10px;color:var(--tx3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em}
+.pb{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rad);padding:16px 18px;font-size:12px;line-height:1.75;color:var(--tx2);white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto;transition:max-height .3s}
+.pb.exp{max-height:4000px}
+.cbtn{background:var(--blbg);color:var(--blue);border:1px solid var(--blbd);border-radius:5px;font-size:11px;padding:4px 12px;cursor:pointer;font-family:var(--mono)}
+.cbtn:hover{background:var(--blue);color:#fff}
+.cbtn.ok{background:var(--grbg);color:var(--green);border-color:var(--grbd)}
+.ebtn{background:none;border:1px solid var(--bd);color:var(--tx3);font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer}
+.ebtn:hover{background:var(--bg3)}
+
+/* DIFF */
+.diff{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rad);padding:14px 16px;margin-bottom:14px}
+.diff-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx3);font-family:var(--mono);margin-bottom:10px}
+.dr{display:flex;gap:7px;padding:5px 0;border-bottom:1px solid var(--bd);font-size:11px;align-items:flex-start}
+.dr:last-child{border-bottom:none}
+.di{width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:2px}
+.di.a{background:var(--grbg);color:var(--green)}
+.di.f{background:var(--orbg);color:var(--orange)}
+.di.r{background:var(--rdbg);color:var(--red)}
+.dt{color:var(--tx2);line-height:1.5}
+.dt strong{color:var(--tx)}
+.dt code{font-family:var(--mono);font-size:10px;background:var(--bg3);padding:1px 4px;border-radius:3px}
+
+/* RESPONSIVE */
+@media(max-width:600px){main{padding:14px 10px 60px}th,td{padding:5px 7px}th{font-size:8px}td{font-size:10px}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-logo">N</div>
+  <div><div class="tb-name">NEUROAUTH — Planilha-Mãe Convênios v2.0</div><div class="tb-sub">Todas operadoras completas · Prompt + 7 abas + Lógica de prioridade</div></div>
+  <div class="tb-r">
+    <button class="cbtn" onclick="exportPrompt()" style="font-size:10px;padding:4px 10px">📋 Copiar Prompt</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('prompt',this)"><div class="tab-dot" style="background:#58a6ff"></div>Prompt Cowork</div>
+  <div class="tab" onclick="show('t01',this)"><div class="tab-dot" style="background:#3fb950"></div>01 Operadoras</div>
+  <div class="tab" onclick="show('t02',this)"><div class="tab-dot" style="background:#58a6ff"></div>02 Campos TISS</div>
+  <div class="tab" onclick="show('t03',this)"><div class="tab-dot" style="background:#f85149"></div>03 Regras</div>
+  <div class="tab" onclick="show('t04',this)"><div class="tab-dot" style="background:#f0883e"></div>04 Documentos</div>
+  <div class="tab" onclick="show('t05',this)"><div class="tab-dot" style="background:#e3b341"></div>05 OPME</div>
+  <div class="tab" onclick="show('t06',this)"><div class="tab-dot" style="background:#bc8cff"></div>06 Glosa</div>
+  <div class="tab" onclick="show('t07',this)"><div class="tab-dot" style="background:#39d353"></div>07 Mapeamento</div>
+</div>
+
+<main>
+
+<!-- ===== PROMPT ===== -->
+<div class="page active" id="p-prompt">
+<div class="ph">
+  <h1>Prompt para Cowork — Arquitetura de Compliance por Operadora</h1>
+  <p>Versão melhorada. Contexto preciso, critérios objetivos, lógica de prioridade entre regras globais ANS e overrides. Compatível com Planilha-Mãe v3 existente.</p>
+  <div class="ph-tags">
+    <span class="ptag" style="background:var(--blbg);color:var(--blue);border-color:var(--blbd)">Cowork-ready</span>
+    <span class="ptag" style="background:var(--grbg);color:var(--green);border-color:var(--grbd)">7 abas</span>
+    <span class="ptag" style="background:var(--orbg);color:var(--orange);border-color:var(--orbd)">5 operadoras completas</span>
+    <span class="ptag" style="background:var(--bg3);color:var(--tx3);border-color:var(--bd)">Não destrói v3 existente</span>
+  </div>
+</div>
+
+<div class="sh">O que foi melhorado em relação ao prompt original</div>
+<div class="diff">
+  <div class="diff-title">melhorias v1 → v2</div>
+  <div class="dr"><div class="di a">+</div><div class="dt"><strong>Lógica de prioridade das 3 camadas explicitada:</strong> o original não definia ordem de consulta do motor. Agora: GLOBAL ANS → override operadora → checklist documentos. Sem hierarquia o motor aplica regras na ordem errada.</div></div>
+  <div class="dr"><div class="di a">+</div><div class="dt"><strong>Critério objetivo de conclusão:</strong> cada aba agora define o que "pronta" significa via payload de teste — não "preencher exemplos", mas "motor consegue identificar as 3 falhas bloqueantes deste caso".</div></div>
+  <div class="dr"><div class="di a">+</div><div class="dt"><strong>Compatibilidade com Planilha-Mãe v3 explicitada:</strong> as 7 abas são adicionais — não substituem as 9 existentes (PROC001–PROC040, MAT001+, JUST001+, etc.).</div></div>
+  <div class="dr"><div class="di a">+</div><div class="dt"><strong>Separação bloqueia_envio / gera_alerta por lógica:</strong> GLOBAL ANS = sempre bloqueia. Override portal (Bradesco usar Senha Web) = sempre alerta sem bloquear. Regra clara por categoria.</div></div>
+  <div class="dr"><div class="di f">≠</div><div class="dt"><strong>03_REGRAS como matriz única:</strong> o original sugeria uma aba por operadora. Uma única aba com coluna <code>operadora_id</code> + filtro é mais limpa, mais escalável e sem duplicação.</div></div>
+  <div class="dr"><div class="di f">≠</div><div class="dt"><strong>07_MAPEAMENTO reposicionado como crítico:</strong> o original a listou por último como se fosse auxiliar. Na arquitetura correta é a aba que o Make consulta para montar o payload — reposicionada na hierarquia.</div></div>
+  <div class="dr"><div class="di r">−</div><div class="dt"><strong>Removida sugestão de aba por operadora:</strong> criaria 5–7 abas duplicadas. Substituída por coluna <code>operadora_id</code> — manutenção centralizada.</div></div>
+</div>
+
+<div class="sh">Lógica de prioridade — ordem de consulta do motor</div>
+<div class="lf">
+  <div class="lf-row"><div class="lf-n">1°</div><div class="lf-c"><strong>03_REGRAS WHERE operadora_id = "GLOBAL"</strong><br>Regras ANS. Aplicam-se a todos sem exceção. Sempre bloqueiam se bloqueia_envio = SIM. Nenhuma operadora pode sobrepor.</div><div class="lf-t p1">SEMPRE</div></div>
+  <div class="lf-row"><div class="lf-n">2°</div><div class="lf-c"><strong>03_REGRAS WHERE operadora_id = operadora do caso</strong><br>Overrides da operadora selecionada. Podem bloquear ou apenas alertar. Aplicam-se só ao convênio do paciente.</div><div class="lf-t p2">SE CONVÊNIO</div></div>
+  <div class="lf-row"><div class="lf-n">3°</div><div class="lf-c"><strong>04_DOCUMENTOS WHERE operadora_id = operadora do caso</strong><br>Gerar checklist de documentos para a secretária. Filtrar por operadora + cenário (coluna, OPME, etc.).</div><div class="lf-t p2">SEMPRE</div></div>
+  <div class="lf-row"><div class="lf-n">4°</div><div class="lf-c"><strong>05_OPME WHERE operadora_id = operadora do caso</strong><br>Executar <em>somente se necessita_opme = Sim</em>. Verificar: 3 marcas, ANVISA, código TUSS, justificativa.</div><div class="lf-t p3">SE OPME</div></div>
+  <div class="lf-row"><div class="lf-n">5°</div><div class="lf-c"><strong>06_GLOSA — alertas preventivos</strong><br>Cruzar campos com top motivos de glosa. Gerar alertas visuais antes do envio. Não bloqueia.</div><div class="lf-t pi">ALERTA</div></div>
+  <div class="lf-row"><div class="lf-n">✓</div><div class="lf-c"><strong>07_MAPEAMENTO constrói o payload JSON para o Make</strong><br>Traduz campos do formulário → estrutura TISS + campos extras do Make. É o contrato entre frontend e automação.</div><div class="lf-t pi">PAYLOAD</div></div>
+</div>
+
+<div class="sh">Prompt completo para colar no Cowork</div>
+<div class="pb-wrap">
+  <div class="pb-hdr">
+    <span class="pb-lbl">colar direto no Cowork</span>
+    <div style="display:flex;gap:6px"><button class="ebtn" onclick="ex(this)">expandir</button><button class="cbtn" id="mainCopy" onclick="cpMain(this)">📋 Copiar</button></div>
+  </div>
+  <div class="pb" id="mainPrompt">Você é o arquiteto operacional do NEUROAUTH — sistema de autorização cirúrgica para neurocirurgia na Unimed Cariri.
+
+ESTADO ATUAL DA PLANILHA-MÃE:
+A Planilha-Mãe v3 já existe com 9 abas (ÍNDICE, 01_PROCEDIMENTOS, 02_CODIGOS_CBHPM, 03_REGRAS_UNIMED, 04_OPME_MATERIAIS, 05_PROC_MATERIAIS, 06_JUSTIFICATIVAS, 07_NEGATIVAS, 08_HISTORICO, 09_CONVENIOS).
+
+O que vamos fazer AGORA é adicionar 7 novas abas de compliance por operadora. Essas abas são ADICIONAIS — não substituem nenhuma das 9 abas existentes.
+
+OPERADORAS A COBRIR:
+1. Unimed Cariri (UNI) — baseline — 100% do volume atual
+2. Bradesco Saúde (BRA) — formulário próprio via portal Senha Web
+3. SulAmérica (SUL) — formulário próprio internação; rigorosa em tto. conservador
+4. Hapvida/NotreDame (HAP) — rede própria Nordeste; nº guia gerado pela Hapvida
+5. Amil (AMI) — rigorosa em relatório médico e auditoria de OPME
+6. GLOBAL — regras ANS que se aplicam a todos sem exceção
+
+BASE NORMATIVA:
+- TISS RN 501/2022 — campos obrigatórios guia SP/SADT
+- RN 424/2017 — OPME: 3 marcas, ANVISA, justificativa individual
+- RN 623/2024 — prazos: 21 du internação eletiva, 10 dc OPME, 10 du justificativa negativa
+
+LÓGICA DE PRIORIDADE DO MOTOR (ordem obrigatória de consulta):
+1. 03_REGRAS WHERE operadora_id = "GLOBAL" → bloqueia se falhar (regras ANS)
+2. 03_REGRAS WHERE operadora_id = operadora_do_caso → bloqueia ou alerta conforme coluna bloqueia_envio
+3. 04_DOCUMENTOS WHERE operadora_id = operadora_do_caso → gera checklist para secretária
+4. 05_OPME (SOMENTE se necessita_opme = Sim) → bloqueia se falhar
+5. 06_GLOSA → alertas preventivos, não bloqueia
+6. 07_MAPEAMENTO → constrói payload JSON para o Make
+
+REGRA DE OURO para 03_REGRAS:
+- operadora_id = "GLOBAL" → bloqueia_envio = SIM sempre
+- operadora_id = "BRA"|"HAP" (regras de portal/canal) → gera_alerta = SIM, bloqueia_envio = NÃO
+- operadora_id = "SUL" (tto. conservador obrigatório) → bloqueia_envio = SIM
+
+AS 7 ABAS — COLUNAS EXATAS:
+
+01_OPERADORAS:
+operadora_id | nome_operadora | registro_ans | canal_autorizacao | usa_tiss_puro | usa_formulario_proprio | exige_portal | prazo_internacao_du | prazo_opme_dc | validade_guia_dias | cbo_aceito_principal | cbo_aceito_alt | tabela_codigos | observacoes_operacionais
+
+02_CAMPOS_TISS:
+id_campo | numero_campo_tiss | nome_campo | descricao | tipo_dado | obrigatorio_base | bloco_formulario | campo_neuroauth | exemplo | observacao
+
+03_REGRAS (aba principal):
+operadora_id | codigo_regra | categoria | subcategoria | campo_neuroauth | campo_tiss | condicao | obrigatoriedade | regra_texto | acao_se_falhar | mensagem_usuario | bloqueia_envio | gera_alerta | prioridade | fonte_normativa | observacoes
+
+04_DOCUMENTOS:
+operadora_id | cenario | documento | obrigatoriedade | formato | ordem | observacao
+
+05_OPME (duas tabelas):
+[Tabela A] operadora_id | tipo_material | campo | regra | obrigatoriedade | mensagem_usuario | bloqueia_envio | fonte_normativa
+[Tabela B — materiais] material_id | nome_material | codigo_tuss_ref | uso_cirurgico | marcas_comuns | unidade | observacao_clinica
+
+06_GLOSA:
+operadora_id | rank | motivo_glosa | causa_raiz | campo_neuroauth | como_evitar | criticidade | acao_preventiva
+
+07_MAPEAMENTO:
+campo_neuroauth | campo_tiss_numero | nome_campo_tiss | campo_portal_bradesco | campo_portal_hapvida | tipo_dado | obrigatorio_base | valida_regra | impacto_glosa | observacoes
+
+EXEMPLOS OBRIGATÓRIOS por operadora em 03_REGRAS:
+- UNI: UNI001 (tto. conservador), UNI002 (achados imagem), UNI003 (código CBHPM)
+- BRA: BRA001 (alerta portal Senha Web), BRA002 (código TUSS OPME obrigatório), BRA003 (alerta hospital rede)
+- SUL: SUL001 (tto. conservador 6 semanas bloqueante), SUL002 (ANVISA vigência)
+- HAP: HAP001 (nº guia obrigatório da Hapvida), HAP002 (alerta app/portal)
+- AMI: AMI001 (relatório médico detalhado), AMI002 (alerta custo OPME)
+- GLOBAL: ANS001 (3 marcas OPME), ANS002 (ANVISA), ANS003 (CBO), ANS004 (CRM), ANS005 (indicação clínica ≥ 50 chars)
+
+CAMPOS COM bloqueia_envio = SIM obrigatório:
+ANS001, ANS002, ANS003, ANS004, ANS005, ANS007, ANS008, UNI003, BRA002, SUL001, SUL002, HAP001
+
+CAMPOS COM gera_alerta = SIM, bloqueia_envio = NÃO:
+UNI001, UNI002, BRA001, BRA003, HAP002, AMI001, AMI002, ANS006
+
+CRITÉRIO DE CONCLUSÃO:
+A arquitetura está pronta quando, dado payload de teste:
+  operadora = "Bradesco", necessita_opme = Sim, opme_items[0].fabricante = [1 marca], indicacao_clinica = "dor lombar"
+O motor identifica usando apenas estas abas:
+  3 falhas bloqueantes: ANS001 (3 marcas), ANS005 (indicação curta), BRA002 (código TUSS ausente)
+  1 alerta não bloqueante: BRA001 (usar portal Senha Web)
+  1 documento faltando: formulário próprio Bradesco
+
+ENTREGÁVEIS:
+1. Conteúdo completo das 7 abas em tabela Markdown com cabeçalhos exatos
+2. Para cada aba: linha de comentário explicando a finalidade operacional
+3. Lógica de prioridade confirmada como implementada
+4. Lista dos campos do 07_MAPEAMENTO com impacto_glosa = CRITICA
+5. Lista dos campos obrigatórios para o Make processar o payload
+
+RESTRIÇÕES:
+- NÃO alterar as 9 abas existentes da Planilha-Mãe v3
+- Unimed = baseline (todas as outras são overrides)
+- Colunas em snake_case português
+- Cada regra em 03_REGRAS deve ter fonte_normativa preenchida
+- Entregar tudo pronto para importar no Google Sheets</div>
+</div>
+</div>
+
+<!-- ===== 01 OPERADORAS ===== -->
+<div class="page" id="p-t01">
+<div class="ph"><h1>01_OPERADORAS — Cadastro de Operadoras</h1><p>Metadados operacionais de cada convênio. Motor consulta ao identificar o convênio do paciente para roteamento correto de regras.</p></div>
+<div class="alert blue"><strong>Uso no motor:</strong> filtrar todas as abas por <code>operadora_id</code> retornado aqui. Unimed = UNI, Bradesco = BRA, SulAmérica = SUL, Hapvida = HAP, Amil = AMI.</div>
+<div class="tbl-wrap"><div class="tbl-hdr"><span class="tbl-title">01_OPERADORAS</span><span class="tbl-meta">6 operadoras · 14 colunas</span></div>
+<div class="tbl-scroll"><table>
+<thead><tr><th>operadora_id</th><th>nome_operadora</th><th>registro_ans</th><th>canal_autorizacao</th><th>usa_tiss_puro</th><th>usa_form_proprio</th><th>exige_portal</th><th>prazo_intern_du</th><th>prazo_opme_dc</th><th>validade_guia</th><th>cbo_principal</th><th>cbo_alt</th><th>tabela_codigos</th><th>observacoes</th></tr></thead>
+<tbody>
+<tr><td><span class="op UNI">UNI</span></td><td><strong>Unimed Cariri</strong></td><td><code>336491</code></td><td>Portal web / Intercâmbio eletrônico</td><td><span class="pill op">SIM</span></td><td><span class="pill cr">NÃO</span></td><td><span class="pill al">SIM</span></td><td>21</td><td>10</td><td>90 dias</td><td><code>225120</code></td><td><code>225118</code></td><td>CBHPM / TUSS</td><td>Cooperados usam intercâmbio direto. Não cooperados via portal. Intercâmbio Nacional para abrangência nacional.</td></tr>
+<tr><td><span class="op BRA">BRA</span></td><td><strong>Bradesco Saúde</strong></td><td><code>005711</code></td><td>Portal Senha Web (wwws.bradescosaude.com.br)</td><td><span class="pill al">PARCIAL</span></td><td><span class="pill ob">SIM</span></td><td><span class="pill ob">SIM</span></td><td>21</td><td>10</td><td>60 dias</td><td><code>225120</code></td><td><code>225118</code></td><td>TUSS</td><td>Formulário próprio OBRIGATÓRIO para internação e OPME. TISS aceito só para SADT ambulatorial. PDF gerado pelo portal.</td></tr>
+<tr><td><span class="op SUL">SUL</span></td><td><strong>SulAmérica Saúde</strong></td><td><code>006246</code></td><td>Portal sulamericasaude.com.br</td><td><span class="pill al">PARCIAL</span></td><td><span class="pill ob">SIM</span></td><td><span class="pill ob">SIM</span></td><td>21</td><td>10</td><td>60 dias</td><td><code>225120</code></td><td><code>225118</code></td><td>CBHPM / TUSS</td><td>Formulário próprio para internação. TISS para SADT. Rigorosa: exige ≥ 6 semanas de tto. conservador documentado.</td></tr>
+<tr><td><span class="op HAP">HAP</span></td><td><strong>Hapvida NotreDame</strong></td><td><code>368253</code></td><td>App Hapvida / Portal / Presencial</td><td><span class="pill cr">NÃO</span></td><td><span class="pill cr">NÃO</span></td><td><span class="pill ob">SIM</span></td><td>21</td><td>10</td><td>60 dias</td><td><code>225120</code></td><td><code>225118</code></td><td>TUSS</td><td>Rede própria forte no Nordeste/CE. Nº guia Campo 3 DEVE ser gerado pela Hapvida. Biometria exigida 5–80 anos.</td></tr>
+<tr><td><span class="op AMI">AMI</span></td><td><strong>Amil</strong></td><td><code>326305</code></td><td>Portal amil.com.br</td><td><span class="pill al">PARCIAL</span></td><td><span class="pill cr">NÃO</span></td><td><span class="pill ob">SIM</span></td><td>21</td><td>10</td><td>60 dias</td><td><code>225120</code></td><td><code>225118</code></td><td>CBHPM / TUSS</td><td>Auditores especializados em alta complexidade e OPME. Relatório médico detalhado obrigatório para neurocirurgia.</td></tr>
+<tr><td><span class="op GEN">GEN</span></td><td><strong>Demais convênios</strong></td><td>—</td><td>Guia TISS padrão / Portal próprio</td><td><span class="pill op">SIM</span></td><td><span class="pill cr">NÃO</span></td><td><span class="pill cr">NÃO</span></td><td>21</td><td>10</td><td>90 dias</td><td><code>225120</code></td><td><code>225118</code></td><td>CBHPM / TUSS</td><td>Aplicar regras GLOBAL ANS. Relatório médico + guia TISS em papel aceitos. Sem portal obrigatório.</td></tr>
+</tbody></table></div></div>
+</div>
+
+<!-- ===== 02 CAMPOS TISS ===== -->
+<div class="page" id="p-t02">
+<div class="ph"><h1>02_CAMPOS_TISS — Campos Base TISS (RN 501/2022)</h1><p>Todos os campos numerados da Guia SP/SADT. Base canônica de obrigatoriedade para qualquer convênio.</p></div>
+<div class="tbl-wrap"><div class="tbl-hdr"><span class="tbl-title">02_CAMPOS_TISS — Guia SP/SADT</span><span class="tbl-meta">26 campos · legenda: <span class="pill ob" style="font-size:9px">OBRIG</span> <span class="pill re" style="font-size:9px">RECOM</span> <span class="pill in" style="font-size:9px">COND</span></span></div>
+<div class="tbl-scroll"><table>
+<thead><tr><th>id</th><th>campo TISS</th><th>nome</th><th>descricao</th><th>tipo</th><th>obrigatorio</th><th>bloco</th><th>campo_neuroauth</th><th>exemplo</th></tr></thead>
+<tbody>
+<tr><td><code>C001</code></td><td><code>1</code></td><td><strong>Registro ANS</strong></td><td>Código da operadora na ANS (6 dígitos)</td><td>Numérico</td><td><span class="pill ob">OBRIG</span></td><td>Cabeçalho</td><td><code>codigo_ans</code></td><td>336491</td></tr>
+<tr><td><code>C002</code></td><td><code>2</code></td><td><strong>Nº Guia Prestador</strong></td><td>Número sequencial da guia no prestador (até 20 dígitos)</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Cabeçalho</td><td>—</td><td>2025001</td></tr>
+<tr><td><code>C003</code></td><td><code>3</code></td><td>Nº Guia Principal</td><td>Nº da guia principal vinculada (internação)</td><td>Texto</td><td><span class="pill in">COND</span></td><td>Cabeçalho</td><td>—</td><td>—</td></tr>
+<tr><td><code>C007</code></td><td><code>8</code></td><td><strong>Número da Carteira</strong></td><td>Número da carteirinha do beneficiário (até 20 dígitos)</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Beneficiário</td><td><code>numero_carteira</code></td><td>9876543210001</td></tr>
+<tr><td><code>C008</code></td><td><code>9</code></td><td><strong>Validade da Carteira</strong></td><td>Data de validade da carteirinha</td><td>Data</td><td><span class="pill ob">OBRIG</span></td><td>Beneficiário</td><td><code>validade_carteira</code></td><td>DD/MM/AAAA</td></tr>
+<tr><td><code>C009</code></td><td><code>10</code></td><td><strong>Nome do Beneficiário</strong></td><td>Nome completo do paciente (até 70 chars)</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Beneficiário</td><td><code>nome_paciente</code></td><td>JOSE SILVA SANTOS</td></tr>
+<tr><td><code>C010</code></td><td><code>11</code></td><td>CNS</td><td>Cartão Nacional de Saúde (15 dígitos)</td><td>Numérico</td><td><span class="pill re">RECOM</span></td><td>Beneficiário</td><td><code>cns</code></td><td>700 1234 5678 901</td></tr>
+<tr><td><code>C014</code></td><td><code>15</code></td><td><strong>Nome Profissional Solicitante</strong></td><td>Nome completo do médico solicitante</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Solicitante</td><td><code>medico_solicitante</code></td><td>Dr. José Correia Jr.</td></tr>
+<tr><td><code>C015</code></td><td><code>16</code></td><td><strong>Conselho Profissional</strong></td><td>Tipo de conselho (06 = CRM)</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Solicitante</td><td>—</td><td>06</td></tr>
+<tr><td><code>C016</code></td><td><code>17</code></td><td><strong>Número no Conselho</strong></td><td>Número do CRM</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Solicitante</td><td><code>crm</code></td><td>12345</td></tr>
+<tr><td><code>C017</code></td><td><code>18</code></td><td><strong>UF do Conselho</strong></td><td>Estado do CRM (2 letras)</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Solicitante</td><td>—</td><td>CE</td></tr>
+<tr><td><code>C018</code></td><td><code>19</code></td><td><strong>CBO</strong></td><td>Código de Ocupação Brasileira do médico</td><td>Numérico</td><td><span class="pill ob">OBRIG</span></td><td>Solicitante</td><td><code>cbo</code></td><td>225120</td></tr>
+<tr><td><code>C013</code></td><td><code>14/30</code></td><td><strong>Nome Contratado</strong></td><td>Hospital / clínica executante</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Contratado</td><td><code>hospital</code></td><td>Hospital HSA Barbalha</td></tr>
+<tr><td><code>C019</code></td><td><code>21</code></td><td><strong>Caráter do Atendimento</strong></td><td>E=Eletivo, U=Urgência, X=Emergência</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Atendimento</td><td><code>carater</code></td><td>E</td></tr>
+<tr><td><code>C021</code></td><td><code>23</code></td><td><strong>Indicação Clínica</strong></td><td>Descrição clínica da indicação (até 500 chars)</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Solicitação</td><td><code>indicacao_clinica</code></td><td>Discopatia cervical C5-C6 com mielopatia, refratária a 6 semanas de tto. conservador</td></tr>
+<tr><td><code>C022</code></td><td><code>24</code></td><td><strong>Tabela de Procedimentos</strong></td><td>22=CBHPM, 80=TUSS</td><td>Numérico</td><td><span class="pill ob">OBRIG</span></td><td>Procedimentos</td><td>—</td><td>22</td></tr>
+<tr><td><code>C023</code></td><td><code>25</code></td><td><strong>Código do Procedimento</strong></td><td>Código CBHPM ou TUSS</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Procedimentos</td><td><code>cod_cbhpm</code></td><td>3.13.01.05-1</td></tr>
+<tr><td><code>C024</code></td><td><code>26</code></td><td><strong>Descrição do Procedimento</strong></td><td>Nome por extenso</td><td>Texto</td><td><span class="pill ob">OBRIG</span></td><td>Procedimentos</td><td><code>procedimento</code></td><td>Artrodese cervical anterior (ACDF) 1 nível</td></tr>
+<tr><td><code>C025</code></td><td><code>27</code></td><td><strong>Qtde Solicitada</strong></td><td>Quantidade do procedimento</td><td>Numérico</td><td><span class="pill ob">OBRIG</span></td><td>Procedimentos</td><td>—</td><td>1</td></tr>
+</tbody></table></div></div>
+</div>
+
+<!-- ===== 03 REGRAS ===== -->
+<div class="page" id="p-t03">
+<div class="ph"><h1>03_REGRAS — Matriz de Compliance por Operadora</h1><p>Aba principal. Motor consulta aqui primeiro. Regras GLOBAL ANS sempre bloqueiam. Overrides por operadora podem bloquear ou alertar.</p></div>
+<div class="alert red"><strong>Aba mais importante:</strong> motor consulta primeiro WHERE operadora_id = "GLOBAL", depois WHERE operadora_id = convênio do paciente. Campo <code>bloqueia_envio = SIM</code> impede o envio. Campo <code>gera_alerta = SIM</code> apenas avisa.</div>
+<div class="tbl-wrap"><div class="tbl-hdr"><span class="tbl-title">03_REGRAS — Todas as operadoras</span><span class="tbl-meta">20 regras · filtrar por operadora_id</span></div>
+<div class="tbl-scroll"><table>
+<thead><tr><th>operadora</th><th>código</th><th>categoria</th><th>campo_neuroauth</th><th>condição</th><th>regra_texto</th><th>mensagem_usuario</th><th>bloqueia</th><th>alerta</th><th>prioridade</th><th>fonte</th></tr></thead>
+<tbody>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td><code>ANS001</code></td><td>OPME</td><td><code>opme_items[].fabricante</code></td><td>qtd_marcas &lt; 3</td><td>Mínimo 3 fabricantes diferentes com ANVISA por item OPME</td><td>⛔ Inclua ao menos 3 marcas diferentes com ANVISA para cada item OPME (RN 424/2017)</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>RN 424/2017 Art.7</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td><code>ANS002</code></td><td>OPME</td><td><code>opme_items[].anvisa</code></td><td>anvisa vazio</td><td>Registro ANVISA obrigatório para cada item OPME</td><td>⛔ Informe o registro ANVISA de todos os itens OPME</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>RN 424/2017</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td><code>ANS003</code></td><td>CAMPOS</td><td><code>cbo</code></td><td>cbo vazio</td><td>CBO obrigatório na guia TISS — sem CBO guia rejeitada automaticamente</td><td>⛔ CBO do médico obrigatório (225120 = neurocirurgião)</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>RN 501/2022</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td><code>ANS004</code></td><td>CAMPOS</td><td><code>crm</code></td><td>crm vazio</td><td>CRM do médico obrigatório</td><td>⛔ Informe o CRM do médico solicitante</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>RN 501/2022</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td><code>ANS005</code></td><td>CLÍNICO</td><td><code>indicacao_clinica</code></td><td>len &lt; 50</td><td>Indicação clínica descritiva — mínimo 3 elementos: CID + tempo + falha tto.</td><td>⛔ Indicação clínica insuficiente. Descreva: CID + tempo de sintomas + falha de tratamento conservador</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>RN 501/2022</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td><code>ANS006</code></td><td>PRAZO</td><td><code>carater</code></td><td>carater = U ou X</td><td>Urgência/Emergência: autorização pós-atendimento em até 48h</td><td>ℹ️ Urgência — autorização pode ser regularizada em até 48h pós-atendimento</td><td><span class="pill no">NÃO</span></td><td><span class="pill si">SIM</span></td><td><span class="pill in">INFO</span></td><td>RN 623/2024</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td><code>ANS007</code></td><td>CAMPOS</td><td><code>numero_carteira</code></td><td>carteira vazia</td><td>Número da carteirinha obrigatório — Campo 8 TISS</td><td>⛔ Informe o número da carteirinha do beneficiário</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>RN 501/2022</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td><code>ANS008</code></td><td>CAMPOS</td><td><code>nome_paciente</code></td><td>nome vazio</td><td>Nome do beneficiário obrigatório — Campo 10 TISS</td><td>⛔ Informe o nome completo do beneficiário</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>RN 501/2022</td></tr>
+<tr><td><span class="op UNI">UNI</span></td><td><code>UNI001</code></td><td>CLÍNICO</td><td><code>tto_conservador</code></td><td>tto_conservador vazio</td><td>Documentar tratamento conservador prévio antes de cirurgia eletiva</td><td>⚠️ Informe o tempo e tipo de tratamento conservador realizado antes da cirurgia</td><td><span class="pill no">NÃO</span></td><td><span class="pill si">SIM</span></td><td><span class="pill al2">ALTA</span></td><td>Regra operacional Unimed</td></tr>
+<tr><td><span class="op UNI">UNI</span></td><td><code>UNI002</code></td><td>CLÍNICO</td><td><code>achados_resumo</code></td><td>achados_resumo vazio</td><td>Incluir resumo dos achados de imagem com datação (RM/TC ≤ 6 meses)</td><td>⚠️ Inclua achados de imagem com data do exame — exame com mais de 6 meses pode ser questionado</td><td><span class="pill no">NÃO</span></td><td><span class="pill si">SIM</span></td><td><span class="pill al2">ALTA</span></td><td>Regra operacional Unimed</td></tr>
+<tr><td><span class="op UNI">UNI</span></td><td><code>UNI003</code></td><td>CODIGOS</td><td><code>cod_cbhpm</code></td><td>cod_cbhpm vazio</td><td>Código CBHPM obrigatório — Unimed usa CBHPM como tabela padrão</td><td>⛔ Informe o código CBHPM do procedimento</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>Tabela Unimed / CBHPM 2014</td></tr>
+<tr><td><span class="op BRA">BRA</span></td><td><code>BRA001</code></td><td>FLUXO</td><td><code>convenio</code></td><td>convenio = Bradesco</td><td>Bradesco exige formulário próprio via portal Senha Web — TISS papel NÃO aceito para internação</td><td>ℹ️ Bradesco: use o portal Senha Web (wwws.bradescosaude.com.br). Guia TISS em papel NÃO é aceita para internação</td><td><span class="pill no">NÃO</span></td><td><span class="pill si">SIM</span></td><td><span class="pill al2">ALTA</span></td><td>Regra operacional Bradesco</td></tr>
+<tr><td><span class="op BRA">BRA</span></td><td><code>BRA002</code></td><td>OPME</td><td><code>opme_items[].codigo</code></td><td>codigo vazio e convenio = Bradesco</td><td>Bradesco exige código TUSS de cada item OPME no portal — sem código item é rejeitado</td><td>⛔ Bradesco: informe o código TUSS de cada item OPME</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>Regra portal Bradesco</td></tr>
+<tr><td><span class="op BRA">BRA</span></td><td><code>BRA003</code></td><td>REDE</td><td><code>hospital</code></td><td>hospital fora da rede Bradesco</td><td>Hospital deve estar credenciado na rede Bradesco</td><td>⚠️ Verifique se o hospital está credenciado na rede Bradesco Saúde</td><td><span class="pill no">NÃO</span></td><td><span class="pill si">SIM</span></td><td><span class="pill al2">ALTA</span></td><td>Regra operacional Bradesco</td></tr>
+<tr><td><span class="op SUL">SUL</span></td><td><code>SUL001</code></td><td>CLÍNICO</td><td><code>tto_conservador</code></td><td>tto_conservador vazio e convenio = SulAmerica</td><td>SulAmérica exige documentação de falha de tratamento conservador ≥ 6 semanas para cirurgia eletiva</td><td>⛔ SulAmérica: documente ao menos 6 semanas de tratamento conservador (fisioterapia e/ou medicação)</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>Regra operacional SulAmérica</td></tr>
+<tr><td><span class="op SUL">SUL</span></td><td><code>SUL002</code></td><td>OPME</td><td><code>opme_items[].anvisa</code></td><td>anvisa vazio e convenio = SulAmerica</td><td>SulAmérica verifica vigência do ANVISA individualmente — registro vencido = negativa imediata</td><td>⛔ SulAmérica: verifique se o registro ANVISA de cada item está dentro da validade</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>Regra operacional SulAmérica</td></tr>
+<tr><td><span class="op HAP">HAP</span></td><td><code>HAP001</code></td><td>GUIA</td><td>—</td><td>nr_guia_hapvida vazio e convenio = Hapvida</td><td>Campo 3 da guia DEVE conter o número gerado pela Hapvida — não usar numeração própria do prestador</td><td>⛔ Hapvida: o Nº Guia Principal (Campo 3) deve ser o número gerado pela Hapvida — não use numeração própria</td><td><span class="pill si">SIM</span></td><td><span class="pill si">SIM</span></td><td><span class="pill cr">CRÍTICA</span></td><td>Manual TISS Hapvida</td></tr>
+<tr><td><span class="op HAP">HAP</span></td><td><code>HAP002</code></td><td>FLUXO</td><td><code>convenio</code></td><td>convenio = Hapvida</td><td>Hapvida: solicitar autorização via app ou portal app.hapvida.com.br com upload de documentos</td><td>ℹ️ Hapvida: solicite via app Hapvida ou portal. Anexe pedido médico, exames e relatório</td><td><span class="pill no">NÃO</span></td><td><span class="pill si">SIM</span></td><td><span class="pill al2">ALTA</span></td><td>Regra operacional Hapvida</td></tr>
+<tr><td><span class="op AMI">AMI</span></td><td><code>AMI001</code></td><td>CLÍNICO</td><td><code>indicacao_clinica</code></td><td>len &lt; 150 e convenio = Amil</td><td>Amil exige relatório médico detalhado com evolução neurológica, escores e base em diretriz</td><td>⚠️ Amil: detalhe a indicação clínica com evolução neurológica, escores (Nurick/JOA/VAS) e base em evidência</td><td><span class="pill no">NÃO</span></td><td><span class="pill si">SIM</span></td><td><span class="pill al2">ALTA</span></td><td>Regra operacional Amil</td></tr>
+<tr><td><span class="op AMI">AMI</span></td><td><code>AMI002</code></td><td>OPME</td><td><code>opme_items</code></td><td>opme_presente e convenio = Amil</td><td>Amil audita custo de OPME — materiais com preço acima do mercado são contestados</td><td>ℹ️ Amil: auditores especializados em OPME. Preços acima da tabela de mercado são auditados</td><td><span class="pill no">NÃO</span></td><td><span class="pill si">SIM</span></td><td><span class="pill me">MÉDIA</span></td><td>Regra operacional Amil</td></tr>
+</tbody></table></div></div>
+</div>
+
+<!-- ===== 04 DOCUMENTOS ===== -->
+<div class="page" id="p-t04">
+<div class="ph"><h1>04_DOCUMENTOS — Checklist por Operadora e Cenário</h1><p>Documentos exigidos por convênio e tipo de procedimento. Motor gera checklist para secretária antes da submissão.</p></div>
+<div class="tbl-wrap"><div class="tbl-hdr"><span class="tbl-title">04_DOCUMENTOS</span><span class="tbl-meta">17 documentos · todas operadoras</span></div>
+<div class="tbl-scroll"><table>
+<thead><tr><th>operadora</th><th>cenário</th><th>documento</th><th>obrigatoriedade</th><th>formato</th><th>ordem</th><th>observação</th></tr></thead>
+<tbody>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>Qualquer cirurgia</td><td><strong>Guia SP/SADT preenchida (TISS)</strong></td><td><span class="pill ob">OBRIG</span></td><td>Digital/Papel</td><td>1</td><td>Campos 1–28+ preenchidos. Base universal.</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>Qualquer cirurgia</td><td><strong>Relatório médico com indicação + CID</strong></td><td><span class="pill ob">OBRIG</span></td><td>PDF ou Papel</td><td>2</td><td>Assinado com carimbo CRM. Mínimo: CID + indicação + conduta.</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>Cirurgia com OPME</td><td><strong>Anexo de OPME (código TUSS, ANVISA, 3 marcas)</strong></td><td><span class="pill ob">OBRIG</span></td><td>PDF</td><td>3</td><td>RN 424/2017. Sem 3 marcas = negativa automática.</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>Cirurgia com OPME</td><td><strong>Justificativa técnica individual de cada item OPME</strong></td><td><span class="pill ob">OBRIG</span></td><td>Texto no anexo</td><td>4</td><td>Por que aquele material específico para aquele paciente.</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>Cirurgia de coluna</td><td><strong>Exame de imagem com laudo (RM ou TC)</strong></td><td><span class="pill ob">OBRIG</span></td><td>PDF com laudo</td><td>5</td><td>Datado — ≤ 6 meses para maioria. Laudo assinado pelo radiologista.</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>Cirurgia eletiva</td><td>Documentação de tratamento conservador</td><td><span class="pill re">RECOM</span></td><td>Declaração/prontuário</td><td>6</td><td>Tempo + tipo de tratamento prévio. Obrigatório SulAmérica.</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>Déficit neurológico</td><td>Escala neurológica (Nurick, JOA, VAS)</td><td><span class="pill re">RECOM</span></td><td>No relatório</td><td>7</td><td>Nurick para mielopatia. JOA para função. VAS para dor.</td></tr>
+<tr><td><span class="op UNI">UNI</span></td><td>Neurocirurgia coluna</td><td><strong>Laudo com correlação imagem-clínica</strong></td><td><span class="pill ob">OBRIG</span></td><td>PDF</td><td>8</td><td>Unimed Cariri exige correlação entre achado de imagem e quadro clínico.</td></tr>
+<tr><td><span class="op BRA">BRA</span></td><td>Internação cirúrgica</td><td><strong>Protocolo do portal Senha Web</strong></td><td><span class="pill ob">OBRIG</span></td><td>PDF gerado pelo portal</td><td>1</td><td>OBRIGATÓRIO. Sem este número a internação não é aceita.</td></tr>
+<tr><td><span class="op BRA">BRA</span></td><td>OPME</td><td><strong>Formulário OPME Bradesco (portal)</strong></td><td><span class="pill ob">OBRIG</span></td><td>Portal digital</td><td>2</td><td>Preenchido no portal com código TUSS obrigatório por item.</td></tr>
+<tr><td><span class="op BRA">BRA</span></td><td>Qualquer internação</td><td>Upload PDF relatório médico + laudos</td><td><span class="pill ob">OBRIG</span></td><td>Upload portal</td><td>3</td><td>Documentos em PDF. Acelera aprovação significativamente.</td></tr>
+<tr><td><span class="op SUL">SUL</span></td><td>Cirurgia eletiva coluna</td><td><strong>Comprovante tto. conservador ≥ 6 semanas</strong></td><td><span class="pill ob">OBRIG</span></td><td>Prontuário/declaração</td><td>6</td><td>SulAmérica é rigorosa. Fisioterapia + medicação com datas documentadas.</td></tr>
+<tr><td><span class="op SUL">SUL</span></td><td>Formulário internação</td><td><strong>Formulário próprio SulAmérica (portal)</strong></td><td><span class="pill ob">OBRIG</span></td><td>Portal digital</td><td>1</td><td>Via portal sulamericasaude.com.br. TISS para SADT ambulatorial.</td></tr>
+<tr><td><span class="op HAP">HAP</span></td><td>Autorização</td><td><strong>Número de autorização gerado pela Hapvida</strong></td><td><span class="pill ob">OBRIG</span></td><td>Digital — app/portal</td><td>1</td><td>Não usar numeração própria. Obtido via app Hapvida ou portal.</td></tr>
+<tr><td><span class="op HAP">HAP</span></td><td>Qualquer cirurgia</td><td>Upload pedido médico + exames no app</td><td><span class="pill ob">OBRIG</span></td><td>Upload no app</td><td>2</td><td>App exige anexo antes de finalizar solicitação.</td></tr>
+<tr><td><span class="op AMI">AMI</span></td><td>Neurocirurgia</td><td><strong>Relatório médico detalhado com escores neurológicos</strong></td><td><span class="pill ob">OBRIG</span></td><td>PDF</td><td>2</td><td>Amil audita rigorosamente. Incluir escores Nurick/JOA e base em diretriz.</td></tr>
+<tr><td><span class="op AMI">AMI</span></td><td>Qualquer cirurgia</td><td>Guia SP/SADT via portal amil.com.br</td><td><span class="pill ob">OBRIG</span></td><td>Portal digital</td><td>1</td><td>Solicitar via portal amil.com.br — clínica/consultório ou responsável legal.</td></tr>
+</tbody></table></div></div>
+</div>
+
+<!-- ===== 05 OPME ===== -->
+<div class="page" id="p-t05">
+<div class="ph"><h1>05_OPME — Regras e Materiais de Neurocirurgia</h1><p>Motor executa esta aba somente se necessita_opme = Sim. Duas seções: regras por operadora + tabela de materiais com códigos TUSS.</p></div>
+<div class="alert orange"><strong>RN 424/2017 — regra federal:</strong> vale para TODOS os convênios sem exceção. Mínimo 3 fabricantes diferentes com ANVISA para cada item OPME. Sem este requisito = negativa automática.</div>
+<div class="tbl-wrap"><div class="tbl-hdr"><span class="tbl-title">05_OPME — Tabela A: Regras por operadora</span></div>
+<div class="tbl-scroll"><table>
+<thead><tr><th>operadora</th><th>tipo_material</th><th>campo</th><th>regra</th><th>obrigatoriedade</th><th>mensagem</th><th>bloqueia</th><th>fonte</th></tr></thead>
+<tbody>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>Qualquer OPME</td><td><code>opme_items[].fabricante</code></td><td>Mínimo 3 fabricantes diferentes por item OPME</td><td><span class="pill ob">OBRIG</span></td><td>⛔ 3 marcas diferentes com ANVISA por item</td><td><span class="pill si">SIM</span></td><td>RN 424/2017 Art.7</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>Qualquer OPME</td><td><code>opme_items[].anvisa</code></td><td>Registro ANVISA obrigatório por item</td><td><span class="pill ob">OBRIG</span></td><td>⛔ Informe nº ANVISA de cada item OPME</td><td><span class="pill si">SIM</span></td><td>RN 424/2017</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>Qualquer OPME</td><td><code>opme_items[].descricao</code></td><td>Descrição completa: nome + características + dimensões</td><td><span class="pill ob">OBRIG</span></td><td>⛔ Descreva completamente cada item OPME</td><td><span class="pill si">SIM</span></td><td>RN 501/2022</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>Qualquer OPME</td><td><code>opme_items[].qtd</code></td><td>Quantidade por item obrigatória</td><td><span class="pill ob">OBRIG</span></td><td>⛔ Informe a quantidade de cada item OPME</td><td><span class="pill si">SIM</span></td><td>RN 501/2022</td></tr>
+<tr><td><span class="op BRA">BRA</span></td><td>Qualquer OPME</td><td><code>opme_items[].codigo</code></td><td>Bradesco exige código TUSS por item no portal</td><td><span class="pill ob">OBRIG</span></td><td>⛔ Bradesco: informe código TUSS de cada item OPME</td><td><span class="pill si">SIM</span></td><td>Regra portal Bradesco</td></tr>
+<tr><td><span class="op SUL">SUL</span></td><td>Qualquer OPME</td><td><code>opme_items[].anvisa</code></td><td>SulAmérica verifica vigência do ANVISA — registro vencido = negativa</td><td><span class="pill ob">OBRIG</span></td><td>⛔ SulAmérica: verifique vigência do ANVISA de cada item</td><td><span class="pill si">SIM</span></td><td>Regra operacional SulAmérica</td></tr>
+<tr><td><span class="op AMI">AMI</span></td><td>Implante de alto custo</td><td><code>opme_items</code></td><td>Amil audita custo de OPME — preços acima do mercado são contestados</td><td><span class="pill re">RECOM</span></td><td>⚠️ Amil: preços acima da tabela de mercado são auditados</td><td><span class="pill no">NÃO</span></td><td>Regra operacional Amil</td></tr>
+</tbody></table></div></div>
+
+<div class="tbl-wrap" style="margin-top:14px"><div class="tbl-hdr"><span class="tbl-title">05_OPME — Tabela B: Materiais de neurocirurgia</span><span class="tbl-meta">11 materiais com TUSS e marcas</span></div>
+<div class="tbl-scroll"><table>
+<thead><tr><th>material_id</th><th>nome_material</th><th>codigo_tuss_ref</th><th>uso_cirurgico</th><th>marcas_comuns</th><th>unidade</th><th>observacao</th></tr></thead>
+<tbody>
+<tr><td><code>OPM001</code></td><td><strong>Cage cervical (PEEK)</strong></td><td><code>93.01.06-6</code></td><td>ACDF — artrodese cervical anterior</td><td>Medtronic, Stryker, DePuy Synthes</td><td>unid</td><td>Especificar altura (mm) e ângulo de lordose</td></tr>
+<tr><td><code>OPM002</code></td><td><strong>Parafuso pedicular cervical</strong></td><td><code>93.01.04-0</code></td><td>Artrodese cervical posterior</td><td>Medtronic, Globus, NuVasive</td><td>unid</td><td>Comprimento e diâmetro em mm obrigatórios</td></tr>
+<tr><td><code>OPM003</code></td><td><strong>Cage lombar TLIF (PEEK)</strong></td><td><code>93.01.07-4</code></td><td>Artrodese lombar interbody (TLIF/PLIF)</td><td>Medtronic, Stryker, Globus</td><td>unid</td><td>Altura + largura + comprimento em mm</td></tr>
+<tr><td><code>OPM004</code></td><td><strong>Parafuso pedicular lombar</strong></td><td><code>93.01.03-2</code></td><td>Artrodese lombar posterior</td><td>Medtronic, DePuy, Globus</td><td>unid</td><td>Diâmetro 5-8mm. Comprimento 35-55mm. Quantitativo total.</td></tr>
+<tr><td><code>OPM005</code></td><td><strong>Haste (rod) titânio/CoCr</strong></td><td><code>93.01.05-9</code></td><td>Sistema de fixação — artrodeses</td><td>Medtronic, Stryker, Alphatec</td><td>par</td><td>Informar par (D + E). Comprimento variável.</td></tr>
+<tr><td><code>OPM006</code></td><td><strong>Prótese de disco cervical</strong></td><td><code>93.01.08-2</code></td><td>Artroplastia cervical total</td><td>Medtronic, NuVasive, RTI</td><td>unid</td><td>Sem código CBHPM dedicado — negociar com operadora</td></tr>
+<tr><td><code>OPM007</code></td><td><strong>Clipe de aneurisma</strong></td><td><code>93.01.01-6</code></td><td>Clipagem cirúrgica de aneurisma cerebral</td><td>Aesculap (Yasargil), Sugita, Mizuho</td><td>unid</td><td>Tipo (reto/angulado), comprimento e largura do clipe</td></tr>
+<tr><td><code>OPM008</code></td><td><strong>Derivação VP (DVP)</strong></td><td><code>93.01.09-0</code></td><td>Hidrocefalia — shunt ventriculoperitoneal</td><td>Medtronic, Integra, Sophysa</td><td>kit</td><td>Tipo de válvula: pressão fixa ou programável</td></tr>
+<tr><td><code>OPM009</code></td><td><strong>Microcateter / Flow diverter</strong></td><td>Consultar TUSS</td><td>Embolização aneurisma / MAV / trombectomia</td><td>Medtronic ev3, Stryker Neurovascular, MicroVention</td><td>unid</td><td>Flow diverter sem código CBHPM dedicado. Trombectomia: portaria GM/MS 1996/2023.</td></tr>
+<tr><td><code>OPM010</code></td><td>Cage expansível cervical</td><td><code>93.01.04-0</code></td><td>ACDF multilevel / revisão</td><td>Medtronic, Stryker, Amendia</td><td>unid</td><td>Informar range de altura (altura mínima-máxima mm)</td></tr>
+<tr><td><code>OPM011</code></td><td>O-ARM / Neuronavegação</td><td>—</td><td>Auxílio intraoperatório</td><td>Medtronic O-ARM, Brainlab</td><td>uso</td><td>NÃO é OPME — taxa de serviço hospitalar. Registrar em Outras Despesas.</td></tr>
+</tbody></table></div></div>
+</div>
+
+<!-- ===== 06 GLOSA ===== -->
+<div class="page" id="p-t06">
+<div class="ph"><h1>06_GLOSA — Base Anti-Glosa por Operadora</h1><p>17 motivos de glosa com causa-raiz, campo relacionado e ação preventiva. Motor cruza antes do envio para gerar alertas.</p></div>
+<div class="tbl-wrap"><div class="tbl-hdr"><span class="tbl-title">06_GLOSA — Todas operadoras</span><span class="tbl-meta">17 entradas · <span class="pill cr" style="font-size:9px">CRÍTICA</span> <span class="pill al2" style="font-size:9px">ALTA</span> <span class="pill me" style="font-size:9px">MÉDIA</span></span></div>
+<div class="tbl-scroll"><table>
+<thead><tr><th>operadora</th><th>#</th><th>motivo_glosa</th><th>causa_raiz</th><th>campo_neuroauth</th><th>como_evitar</th><th>criticidade</th><th>acao_preventiva</th></tr></thead>
+<tbody>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>1</td><td><strong>OPME sem 3 marcas</strong></td><td>Não informar 3 fabricantes diferentes com ANVISA</td><td><code>opme_items[].fabricante</code></td><td>Sempre incluir 3 fabricantes com ANVISA no anexo OPME</td><td><span class="pill cr">CRÍTICA</span></td><td>Motor bloqueia: qtd_marcas &lt; 3</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>2</td><td><strong>Indicação clínica insuficiente</strong></td><td>Indicação genérica sem CID, tempo e falha de tto.</td><td><code>indicacao_clinica</code></td><td>CID + tempo de sintomas + falha de tratamento conservador + achado de imagem</td><td><span class="pill cr">CRÍTICA</span></td><td>Motor bloqueia: len &lt; 50</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>3</td><td><strong>OPME sem ANVISA</strong></td><td>ANVISA ausente ou vencido em qualquer item</td><td><code>opme_items[].anvisa</code></td><td>Verificar número ANVISA de cada item antes de enviar</td><td><span class="pill cr">CRÍTICA</span></td><td>Motor bloqueia: anvisa vazio</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>4</td><td><strong>Código CBHPM/TUSS incorreto</strong></td><td>Código errado ou incompatível com o procedimento</td><td><code>cod_cbhpm</code></td><td>Usar tabela CBHPM 2014. Conferir código por procedimento</td><td><span class="pill cr">CRÍTICA</span></td><td>Validar código contra tabela antes do envio</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>5</td><td><strong>CBO incompatível</strong></td><td>CBO diferente da especialidade do procedimento</td><td><code>cbo</code></td><td>225120 para neurocirurgia. 225265 para neurointervenção</td><td><span class="pill cr">CRÍTICA</span></td><td>Motor valida CBO contra lista de CBOs aceitos</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>6</td><td>Exame de imagem desatualizado</td><td>RM/TC com mais de 6 meses sem nova datação</td><td><code>achados_resumo</code></td><td>Verificar data do exame. Se &gt; 6 meses, novo exame ou justificativa</td><td><span class="pill al2">ALTA</span></td><td>Alertar secretária se data do exame não informada</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>7</td><td>Divergência CID × procedimento</td><td>CID incompatível com a cirurgia solicitada</td><td><code>cid_principal</code></td><td>Verificar compatibilidade CID-procedimento antes de enviar</td><td><span class="pill al2">ALTA</span></td><td>Motor pode cruzar CID com procedimento</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>8</td><td>Tratamento conservador não documentado</td><td>Nenhuma evidência de tto. conservador em caso eletivo</td><td><code>tto_conservador</code></td><td>Descrever tempo e tipo de tratamento prévio</td><td><span class="pill al2">ALTA</span></td><td>Obrigatório SulAmérica. Alerta para todos.</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>9</td><td>Procedimento off-rol sem justificativa</td><td>Procedimento não no Rol ANS sem base em diretriz</td><td><code>indicacao_clinica</code></td><td>Citar diretriz, literatura ou necessidade médica individual</td><td><span class="pill al2">ALTA</span></td><td>Incluir base normativa na indicação clínica</td></tr>
+<tr><td><span class="op GLOBAL">GLOBAL</span></td><td>10</td><td>Falta de assinatura ou carimbo</td><td>Guia sem assinatura do médico solicitante</td><td>—</td><td>Assinar com carimbo CRM ou certificado digital ICP-Brasil</td><td><span class="pill al2">ALTA</span></td><td>Checklist pré-envio: assinatura presente?</td></tr>
+<tr><td><span class="op BRA">BRA</span></td><td>11</td><td><strong>OPME sem código TUSS no portal Bradesco</strong></td><td>Portal rejeita material sem código TUSS</td><td><code>opme_items[].codigo</code></td><td>Preencher código TUSS de cada item no portal Senha Web</td><td><span class="pill cr">CRÍTICA</span></td><td>Motor bloqueia quando convenio=BRA e codigo vazio</td></tr>
+<tr><td><span class="op BRA">BRA</span></td><td>12</td><td>Hospital fora da rede Bradesco</td><td>Solicitação para hospital sem credenciamento</td><td><code>hospital</code></td><td>Verificar credenciamento antes de solicitar</td><td><span class="pill al2">ALTA</span></td><td>Alertar quando hospital não está na rede Bradesco</td></tr>
+<tr><td><span class="op SUL">SUL</span></td><td>13</td><td><strong>Tto. conservador &lt; 6 semanas (SulAmérica)</strong></td><td>SulAmérica exige comprovação rígida de tto. prévio</td><td><code>tto_conservador</code></td><td>Documentar fisioterapia, medicação, infiltração com datas</td><td><span class="pill cr">CRÍTICA</span></td><td>Motor bloqueia quando convenio=SUL e tto vazio</td></tr>
+<tr><td><span class="op SUL">SUL</span></td><td>14</td><td><strong>ANVISA vencido (SulAmérica)</strong></td><td>SulAmérica verifica vigência individualmente</td><td><code>opme_items[].anvisa</code></td><td>Verificar data de validade do ANVISA de cada material</td><td><span class="pill cr">CRÍTICA</span></td><td>Motor bloqueia quando convenio=SUL e anvisa vazio</td></tr>
+<tr><td><span class="op HAP">HAP</span></td><td>15</td><td><strong>Nº guia não gerado pela Hapvida</strong></td><td>Campo 3 com numeração própria do prestador</td><td>—</td><td>Obter número da autorização Hapvida antes de preencher Campo 3</td><td><span class="pill cr">CRÍTICA</span></td><td>Motor bloqueia quando convenio=HAP e campo vazio</td></tr>
+<tr><td><span class="op AMI">AMI</span></td><td>16</td><td>Relatório médico insuficiente (Amil)</td><td>Amil audita rigorosamente alta complexidade</td><td><code>indicacao_clinica</code></td><td>Relatório com evolução neurológica, escores e base em diretriz</td><td><span class="pill al2">ALTA</span></td><td>Alertar quando convenio=AMI e len &lt; 150</td></tr>
+<tr><td><span class="op AMI">AMI</span></td><td>17</td><td>OPME com custo acima do mercado (Amil)</td><td>Amil questiona materiais fora do padrão de preço</td><td><code>opme_items</code></td><td>Usar materiais com preço dentro do praticado. Documentar justificativa se necessário</td><td><span class="pill me">MÉDIA</span></td><td>Alerta informativo — não bloqueia</td></tr>
+</tbody></table></div></div>
+</div>
+
+<!-- ===== 07 MAPEAMENTO ===== -->
+<div class="page" id="p-t07">
+<div class="ph"><h1>07_MAPEAMENTO — Ponte Frontend ↔ TISS ↔ Make</h1><p>Mapeamento de cada campo do index.html para campo TISS + portais. Make consulta esta aba para montar o payload JSON enviado ao cenário.</p></div>
+<div class="alert green"><strong>Esta é a aba que o Make usa para construir o payload.</strong> Campos com impacto_glosa = CRÍTICA bloqueam o envio. Campos com ALTA geram alerta. O Make só processa se todos os campos com obrigatorio_base = SIM estiverem presentes.</div>
+<div class="tbl-wrap"><div class="tbl-hdr"><span class="tbl-title">07_MAPEAMENTO</span><span class="tbl-meta">26 campos mapeados</span></div>
+<div class="tbl-scroll"><table>
+<thead><tr><th>campo_neuroauth</th><th>campo_tiss</th><th>nome_campo_tiss</th><th>portal_bradesco</th><th>portal_hapvida</th><th>tipo</th><th>obrig</th><th>valida_regra</th><th>impacto_glosa</th></tr></thead>
+<tbody>
+<tr><td><code>nome_paciente</code></td><td><code>10</code></td><td>Nome do Beneficiário</td><td>Dados do beneficiário</td><td>Nome do beneficiário</td><td>Texto</td><td><span class="pill ob">SIM</span></td><td>ANS008</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>cns</code></td><td><code>11</code></td><td>CNS</td><td>—</td><td>—</td><td>CNS</td><td><span class="pill re">RECOM</span></td><td>—</td><td><span class="pill al2">ALTA</span></td></tr>
+<tr><td><code>numero_carteira</code></td><td><code>8</code></td><td>Número da Carteira</td><td>Número carteirinha</td><td>Carteirinha</td><td>Texto</td><td><span class="pill ob">SIM</span></td><td>ANS007</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>validade_carteira</code></td><td><code>9</code></td><td>Validade da Carteira</td><td>Validade</td><td>—</td><td>Data</td><td><span class="pill ob">SIM</span></td><td>—</td><td><span class="pill al2">ALTA</span></td></tr>
+<tr><td><code>codigo_ans</code></td><td><code>1</code></td><td>Registro ANS</td><td>—</td><td>—</td><td>Numérico</td><td><span class="pill ob">SIM</span></td><td>—</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>hospital</code></td><td><code>14/30</code></td><td>Nome Contratado</td><td>Hospital Autorizado</td><td>—</td><td>Texto</td><td><span class="pill ob">SIM</span></td><td>BRA003</td><td><span class="pill al2">ALTA</span></td></tr>
+<tr><td><code>medico_solicitante</code></td><td><code>15</code></td><td>Nome Profissional Solicitante</td><td>Nome do médico</td><td>—</td><td>Texto</td><td><span class="pill ob">SIM</span></td><td>ANS004</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>crm</code></td><td><code>17</code></td><td>Número no Conselho</td><td>CRM</td><td>—</td><td>Texto</td><td><span class="pill ob">SIM</span></td><td>ANS004</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>cbo</code></td><td><code>19</code></td><td>CBO</td><td>CBO</td><td>—</td><td>Numérico</td><td><span class="pill ob">SIM</span></td><td>ANS003</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>carater</code></td><td><code>21</code></td><td>Caráter do Atendimento</td><td>Caráter</td><td>—</td><td>Texto</td><td><span class="pill ob">SIM</span></td><td>ANS006</td><td><span class="pill al2">ALTA</span></td></tr>
+<tr><td><code>indicacao_clinica</code></td><td><code>23</code></td><td>Indicação Clínica</td><td>Indicação clínica</td><td>Indicação</td><td>Texto</td><td><span class="pill ob">SIM</span></td><td>ANS005, AMI001</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>cod_cbhpm</code></td><td><code>24+25</code></td><td>Tabela + Código Procedimento</td><td>Código procedimento</td><td>Código TUSS</td><td>Texto</td><td><span class="pill ob">SIM</span></td><td>UNI003</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>procedimento</code></td><td><code>26</code></td><td>Descrição do Procedimento</td><td>Descrição</td><td>Procedimento</td><td>Texto</td><td><span class="pill ob">SIM</span></td><td>—</td><td><span class="pill al2">ALTA</span></td></tr>
+<tr><td><code>cid_principal</code></td><td>—</td><td>CID (campo complementar)</td><td>CID</td><td>CID</td><td>Texto</td><td><span class="pill re">RECOM</span></td><td>—</td><td><span class="pill al2">ALTA</span></td></tr>
+<tr><td><code>tto_conservador</code></td><td>—</td><td>Campo clínico adicional</td><td>—</td><td>—</td><td>Texto</td><td><span class="pill re">RECOM</span></td><td>UNI001, SUL001</td><td><span class="pill al2">ALTA</span></td></tr>
+<tr><td><code>achados_resumo</code></td><td>—</td><td>Campo clínico adicional</td><td>—</td><td>—</td><td>Texto</td><td><span class="pill re">RECOM</span></td><td>UNI002</td><td><span class="pill al2">ALTA</span></td></tr>
+<tr><td><code>deficit_neuro</code></td><td>—</td><td>Campo clínico adicional</td><td>—</td><td>—</td><td>Texto</td><td><span class="pill re">RECOM</span></td><td>—</td><td><span class="pill al2">ALTA</span></td></tr>
+<tr><td><code>opme_items[].descricao</code></td><td>Anexo OPME</td><td>Descrição do Material</td><td>Descrição OPME</td><td>Material OPME</td><td>Texto</td><td><span class="pill in">COND</span></td><td>ANS002</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>opme_items[].qtd</code></td><td>Anexo OPME</td><td>Quantidade OPME</td><td>Qtde</td><td>Qtde</td><td>Numérico</td><td><span class="pill in">COND</span></td><td>—</td><td><span class="pill al2">ALTA</span></td></tr>
+<tr><td><code>opme_items[].anvisa</code></td><td>Anexo OPME</td><td>Registro ANVISA</td><td>—</td><td>—</td><td>Texto</td><td><span class="pill in">COND</span></td><td>ANS002, SUL002</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>opme_items[].fabricante</code></td><td>Anexo OPME</td><td>Fabricante (3 opções)</td><td>Fabricante</td><td>—</td><td>Texto</td><td><span class="pill in">COND</span></td><td>ANS001</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>opme_items[].codigo</code></td><td>Anexo OPME</td><td>Código TUSS Material</td><td>Código TUSS <strong>(obrig. Bradesco)</strong></td><td>Código material</td><td>Texto</td><td><span class="pill in">COND</span></td><td>BRA002</td><td><span class="pill cr">CRÍTICA (BRA)</span></td></tr>
+<tr><td><code>convenio</code></td><td><code>1</code></td><td>Registro ANS (via lookup)</td><td>—</td><td>—</td><td>Texto</td><td><span class="pill ob">SIM</span></td><td>BRA001, HAP002</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+<tr><td><code>data_cirurgia</code></td><td>—</td><td>Data prevista internação</td><td>Data internação</td><td>Data</td><td>Data</td><td><span class="pill re">RECOM</span></td><td>—</td><td><span class="pill me">MÉDIA</span></td></tr>
+<tr><td><code>tipo_guia</code></td><td><code>22</code></td><td>Tipo de Atendimento</td><td>Tipo</td><td>—</td><td>Texto</td><td><span class="pill ob">SIM</span></td><td>—</td><td><span class="pill me">MÉDIA</span></td></tr>
+<tr><td><code>necessita_opme</code></td><td>—</td><td>Flag OPME</td><td>Previsão OPME</td><td>—</td><td>Boolean</td><td><span class="pill ob">SIM</span></td><td>ANS001,ANS002</td><td><span class="pill cr">CRÍTICA</span></td></tr>
+</tbody></table></div></div>
+</div>
+
+</main>
+
+<script>
+function show(id,tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+}
+function ex(btn){
+  var b=btn.closest('.pb-wrap').querySelector('.pb');
+  var e=b.classList.toggle('exp');
+  btn.textContent=e?'recolher':'expandir';
+}
+function cpMain(btn){
+  var txt=document.getElementById('mainPrompt').innerText;
+  navigator.clipboard.writeText(txt).then(function(){
+    btn.textContent='✅ Copiado';btn.classList.add('ok');
+    setTimeout(function(){btn.textContent='📋 Copiar';btn.classList.remove('ok');},2000);
+  });
+}
+function exportPrompt(){
+  var txt=document.getElementById('mainPrompt').innerText;
+  navigator.clipboard.writeText(txt).then(function(){
+    var b=document.querySelector('.tb-r .cbtn');
+    b.textContent='✅ Copiado!';
+    setTimeout(function(){b.textContent='📋 Copiar Prompt';},2000);
+  });
+}
+</script>
+</body>
+</html>
