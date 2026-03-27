@@ -1,0 +1,11 @@
+/
+├── index.html              ← arquivo de produção atualizado
+├── neuroauth_access_policy.js  ← idem
+├── docs/
+│   └── arquitetura/        ← 10+ documentos de arquitetura
+└── schemas/
+    ├── convenios/
+    ├── hospitais/
+    ├── medicos/
+    ├── guias/
+    └── compliance/
