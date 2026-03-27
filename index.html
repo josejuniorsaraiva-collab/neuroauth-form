@@ -896,22 +896,23 @@ function naInitGoogle(){
 
 /* ── LOGIN HANDLER (Google JWT callback) ────────────────────────── */
 async function naHandleLogin(response){
-  let payload;
-  try{
-    const parts=response.credential.split('.');
-    payload=JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
-  }catch(e){
-    console.error('[NEUROAUTH] JWT parse error',e);return;
-  }
-  const {email,name,picture}=payload;
+  /* Não decodificar JWT no cliente — token enviado bruto ao Make.com para validação server-side */
+  const idToken = response.credential;
+  if(!idToken){ naLog('login_no_token'); return; }
   const sa=document.getElementById('screen-auth');
   if(sa) sa.innerHTML=`<div class="na-loading">
     <div class="na-spinner"></div>
-    <p style="color:#fff">Carregando perfil de <strong>${name}</strong>…</p>
+    <p style="color:#fff">Verificando acesso…</p>
   </div>`;
   try{
-    const perfil=await naFetchPerfil(email);
-    const sess={email,name,picture:picture||'',perfil,expires:Date.now()+NA_SESSION_TTL};
+    const perfil=await naFetchPerfil(idToken);
+    const sess={
+      email:   perfil.email||perfil.user_email||'',
+      name:    perfil.medico_nome||perfil.email||'',
+      picture: '',
+      perfil,
+      expires: Date.now()+NA_SESSION_TTL
+    };
     sessionStorage.setItem('na_session',JSON.stringify(sess));
     naRenderPresala(perfil,sess);
   }catch(err){
@@ -924,114 +925,35 @@ async function naHandleLogin(response){
   }
 }
 
-/* ── PROFILE FETCH (Make.com webhook) ───────────────────────────── */
-async function naFetchPerfil(email){
-  const _emailNorm = (email||'').trim().toLowerCase();
-  console.log('[NEUROAUTH] naFetchPerfil chamado com email:', _emailNorm);
-
-  // ─────────────────────────────────────────────────────────────────
-  // CAMADA 1 — DEV BYPASS (founder, acesso irrestrito)
-  // Remover apenas quando Make.com estiver estável e testado
-  // ─────────────────────────────────────────────────────────────────
-  const DEV_BYPASS_USERS = ['josejuniorsaraiva@gmail.com'];
-  if(DEV_BYPASS_USERS.indexOf(_emailNorm) !== -1){
-    console.log('[NEUROAUTH] ✅ CAMADA 1 — DEV BYPASS acionado para:', _emailNorm);
-    return {
-      user_email:            _emailNorm,
-      email:                 _emailNorm,
-      ativo:                 true,
-      plano:                 'dev',
-      role:                  'founder',
-      medico_nome:           'Jose Jr (Dev)',
-      perfil_tipo:           'cirurgiao',
-      crm:                   'DEV-000',
-      cbo:                   '225135',
-      hospital_padrao:       'Hospital Dev',
-      convenios_habilitados: 'Unimed',
-      bypass:                true
-    };
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  // CAMADA 2 — LOCAL ALPHA WHITELIST (médicos autorizados — offline-first)
-  // Funciona independente do Make.com — fallback garantido para o alpha
-  //
-  // Para adicionar um médico:
-  //   1. Adicione a entrada no objeto abaixo (email em lowercase)
-  //   2. Preencha os campos reais do médico
-  //   3. Faça push no GitHub — entra em produção imediatamente
-  // ─────────────────────────────────────────────────────────────────
-  const LOCAL_ALPHA_WHITELIST = {
-    // 'medico1@gmail.com': {
-    //   medico_nome:           'Dr. Nome Completo',
-    //   perfil_tipo:           'cirurgiao',
-    //   crm:                   'SP-00000',
-    //   cbo:                   '225135',
-    //   hospital_padrao:       'Hospital X',
-    //   convenios_habilitados: 'Unimed'
-    // },
-    // 'medico2@hospital.com.br': {
-    //   medico_nome:           'Dr. Segundo Médico',
-    //   perfil_tipo:           'cirurgiao',
-    //   crm:                   'RJ-00000',
-    //   cbo:                   '225135',
-    //   hospital_padrao:       'Hospital Y',
-    //   convenios_habilitados: 'Bradesco,Unimed'
-    // }
-  };
-
-  if(LOCAL_ALPHA_WHITELIST.hasOwnProperty(_emailNorm)){
-    const _perfil = LOCAL_ALPHA_WHITELIST[_emailNorm];
-    console.log('[NEUROAUTH] ✅ CAMADA 2 — ALPHA WHITELIST liberou:', _emailNorm);
-    return Object.assign({
-      user_email: _emailNorm,
-      email:      _emailNorm,
-      ativo:      true,
-      plano:      'alpha',
-      role:       'medico',
-      bypass:     false
-    }, _perfil);
-  }
-
-  // ─────────────────────────────────────────────────────────────────
-  // CAMADA 3 — EMAIL NÃO AUTORIZADO (antes de tentar Make.com)
-  // Bloqueia cedo com mensagem amigável — evita erro técnico cru
-  // Comente este bloco quando Make.com estiver ativo e com whitelist remota
-  // ─────────────────────────────────────────────────────────────────
-  // NOTA: enquanto Make.com estiver com webhook inativo (HTTP 410),
-  // todo email fora das camadas 1 e 2 cai aqui com mensagem amigável.
-  // Remova este bloco quando o webhook estiver estável.
-  throw new Error('Seu acesso ainda não foi liberado para esta fase inicial do NEUROAUTH. Se necessário, solicite liberação ao administrador.');
-  // fim CAMADA 3
-  /* eslint-disable no-unreachable */
-
-  /* PRODUÇÃO — sem fallback para perfil fake. Toda falha bloqueia acesso. */
+/* ── PROFILE FETCH — autenticação 100% server-side via Make.com ── */
+async function naFetchPerfil(idToken){
   if(!NA_PROFILE_WH||NA_PROFILE_WH==='SEU_MAKE_PROFILE_WEBHOOK_URL'){
     throw new Error('Sistema não configurado. Contate o administrador do NEUROAUTH.');
   }
   let resp;
   try{
-    resp=await fetch(`${NA_PROFILE_WH}?email=${encodeURIComponent(email)}`,{cache:'no-store'});
+    resp=await fetch(NA_PROFILE_WH,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      cache:'no-store',
+      body:JSON.stringify({id_token:idToken})
+    });
   }catch(netErr){
     throw new Error('Falha de rede ao verificar perfil. Verifique sua conexão e tente novamente.');
   }
-  if(resp.status===404){
-    throw new Error(`Acesso negado. O email ${email} não está cadastrado no NEUROAUTH.`);
+  if(resp.status===401||resp.status===403){
+    throw new Error('Acesso negado. Este email não está autorizado no NEUROAUTH.');
   }
   if(!resp.ok){
-    throw new Error(`Erro ao verificar acesso (HTTP ${resp.status}). Contate o administrador.`);
+    throw new Error('Erro ao verificar acesso (HTTP '+resp.status+'). Contate o administrador.');
   }
   let perfil;
   try{ perfil=await resp.json(); }
   catch(parseErr){ throw new Error('Resposta inválida do servidor de perfis. Contate o administrador.'); }
-
-  /* Perfil não encontrado / objeto vazio */
-  if(!perfil||!perfil.user_email){
-    throw new Error(`Acesso negado. O email ${email} não possui perfil cadastrado no NEUROAUTH.`);
+  if(!perfil||!perfil.email){
+    throw new Error('Acesso negado. Perfil não encontrado.');
   }
-  /* Campo ativo — aceita boolean true ou strings "TRUE" / "1" / "true" */
-  const ativo=perfil.ativo;
-  const isAtivo=ativo===true||String(ativo).toUpperCase()==='TRUE'||String(ativo)==='1';
+  const isAtivo=perfil.ativo===true||String(perfil.ativo).toUpperCase()==='TRUE'||String(perfil.ativo)==='1';
   if(!isAtivo){
     throw new Error('Conta inativa. Contate o administrador para reativar o acesso.');
   }
@@ -1220,7 +1142,7 @@ function naLogLGPD(email,perfil_tipo){
   try{
     sessionStorage.setItem('na_lgpd_log',JSON.stringify({
       event:'LGPD_CONSENT',
-      email:email||'',
+      email:maskEmail(email||''),
       perfil_tipo:perfil_tipo||'',
       timestamp:new Date().toISOString(),
       ua:navigator.userAgent.substring(0,120)
@@ -1374,52 +1296,52 @@ const ANS={
 };
 
 const QC={
-  PROC001:{nome_paciente:"Carlos Eduardo Hernia",data_nascimento:"1972-05-18",
-    sexo:"Masculino",cpf:"321.654.987-00",telefone:"(88) 99801-2345",
-    convenio:"Unimed",numero_carteira:"9876543210001",carater:"E",
+  PROC001:{nome_paciente:"Paciente Teste 01",data_nascimento:"1972-05-18",
+    sexo:"Masculino",cpf:"000.000.000-00",telefone:"(00) 00000-0000",
+    convenio:"Unimed",numero_carteira:"0000000000001",carater:"E",
     hospital:"Hospital Santo Antônio — Barbalha",
     procedimento:"Microdiscectomia lombar",lateralidade:"Direita",
     niveis_anatomicos:"L4-L5",deficit_neuro:"Motor",dor_refrataria:"Sim",
     tto_conservador:"Sim",duracao_tto:"Mais de 12 semanas",
     exame_principal:"Ressonância magnética (RM)",necessita_opme:"Sim",
     necessita_sadt:"Sim",prioridade:"Alta",status_inicial:"Pronto para envio",
-    medico_solicitante:"Dr. José Correia Jr.",crm:"CRM/CE 18227"},
-  PROC002:{nome_paciente:"Maria Aparecida Cervical",data_nascimento:"1965-11-30",
-    sexo:"Feminino",cpf:"654.321.098-11",telefone:"(88) 99702-5566",
-    convenio:"Bradesco Saúde",numero_carteira:"1234567890002",carater:"E",
+    medico_solicitante:"Dr. Médico Teste",crm:"CRM/CE 00000"},
+  PROC002:{nome_paciente:"Paciente Teste 02",data_nascimento:"1965-11-30",
+    sexo:"Feminino",cpf:"000.000.000-00",telefone:"(00) 00000-0000",
+    convenio:"Bradesco Saúde",numero_carteira:"0000000000002",carater:"E",
     hospital:"Hospital Santo Antônio — Barbalha",
     procedimento:"Artrodese cervical anterior ACDF",lateralidade:"Bilateral",
     niveis_anatomicos:"C5-C6",deficit_neuro:"Mielopatia",dor_refrataria:"Sim",
     tto_conservador:"Sim",duracao_tto:"6 a 12 semanas",
     exame_principal:"RM + TC",necessita_opme:"Sim",
     necessita_sadt:"Sim",prioridade:"Alta",
-    medico_solicitante:"Dr. José Correia Jr.",crm:"CRM/CE 18227"},
-  PROC003:{nome_paciente:"João Batista Tumor",data_nascimento:"1958-03-22",
-    sexo:"Masculino",cpf:"111.222.333-44",telefone:"(88) 98800-1122",
-    convenio:"Unimed",numero_carteira:"5555666677778",carater:"U",
+    medico_solicitante:"Dr. Médico Teste",crm:"CRM/CE 00000"},
+  PROC003:{nome_paciente:"Paciente Teste 03",data_nascimento:"1958-03-22",
+    sexo:"Masculino",cpf:"000.000.000-00",telefone:"(00) 00000-0000",
+    convenio:"Unimed",numero_carteira:"0000000000003",carater:"U",
     hospital:"Hospital Santo Antônio — Barbalha",
     procedimento:"Craniotomia ressecção tumor cerebral",
     deficit_neuro:"Mielopatia",dor_refrataria:"Sim",
     exame_principal:"RM + TC",necessita_opme:"Sim",necessita_sadt:"Sim",
     prioridade:"Urgente",status_inicial:"Pronto para envio",
-    medico_solicitante:"Dr. José Correia Jr.",crm:"CRM/CE 18227"},
-  PROC005:{nome_paciente:"Ana Lima Estenose",data_nascimento:"1950-07-14",
-    sexo:"Feminino",cpf:"987.654.321-00",telefone:"(88) 99603-8877",
-    convenio:"SulAmérica",numero_carteira:"9988776655443",carater:"E",
+    medico_solicitante:"Dr. Médico Teste",crm:"CRM/CE 00000"},
+  PROC005:{nome_paciente:"Paciente Teste 05",data_nascimento:"1950-07-14",
+    sexo:"Feminino",cpf:"000.000.000-00",telefone:"(00) 00000-0000",
+    convenio:"SulAmérica",numero_carteira:"0000000000005",carater:"E",
     hospital:"Hospital do Coração do Cariri",
     procedimento:"Laminectomia descompressiva lombar",lateralidade:"Bilateral",
     niveis_anatomicos:"L4-L5 e L5-S1",deficit_neuro:"Motor",dor_refrataria:"Sim",
     tto_conservador:"Sim",duracao_tto:"Mais de 12 semanas",
     exame_principal:"Ressonância magnética (RM)",necessita_opme:"Sim",necessita_sadt:"Sim",
-    prioridade:"Alta",medico_solicitante:"Dr. José Correia Jr.",crm:"CRM/CE 18227"},
-  PROC006:{nome_paciente:"Pedro Revisão Pseudoartrose",data_nascimento:"1961-09-05",
-    sexo:"Masculino",cpf:"444.555.666-77",telefone:"(88) 99500-4433",
-    convenio:"Amil",numero_carteira:"3322114455667",carater:"E",
+    prioridade:"Alta",medico_solicitante:"Dr. Médico Teste",crm:"CRM/CE 00000"},
+  PROC006:{nome_paciente:"Paciente Teste 06",data_nascimento:"1961-09-05",
+    sexo:"Masculino",cpf:"000.000.000-00",telefone:"(00) 00000-0000",
+    convenio:"Amil",numero_carteira:"0000000000006",carater:"E",
     hospital:"Hospital Santo Antônio — Barbalha",
     procedimento:"Revisão artrodese lombar",deficit_neuro:"Motor",dor_refrataria:"Sim",
     tto_conservador:"Sim",duracao_tto:"Mais de 12 semanas",
     exame_principal:"RM + TC",necessita_opme:"Sim",necessita_sadt:"Sim",
-    prioridade:"Alta",medico_solicitante:"Dr. José Correia Jr.",crm:"CRM/CE 18227"}
+    prioridade:"Alta",medico_solicitante:"Dr. Médico Teste",crm:"CRM/CE 00000"}
 };
 
 /* ──────────────────────────────────────────────
@@ -2947,8 +2869,17 @@ async function confirmedSend(){
     neuroauth_version:__NA_VERSION__,
     timestamp:new Date().toISOString()
   };
+  /* C1 — session token de barreira (não é criptografia; bloqueia scripts externos sem sessão) */
+  const _userEmail=naGetSessionField('email');
+  if(!_userEmail){toast('Sessão expirada. Faça login novamente.','er');sp.classList.remove('on');btn.disabled=false;return;}
+  const _sessionToken=btoa(_userEmail+':'+Date.now().toString().slice(0,-3));
+  payload.session_token=_sessionToken;
   try{
-    const r=await fetch(WH,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const r=await fetch(WH,{method:'POST',headers:{
+      'Content-Type':'application/json',
+      'X-NA-Session':_sessionToken,
+      'X-NA-User':maskEmail(_userEmail)
+    },body:JSON.stringify(payload)});
     sp.classList.remove('on');btn.disabled=false;
     if(r.ok){
       closeModal('pvModal');
@@ -2958,7 +2889,7 @@ async function confirmedSend(){
       envioConfirmadoEm = new Date().toISOString();
       envioUserEmail    = naGetSessionField('email') || '';
       // Limpar SSoT após envio confirmado — próxima guia começa fresh
-      window.__NA_STATE__ = {payload: null, compliance: null, ts: null, dirty: true};
+      window.__NA_STATE__ = {proc_id:'',convenio:'',can_print:false,blocks_count:0,compliance:null,ts:null,dirty:true};
       window.__NA_LAST_COMPLIANCE__ = null;
       naUpdateAuditUI();
       naLog('send_ok', {ts: envioConfirmadoEm});
@@ -2998,29 +2929,40 @@ async function testWebhook(){
 }
 
 /* ──────────────────────────────────────────────
-   DRAFT
+   DRAFT — v2 (sem PHI)
+   sessionStorage: limpo ao fechar aba/janela.
+   PHI (CPF, CNS, nome, carteira, clínica) NUNCA gravado.
 ────────────────────────────────────────────── */
+var SAFE_DRAFT_FIELDS = [
+  'procedimento','convenio','hospital','medico_solicitante','crm','cbo',
+  'necessita_opme','necessita_sadt','carater','tipo_guia','regime',
+  'prioridade','cod_cbhpm','cod_tuss','cid_principal','regiao',
+  'tipo_internacao','qtde_diarias_solicitadas','previsao_quimioterapico',
+  'numero_guia_prestador','lateralidade','via_acesso'
+];
+
 function saveDraft(){
-  try{localStorage.setItem('neuroauth_draft',JSON.stringify(collect()));toast('💾 Rascunho salvo');}catch(e){}
+  try{
+    localStorage.removeItem('neuroauth_draft');
+    const full=collect();
+    const safe={};
+    SAFE_DRAFT_FIELDS.forEach(function(k){if(full[k]!==undefined&&full[k]!=='')safe[k]=full[k];});
+    sessionStorage.setItem('neuroauth_draft_safe',JSON.stringify(safe));
+    toast('💾 Rascunho salvo (dados do paciente não são gravados)');
+  }catch(e){}
 }
 
 function restoreDraft(){
   try{
-    const raw=localStorage.getItem('neuroauth_draft');if(!raw)return;
+    localStorage.removeItem('neuroauth_draft');
+    const raw=sessionStorage.getItem('neuroauth_draft_safe');
+    if(!raw)return;
     const d=JSON.parse(raw);
-    const flds=['nome_paciente','data_nascimento','sexo','cpf','telefone','email','cns','comorbidades',
-      'convenio','numero_carteira','validade_carteira','carater','tipo_guia','hospital','regime','obs_convenio',
-      'procedimento','cid2','cod_tuss','regiao','lateralidade','qtd_niveis','niveis_anatomicos',
-      'via_acesso','data_cirurgia','prioridade','deficit_neuro','dor_refrataria','tto_conservador',
-      'duracao_tto','exame_principal','achados_resumo','indicacao_clinica','achados_exame',
-      'medico_solicitante','crm','cbo','tel_medico','necessita_opme','necessita_sadt',
-      'empresa_opme','justificativa_opme','sadt_solicitado','status_inicial','obs_finais'];
-    flds.forEach(id=>{if(d[id]!==undefined)sv(id,d[id])});
+    SAFE_DRAFT_FIELDS.forEach(function(id){if(d[id]!==undefined)sv(id,d[id]);});
     if(d.cid_principal)sv('cid_principal',d.cid_principal);
-    if(d.codigo_proc)sv('codigo_proc',d.codigo_proc);
     if(d.cod_cbhpm)sv('cod_cbhpm',d.cod_cbhpm);
-    calcAge();fillANS();
-    toast('🔄 Rascunho anterior restaurado','wa');
+    fillANS();
+    toast('🔄 Preferências restauradas (preencha os dados do paciente)','wa');
   }catch(e){}
 }
 
@@ -3034,6 +2976,7 @@ function doReset(){
   sv('cbo','225118');
   closeModal('rstModal');
   localStorage.removeItem('neuroauth_draft');
+  sessionStorage.removeItem('neuroauth_draft_safe');
   goTab(0);
   toast('Formulário limpo.','wa');
 }
@@ -3080,6 +3023,12 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('DOMContentLoaded',()=>{
   // Auth layer handles restoreDraft/addOpme/goTab(0) via naEnterForm()
   naCheckSession();
+  // D3 — Freeze funções críticas de auth/envio contra sobrescrita via console
+  try{
+    Object.defineProperty(window,'naFetchPerfil',{writable:false,configurable:false});
+    Object.defineProperty(window,'confirmedSend',{writable:false,configurable:false});
+    Object.defineProperty(window,'naHandleLogin',{writable:false,configurable:false});
+  }catch(e){}
 });
 </script>
 
@@ -3289,19 +3238,46 @@ document.addEventListener('DOMContentLoaded',()=>{
   return{VERSION:VERSION,validateBeforePrint:validateBeforePrint,adjustUIForOperator:adjustUIForOperator,CONVENIO_RULES:CONVENIO_RULES,_helpers:{isOpmeAtivo:_isOpmeAtivo,dedupe:_dedupe}};
 }));
 
-/* ── __NA_STATE__ — SSoT central: payload validado + resultado compliance + flag dirty ── */
+/* ── __NA_STATE__ — SSoT operacional (sem PHI) ── */
 window.__NA_STATE__ = window.__NA_STATE__ || {
-  payload:    null,   // último payload safe (naSafePayload) que passou pela compliance
-  compliance: null,   // último resultado validateBeforePrint
-  ts:         null,   // ISO timestamp da última validação
-  dirty:      true    // true = cache inválido, revalidar antes de enviar
+  proc_id:      '',    // código do procedimento atual (não-sensível)
+  convenio:     '',    // convênio selecionado
+  can_print:    false, // resultado do compliance gate
+  blocks_count: 0,     // número de bloqueios TISS
+  compliance:   null,  // resultado validateBeforePrint
+  ts:           null,  // ISO timestamp da última validação
+  dirty:        true   // true = cache inválido, revalidar antes de enviar
 };
 
-/* ── naLog — log silencioso estruturado de produção ── */
+/* ── naLog — log sanitizado — sem PHI, sem email completo ── */
 var __NA_VERSION__ = '3.0.0'; // versão canônica — única fonte de verdade para UI, payload e logs
+
+function maskEmail(e){
+  if(!e||typeof e!=='string') return '[email]';
+  var p=e.split('@');
+  if(p.length!==2) return '[email]';
+  var u=p[0];
+  return (u.length>2?u[0]+'***'+u[u.length-1]:'***')+'@'+p[1];
+}
+
+var NA_LOG_BLOCKLIST=[
+  'cpf','cns','carteira','nome_paciente','data_nascimento',
+  'indicacao_clinica','achados_exame','justificativa_opme',
+  'email','user_email','opme_items'
+];
+
 function naLog(event, data) {
   try {
-    console.debug('[NA]', Object.assign({ event: event, ts: new Date().toISOString(), v: __NA_VERSION__ }, data || {}));
+    var safe={};
+    if(data){
+      Object.keys(data).forEach(function(k){
+        if(NA_LOG_BLOCKLIST.indexOf(k)!==-1) return;
+        var v=data[k];
+        if(typeof v==='string'&&v.indexOf('@')!==-1) v=maskEmail(v);
+        safe[k]=v;
+      });
+    }
+    console.debug('[NA]', Object.assign({ event: event, ts: new Date().toISOString(), v: __NA_VERSION__ }, safe));
   } catch(e) {}
 }
 
@@ -3339,8 +3315,16 @@ function naRunCompliance(payload) {
   var safe    = naSafePayload(payload);
   var convenio = (safe.convenio||'').toLowerCase().replace(/\s+/g,'_');
   var result = NEUROAUTH_COMPLIANCE.validateBeforePrint(safe, convenio);
-  // SSoT: atualiza estado central
-  window.__NA_STATE__ = {payload: safe, compliance: result, ts: new Date().toISOString(), dirty: false};
+  // SSoT: atualiza estado central — D1: sem payload clínico no global
+  window.__NA_STATE__ = {
+    proc_id:      safe.cod_cbhpm||safe.cod_tuss||'',
+    convenio:     safe.convenio||'',
+    can_print:    result.can_print,
+    blocks_count: result.blocks.length,
+    compliance:   result,
+    ts:           new Date().toISOString(),
+    dirty:        false
+  };
   window.__NA_LAST_COMPLIANCE__ = result; // alias backwards-compat
 
   var panel   = document.getElementById('na-compliance-panel');

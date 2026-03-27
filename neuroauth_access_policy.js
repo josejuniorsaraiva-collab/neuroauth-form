@@ -605,6 +605,7 @@
    * ========================================================================= */
   function evaluateSync(opts) {
     opts = opts || {};
+
     var userId        = opts.user_id        || null;
     var invoiceStatus = opts.invoice_status || 'none';
     var daysOverdue   = opts.days_overdue   || 0;
