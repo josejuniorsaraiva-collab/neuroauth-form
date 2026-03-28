@@ -1403,15 +1403,20 @@ async function runDemo() {
 
   const payload = {
     request_id: 'DEMO_' + Date.now(),
+    identificacao_caso: {
+      numero_guia: 'DEMO_' + Date.now(),
+      tipo_atendimento: 'internacao',
+      carater_atendimento: 'eletivo',
+    },
     paciente: {
       nome: document.getElementById('f-paciente').value,
       data_nascimento: document.getElementById('f-nasc').value,
       carteirinha: document.getElementById('f-cart').value,
     },
-    convenio: document.getElementById('f-conv').value,
+    convenio: { nome: document.getElementById('f-conv').value },
     medico: { crm: document.getElementById('f-crm').value },
     hospital: { cnes: document.getElementById('f-cnes').value },
-    procedimento: {
+    procedimento_principal: {
       codigo_tuss: document.getElementById('f-tuss').value,
       cid: document.getElementById('f-cid').value,
       descricao: document.getElementById('f-tuss').selectedOptions[0].text.split('—')[1]?.trim() || '',
