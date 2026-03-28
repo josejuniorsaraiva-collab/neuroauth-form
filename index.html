@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NEUROAUTH â AutorizaÃ§Ã£o CirÃºrgica Inteligente</title>
+<title>NEUROAUTH — Autorização Cirúrgica Inteligente</title>
 <style>
   :root {
     --bg: #080b10;
@@ -37,7 +37,7 @@
     overflow-x: hidden;
   }
 
-  /* ââ GRID OVERLAY ââ */
+  /* ── GRID OVERLAY ── */
   body::before {
     content: '';
     position: fixed;
@@ -50,7 +50,7 @@
     z-index: 0;
   }
 
-  /* ââ NAV ââ */
+  /* ── NAV ── */
   nav {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -107,7 +107,7 @@
   }
   .nav-link:hover { color: var(--text); }
 
-  /* ââ SECTIONS ââ */
+  /* ── SECTIONS ── */
   section {
     position: relative;
     z-index: 1;
@@ -116,7 +116,7 @@
     padding: 0 40px;
   }
 
-  /* ââ HERO ââ */
+  /* ── HERO ── */
   #hero {
     min-height: 100vh;
     display: flex;
@@ -172,7 +172,7 @@
     margin-bottom: 48px;
   }
 
-  /* ââ LIVE BAR ââ */
+  /* ── LIVE BAR ── */
   .live-bar {
     display: flex;
     align-items: center;
@@ -200,7 +200,7 @@
     background: var(--border);
   }
 
-  /* ââ HERO CTA ââ */
+  /* ── HERO CTA ── */
   .hero-ctas {
     display: flex;
     gap: 16px;
@@ -250,7 +250,7 @@
     color: var(--text);
   }
 
-  /* ââ LIVE EPISODE BLOCK ââ */
+  /* ── LIVE EPISODE BLOCK ── */
   #live-episode {
     padding: 100px 40px;
     max-width: 100%;
@@ -286,7 +286,7 @@
     max-width: 520px;
   }
 
-  /* ââ EPISODE CARD ââ */
+  /* ── EPISODE CARD ── */
   .episode-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -441,7 +441,7 @@
   }
   .tl-text { font-size: 13px; color: var(--text); }
 
-  /* ââ HOW IT WORKS ââ */
+  /* ── HOW IT WORKS ── */
   #how {
     padding: 100px 40px;
     max-width: 100%;
@@ -457,7 +457,7 @@
     overflow: hidden;
   }
 
-  @media (max-width: 900px) {
+  @media (max-width: 900pc) {
     .steps-grid { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 520px) {
@@ -514,7 +514,7 @@
     letter-spacing: 0.04em;
   }
 
-  /* ââ BLOQUEIO ââ */
+  /* ── BLOQUEIO ── */
   #bloqueio {
     padding: 100px 40px;
     max-width: 100%;
@@ -623,7 +623,7 @@
   .term-info { color: var(--blue); }
   .term-muted { color: var(--muted); }
 
-  /* ââ SIGNAL ââ */
+  /* ── SIGNAL ── */
   #signal {
     padding: 60px 40px;
     max-width: 100%;
@@ -660,7 +660,7 @@
     letter-spacing: 0.04em;
   }
 
-  /* ââ CTA ââ */
+  /* ── CTA ── */
   #cta {
     padding: 120px 40px;
     max-width: 100%;
@@ -684,7 +684,7 @@
     margin-bottom: 44px;
   }
 
-  /* ââ DEMO MODAL ââ */
+  /* ── DEMO MODAL ── */
   .modal-overlay {
     position: fixed;
     inset: 0;
@@ -802,7 +802,7 @@
     background: rgba(0,0,0,0.2);
   }
 
-  /* ââ FOOTER ââ */
+  /* ── FOOTER ── */
   footer {
     padding: 40px;
     max-width: 1100px;
@@ -823,7 +823,7 @@
 
   .footer-copy { font-size: 12px; color: var(--border2); }
 
-  /* ââ SPINNER ââ */
+  /* ── SPINNER ── */
   .spinner {
     display: inline-block;
     width: 14px; height: 14px;
@@ -835,7 +835,7 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ââ LOADING SKELETON ââ */
+  /* ── LOADING SKELETON ── */
   .skeleton {
     background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
     background-size: 200% 100%;
@@ -849,7 +849,7 @@
     100% { background-position: -200% 0; }
   }
 
-  /* ââ AOS ââ */
+  /* ── AOS ── */
   [data-aos] {
     opacity: 0;
     transform: translateY(20px);
@@ -863,28 +863,28 @@
 </head>
 <body>
 
-<!-- ââ NAV ââ -->
+<!-- ── NAV ── -->
 <nav>
   <div class="nav-logo">NEURO<span>AUTH</span></div>
   <div class="nav-status">
     <div class="pulse-dot" id="nav-dot"></div>
     <span id="nav-status-text">Conectando ao motor...</span>
   </div>
-  <a href="#cta" class="nav-link">Acesso â</a>
+  <a href="#cta" class="nav-link">Acesso →</a>
 </nav>
 
-<!-- ââ HERO ââ -->
+<!-- ── HERO ── -->
 <section id="hero">
   <div class="inner">
     <div class="hero-label">
       <div class="pulse-dot"></div>
-      Sistema em operaÃ§Ã£o
+      Sistema em operação
     </div>
 
-    <h1>O erro acontece<br/><em>antes</em> de chegar ao convÃªnio.</h1>
+    <h1>O erro acontece<br/><em>antes</em> de chegar ao convênio.</h1>
 
     <p class="hero-sub">
-      Motor de autorizaÃ§Ã£o cirÃºrgica que valida completude, compatibilidade clÃ­nica e conformidade regulatÃ³ria â em tempo real, antes do envio.
+      Motor de autorização cirúrgica que valida completude, compatibilidade clínica e conformidade regulatória — em tempo real, antes do envio.
     </p>
 
     <div class="live-bar">
@@ -894,11 +894,11 @@
       </div>
       <div class="live-sep"></div>
       <div class="live-item">
-        EpisÃ³dios processados: <strong id="ep-total">â</strong>
+        Episódios processados: <strong id="ep-total">—</strong>
       </div>
       <div class="live-sep"></div>
       <div class="live-item">
-        Ãltima validaÃ§Ã£o: <strong id="last-val">â</strong>
+        Última validação: <strong id="last-val">—</strong>
       </div>
       <div class="live-sep"></div>
       <div class="live-item">
@@ -909,22 +909,22 @@
     <div class="hero-ctas">
       <button class="btn-primary" onclick="openDemo()">
         Ver seu fluxo rodando aqui
-        <span>â</span>
+        <span>→</span>
       </button>
-      <a href="#live-episode" class="btn-ghost">Ver episÃ³dio ao vivo</a>
+      <a href="#live-episode" class="btn-ghost">Ver episódio ao vivo</a>
     </div>
   </div>
 </section>
 
-<!-- ââ EPISÃDIO AO VIVO ââ -->
+<!-- ── EPISÓDIO AO VIVO ── -->
 <section id="live-episode">
   <div class="inner">
-    <div class="section-label" data-aos>Sistema em execuÃ§Ã£o</div>
-    <h2 class="section-title" data-aos>EpisÃ³dio ao vivo.</h2>
-    <p class="section-sub" data-aos>Isso nÃ£o Ã© simulaÃ§Ã£o. Ã o Motor 1 rodando agora.</p>
+    <div class="section-label" data-aos>Sistema em execução</div>
+    <h2 class="section-title" data-aos>Episódio ao vivo.</h2>
+    <p class="section-sub" data-aos>Isso não é simulação. É o Motor 1 rodando agora.</p>
 
     <div class="episode-grid" data-aos>
-      <!-- Card EpisÃ³dio -->
+      <!-- Card Episódio -->
       <div class="episode-card active">
         <div class="card-header">
           <span class="card-id" id="ep-id">EP_2026_DEMO</span>
@@ -936,18 +936,18 @@
 
         <div class="ep-field">
           <span class="ep-label">Procedimento</span>
-          <span class="ep-value" id="ep-proc">ACDF C5âC6</span>
+          <span class="ep-value" id="ep-proc">ACDF C5–C6</span>
         </div>
         <div class="ep-field">
           <span class="ep-label">CID</span>
           <span class="ep-value" id="ep-cid">M50.1</span>
         </div>
         <div class="ep-field">
-          <span class="ep-label">ConvÃªnio</span>
+          <span class="ep-label">Convênio</span>
           <span class="ep-value" id="ep-conv">Unimed Nacional</span>
         </div>
         <div class="ep-field">
-          <span class="ep-label">MÃ©dico</span>
+          <span class="ep-label">Médico</span>
           <span class="ep-value" id="ep-med">Dr. Rafael Nunes</span>
         </div>
         <div class="ep-field">
@@ -961,15 +961,15 @@
             <span class="check-status run">Validando...</span>
           </div>
           <div class="check-row">
-            <span class="check-name">Compatibilidade clÃ­nica</span>
+            <span class="check-name">Compatibilidade clínica</span>
             <span class="check-status run">Aguardando</span>
           </div>
           <div class="check-row">
-            <span class="check-name">RegulatÃ³rio</span>
+            <span class="check-name">Regulatório</span>
             <span class="check-status run">Aguardando</span>
           </div>
           <div class="check-row">
-            <span class="check-name">Cobertura convÃªnio</span>
+            <span class="check-name">Cobertura convênio</span>
             <span class="check-status run">Aguardando</span>
           </div>
         </div>
@@ -989,75 +989,75 @@
   </div>
 </section>
 
-<!-- ââ HOW IT WORKS ââ -->
+<!-- ── HOW IT WORKS ── -->
 <section id="how">
   <div class="inner">
     <div class="section-label" data-aos>Como funciona</div>
     <h2 class="section-title" data-aos>Quatro camadas.<br/>Um resultado.</h2>
-    <p class="section-sub" data-aos>Cada etapa corresponde a uma aÃ§Ã£o real executada pelo motor.</p>
+    <p class="section-sub" data-aos>Cada etapa corresponde a uma ação real executada pelo motor.</p>
 
     <div class="steps-grid" data-aos>
       <div class="step">
         <div class="step-num">01</div>
-        <span class="step-icon">ð</span>
-        <h3>EpisÃ³dio criado</h3>
-        <p>O prontuÃ¡rio cirÃºrgico Ã© registrado com dados do paciente, mÃ©dico, procedimento e convÃªnio.</p>
-        <span class="step-tag">EpisÃ³dio registrado</span>
+        <span class="step-icon">📋</span>
+        <h3>Episódio criado</h3>
+        <p>O prontuário cirúrgico é registrado com dados do paciente, médico, procedimento e convênio.</p>
+        <span class="step-tag">Episódio registrado</span>
       </div>
       <div class="step">
         <div class="step-num">02</div>
-        <span class="step-icon">ð§¬</span>
-        <h3>ValidaÃ§Ã£o executada</h3>
-        <p>O motor verifica completude dos campos, compatibilidade TUSSÃCID, CRM/CNES e cobertura do plano.</p>
-        <span class="step-tag">ValidaÃ§Ã£o executada</span>
+        <span class="step-icon">🧬</span>
+        <h3>Validação executada</h3>
+        <p>O motor verifica completude dos campos, compatibilidade TUSS×CID, CRM/CNES e cobertura do plano.</p>
+        <span class="step-tag">Validação executada</span>
       </div>
       <div class="step">
         <div class="step-num">03</div>
-        <span class="step-icon">â ï¸</span>
-        <h3>PendÃªncia detectada</h3>
-        <p>Qualquer inconsistÃªncia gera uma pendÃªncia com cÃ³digo, categoria e orientaÃ§Ã£o de resoluÃ§Ã£o.</p>
-        <span class="step-tag">PendÃªncia detectada</span>
+        <span class="step-icon">⚠️</span>
+        <h3>Pendência detectada</h3>
+        <p>Qualquer inconsistência gera uma pendência com código, categoria e orientação de resolução.</p>
+        <span class="step-tag">Pendência detectada</span>
       </div>
       <div class="step">
         <div class="step-num">04</div>
-        <span class="step-icon">â</span>
+        <span class="step-icon">✅</span>
         <h3>Fluxo ajustado</h3>
-        <p>Com todas as pendÃªncias resolvidas, o envio Ã© liberado. Nunca antes. Nunca sem validaÃ§Ã£o.</p>
+        <p>Com todas as pendências resolvidas, o envio é liberado. Nunca antes. Nunca sem validação.</p>
         <span class="step-tag">Fluxo ajustado</span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ââ BLOQUEIO ââ -->
+<!-- ── BLOQUEIO ── -->
 <section id="bloqueio">
   <div class="inner">
     <div class="bloqueio-grid">
       <div class="bloqueio-text" data-aos>
-        <div class="section-label">Diferencial crÃ­tico</div>
+        <div class="section-label">Diferencial crítico</div>
         <h2>Antes do erro<br/>acontecer.</h2>
-        <p>O sistema bloqueia o envio quando detecta inconsistÃªncia. NÃ£o depois da glosa. NÃ£o depois da negativa. Antes.</p>
+        <p>O sistema bloqueia o envio quando detecta inconsistência. Não depois da glosa. Não depois da negativa. Antes.</p>
 
         <div class="error-list">
           <div class="error-item">
-            <span class="error-icon">ð´</span>
+            <span class="error-icon">🔴</span>
             <div class="error-info">
-              <h4>CID incompatÃ­vel com procedimento</h4>
-              <p>Tabela TUSSÃCID validada automaticamente para cada cirurgia</p>
+              <h4>CID incompatível com procedimento</h4>
+              <p>Tabela TUSS×CID validada automaticamente para cada cirurgia</p>
             </div>
           </div>
           <div class="error-item">
-            <span class="error-icon">ð´</span>
+            <span class="error-icon">🔴</span>
             <div class="error-info">
               <h4>OPME incompleta ou divergente</h4>
-              <p>Materiais, quantidades e especificaÃ§Ãµes verificados antes do envio</p>
+              <p>Materiais, quantidades e especificações verificados antes do envio</p>
             </div>
           </div>
           <div class="error-item">
-            <span class="error-icon">ð´</span>
+            <span class="error-icon">🔴</span>
             <div class="error-info">
-              <h4>DocumentaÃ§Ã£o insuficiente</h4>
-              <p>Laudos, relatÃ³rios e anexos exigidos pelo convÃªnio conferidos em tempo real</p>
+              <h4>Documentação insuficiente</h4>
+              <p>Laudos, relatórios e anexos exigidos pelo convênio conferidos em tempo real</p>
             </div>
           </div>
         </div>
@@ -1069,12 +1069,12 @@
             <div class="term-dot"></div>
             <div class="term-dot"></div>
             <div class="term-dot"></div>
-            <span class="term-title">motor1 â validaÃ§Ã£o em tempo real</span>
+            <span class="term-title">motor1 — validação em tempo real</span>
           </div>
           <div class="terminal-body" id="terminal-body">
             <div class="term-line">
               <span class="term-t">18:42:01</span>
-              <span class="term-info">â episÃ³dio recebido</span>
+              <span class="term-info">→ episódio recebido</span>
             </div>
             <div class="term-line">
               <span class="term-t">18:42:01</span>
@@ -1082,15 +1082,15 @@
             </div>
             <div class="term-line">
               <span class="term-t">18:42:01</span>
-              <span class="term-ok">â completude OK</span>
+              <span class="term-ok">✓ completude OK</span>
             </div>
             <div class="term-line">
               <span class="term-t">18:42:02</span>
-              <span class="term-muted">  verificando TUSSÃCID...</span>
+              <span class="term-muted">  verificando TUSS×CID...</span>
             </div>
             <div class="term-line">
               <span class="term-t">18:42:02</span>
-              <span class="term-ok">â compatibilidade clÃ­nica OK</span>
+              <span class="term-ok">✓ compatibilidade clínica OK</span>
             </div>
             <div class="term-line">
               <span class="term-t">18:42:02</span>
@@ -1098,7 +1098,7 @@
             </div>
             <div class="term-line">
               <span class="term-t">18:42:02</span>
-              <span class="term-ok">â regulatÃ³rio OK</span>
+              <span class="term-ok">✓ regulatório OK</span>
             </div>
             <div class="term-line">
               <span class="term-t">18:42:03</span>
@@ -1106,11 +1106,11 @@
             </div>
             <div class="term-line">
               <span class="term-t">18:42:03</span>
-              <span class="term-warn">â  OPME sem autorizaÃ§Ã£o prÃ©via</span>
+              <span class="term-warn">⚠ OPME sem autorização prévia</span>
             </div>
             <div class="term-line">
               <span class="term-t">18:42:03</span>
-              <span class="term-err">â envio bloqueado â 1 pendÃªncia</span>
+              <span class="term-err">✗ envio bloqueado — 1 pendência</span>
             </div>
           </div>
         </div>
@@ -1119,12 +1119,12 @@
   </div>
 </section>
 
-<!-- ââ SIGNAL ââ -->
+<!-- ── SIGNAL ── -->
 <section id="signal">
   <div class="inner">
     <div class="signal-item">
-      <div class="signal-value accent" id="sig-ep">â</div>
-      <div class="signal-label">episÃ³dios no sistema</div>
+      <div class="signal-value accent" id="sig-ep">—</div>
+      <div class="signal-label">episódios no sistema</div>
     </div>
     <div class="signal-item">
       <div class="signal-value">4</div>
@@ -1135,38 +1135,38 @@
       <div class="signal-label">estados no workflow</div>
     </div>
     <div class="signal-item">
-      <div class="signal-value accent" id="sig-uptime">â</div>
+      <div class="signal-value accent" id="sig-uptime">—</div>
       <div class="signal-label">uptime do motor</div>
     </div>
   </div>
 </section>
 
-<!-- ââ CTA ââ -->
+<!-- ── CTA ── -->
 <section id="cta">
   <div class="inner">
-    <div class="section-label" style="display:inline-block;margin-bottom:20px" data-aos>Para equipes cirÃºrgicas</div>
+    <div class="section-label" style="display:inline-block;margin-bottom:20px" data-aos>Para equipes cirúrgicas</div>
     <h2 data-aos>Ver seu fluxo<br/>rodando aqui.</h2>
-    <p data-aos>NÃ£o Ã© uma demo gravada. Ã o sistema real processando sua solicitaÃ§Ã£o agora.</p>
+    <p data-aos>Não é uma demo gravada. É o sistema real processando sua solicitação agora.</p>
     <div data-aos>
       <button class="btn-primary" onclick="openDemo()" style="font-size:16px;padding:18px 36px">
-        Criar episÃ³dio real â
+        Criar episódio real →
       </button>
     </div>
   </div>
 </section>
 
-<!-- ââ FOOTER ââ -->
+<!-- ── FOOTER ── -->
 <footer>
   <div class="footer-logo">NEURO<span>AUTH</span></div>
-  <div class="footer-copy">Motor 1 Â· v1.0.0 Â· SQLite WAL Â· FastAPI</div>
+  <div class="footer-copy">Motor 1 · v1.0.0 · SQLite WAL · FastAPI</div>
 </footer>
 
-<!-- ââ MODAL ââ -->
+<!-- ── MODAL ── -->
 <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">Criar episÃ³dio real</div>
-      <button class="modal-close" onclick="closeDemo()">â</button>
+      <div class="modal-title">Criar episódio real</div>
+      <button class="modal-close" onclick="closeDemo()">✕</button>
     </div>
 
     <div class="modal-form">
@@ -1187,12 +1187,12 @@
           <input class="form-input" id="f-cart" placeholder="000.000.000-00" value="881247033001"/>
         </div>
         <div class="form-group">
-          <label class="form-label">CONVÃNIO</label>
+          <label class="form-label">CONVÊNIO</label>
           <select class="form-select" id="f-conv">
             <option value="Unimed Nacional">Unimed Nacional</option>
-            <option value="Bradesco SaÃºde">Bradesco SaÃºde</option>
+            <option value="Bradesco Saúde">Bradesco Saúde</option>
             <option value="Amil">Amil</option>
-            <option value="SulAmÃ©rica">SulAmÃ©rica</option>
+            <option value="SulAmérica">SulAmérica</option>
             <option value="Hapvida">Hapvida</option>
           </select>
         </div>
@@ -1200,7 +1200,7 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">MÃDICO (CRM)</label>
+          <label class="form-label">MÉDICO (CRM)</label>
           <input class="form-input" id="f-crm" placeholder="CRM-SP 000000" value="CRM-SP 124879"/>
         </div>
         <div class="form-group">
@@ -1211,27 +1211,27 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">CÃDIGO TUSS</label>
+          <label class="form-label">CÓDIGO TUSS</label>
           <select class="form-select" id="f-tuss">
-            <option value="31005020">31005020 â Artrodese cervical</option>
-            <option value="40803120">40803120 â Craniotomia</option>
-            <option value="31309179">31309179 â Laminectomia lombar</option>
-            <option value="30602018">30602018 â Microdiscectomia</option>
+            <option value="31005020">31005020 — Artrodese cervical</option>
+            <option value="40803120">40803120 — Craniotomia</option>
+            <option value="31309179">31309179 — Laminectomia lombar</option>
+            <option value="30602018">30602018 — Microdiscectomia</option>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label">CID-10</label>
           <select class="form-select" id="f-cid">
-            <option value="M50.1">M50.1 â Disc. cervical c/ radiculopatia</option>
-            <option value="G35">G35 â Esclerose mÃºltipla</option>
-            <option value="M51.1">M51.1 â Disc. lombar c/ radiculopatia</option>
-            <option value="M54.4">M54.4 â Lombociatalgia</option>
+            <option value="M50.1">M50.1 — Disc. cervical c/ radiculopatia</option>
+            <option value="G35">G35 — Esclerose múltipla</option>
+            <option value="M51.1">M51.1 — Disc. lombar c/ radiculopatia</option>
+            <option value="M54.4">M54.4 — Lombociatalgia</option>
           </select>
         </div>
       </div>
 
       <button class="btn-primary" onclick="runDemo()" id="run-btn" style="width:100%;justify-content:center;margin-top:4px">
-        Executar validaÃ§Ã£o agora â
+        Executar validação agora →
       </button>
     </div>
 
@@ -1250,25 +1250,27 @@
 <script>
 const API = 'https://neuroauth-api.onrender.com';
 
-// ââ AOS ââ
+// ── AOS ──
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('aos-visible'); });
 }, { threshold: 0.1 });
 document.querySelectorAll('[data-aos]').forEach(el => observer.observe(el));
 
-// ââ HEALTH POLL ââ
+// ── HEALTH POLL ──
 let healthData = null;
 let startTs = null;
 
+let _healthFails = 0;
 async function fetchHealth() {
   try {
-    const r = await fetch(API + '/health');
+    const r = await fetch(API + '/health', { signal: AbortSignal.timeout(15000) });
     if (!r.ok) throw new Error();
     healthData = await r.json();
+    _healthFails = 0;
 
     // Nav
     document.getElementById('nav-dot').className = 'pulse-dot';
-    document.getElementById('nav-status-text').textContent = 'Motor ativo Â· 4 validadores';
+    document.getElementById('nav-status-text').textContent = 'Motor ativo · 4 validadores';
 
     // Hero live bar
     document.getElementById('ep-total').textContent = healthData.episodios_total;
@@ -1278,7 +1280,7 @@ async function fetchHealth() {
     const dbEl = document.getElementById('db-status');
     dbEl.className = '';
     dbEl.style.cssText = '';
-    dbEl.textContent = 'SQLite WAL Â· Motor 1';
+    dbEl.textContent = 'SQLite WAL · Motor 1';
 
     // Signal
     document.getElementById('sig-ep').textContent = healthData.episodios_total;
@@ -1290,8 +1292,11 @@ async function fetchHealth() {
 
     return true;
   } catch(e) {
+    _healthFails++;
     document.getElementById('nav-dot').className = 'pulse-dot off';
-    document.getElementById('nav-status-text').textContent = 'Motor offline';
+    // First 3 failures = cold start window (~30s); after that = offline
+    document.getElementById('nav-status-text').textContent =
+      _healthFails <= 3 ? 'Motor acordando... aguarde ~30s' : 'Motor offline';
     return false;
   }
 }
@@ -1299,15 +1304,15 @@ async function fetchHealth() {
 fetchHealth();
 setInterval(fetchHealth, 10000);
 
-// ââ DEMO EPISODE ANIMATION ââ
+// ── DEMO EPISODE ANIMATION ──
 const DEMO_STEPS = [
-  { delay: 800,  status: 'run',   badge: 'Processando', tl: { type: 'info', text: 'EpisÃ³dio recebido' } },
-  { delay: 1800, status: 'run',   badge: 'Validando',   tl: { type: 'ok',   text: 'Completude verificada' }, check: [0, 'ok', 'â OK'] },
-  { delay: 2600, status: 'run',   badge: 'Validando',   tl: { type: 'ok',   text: 'Compatibilidade TUSSÃCID: OK' }, check: [1, 'ok', 'â OK'] },
-  { delay: 3400, status: 'run',   badge: 'Validando',   tl: { type: 'ok',   text: 'CRM/CNES verificados' }, check: [2, 'ok', 'â OK'] },
-  { delay: 4200, status: 'warn',  badge: 'PendÃªncia',   tl: { type: 'warn', text: 'OPME sem autorizaÃ§Ã£o prÃ©via detectada' }, check: [3, 'warn', 'â  Pendente'] },
-  { delay: 5000, status: 'warn',  badge: 'Bloqueado',   tl: { type: 'block', text: 'Envio bloqueado â aguardando resoluÃ§Ã£o' } },
-  { delay: 6800, status: 'ok',    badge: 'Liberado',    tl: { type: 'ok',   text: 'PendÃªncia resolvida Â· Envio liberado' } },
+  { delay: 800,  status: 'run',   badge: 'Processando', tl: { type: 'info', text: 'Episódio recebido' } },
+  { delay: 1800, status: 'run',   badge: 'Validando',   tl: { type: 'ok',   text: 'Completude verificada' }, check: [0, 'ok', '✓ OK'] },
+  { delay: 2600, status: 'run',   badge: 'Validando',   tl: { type: 'ok',   text: 'Compatibilidade TUSS×CID: OK' }, check: [1, 'ok', '✓ OK'] },
+  { delay: 3400, status: 'run',   badge: 'Validando',   tl: { type: 'ok',   text: 'CRM/CNES verificados' }, check: [2, 'ok', '✓ OK'] },
+  { delay: 4200, status: 'warn',  badge: 'Pendência',   tl: { type: 'warn', text: 'OPME sem autorização prévia detectada' }, check: [3, 'warn', '⚠ Pendente'] },
+  { delay: 5000, status: 'warn',  badge: 'Bloqueado',   tl: { type: 'block', text: 'Envio bloqueado — aguardando resolução' } },
+  { delay: 6800, status: 'ok',    badge: 'Liberado',    tl: { type: 'ok',   text: 'Pendência resolvida · Envio liberado' } },
 ];
 
 function addTimelineItem(type, text) {
@@ -1331,7 +1336,7 @@ function addTimelineItem(type, text) {
   setTimeout(() => item.classList.add('visible'), 50);
 
   document.getElementById('last-val').textContent = 'agora';
-  setTimeout(() => { document.getElementById('last-val').textContent = 'hÃ¡ 1s'; }, 1000);
+  setTimeout(() => { document.getElementById('last-val').textContent = 'há 1s'; }, 1000);
 }
 
 function updateChecks(idx, status, text) {
@@ -1352,7 +1357,7 @@ function runDemoAnimation() {
       if (step.check) updateChecks(...step.check);
 
       const badge = document.getElementById('ep-badge');
-      const icons = { run: '<div class="spinner"></div>', warn: 'â ', ok: 'â', block: 'â' };
+      const icons = { run: '<div class="spinner"></div>', warn: '⚠', ok: '✓', block: '✗' };
       badge.className = `badge ${step.status === 'block' ? 'block' : step.status === 'warn' ? 'warn' : step.status === 'ok' ? 'ok' : 'run'}`;
       badge.innerHTML = `${icons[step.status] || ''} ${step.badge}`;
     }, step.delay);
@@ -1373,7 +1378,7 @@ function restartDemoAnimation() {
 
 runDemoAnimation();
 
-// ââ MODAL ââ
+// ── MODAL ──
 function openDemo() {
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -1397,6 +1402,7 @@ async function runDemo() {
   resultEl.className = 'modal-result';
 
   const payload = {
+    request_id: 'DEMO_' + Date.now(),
     paciente: {
       nome: document.getElementById('f-paciente').value,
       data_nascimento: document.getElementById('f-nasc').value,
@@ -1406,19 +1412,15 @@ async function runDemo() {
     medico: { crm: document.getElementById('f-crm').value },
     hospital: { cnes: document.getElementById('f-cnes').value },
     procedimento: {
-      codigo_tuss: document.getElementById('f-tuss').value,
-      cid: document.getElementById('f-cid').value,
-      descricao: document.getElementById('f-tuss').selectedOptions[0].text.split('â')[1]?.trim() || '',
-    }
-  };
-
-  try {
-    // 1. Criar episÃ³dio
-    const r1 = await fetch(API + '/episodios', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+      codig��\�Έ��[Y[���][[Y[��RY
+	ً]\���K��[YK��Y���[Y[���][[Y[��RY
+	ًX�Y	�K��[YK�\�ܚX�[Έ��[Y[���][[Y[��RY
+	ً]\���K��[X�Y�[ۜ��K�^��]
+	��%	�V�WO˝�[J
+H	���B�N��H��K�ܚX\�\\���[�ۜ��HH]�Z]�]�
+TH
+�	��\\��[���Y]��	���	��XY\�Έ�	��۝[�U\IΈ	�\X�][ۋڜ�ۉ�K���N���Ӌ���[��Y�J^[�Y
+B�});
     const ep = await r1.json();
     const epId = ep.id_episodio || ep.id || 'EP_DEMO';
 
@@ -1437,15 +1439,15 @@ async function runDemo() {
     const aprovado = resultadoV.aprovado ?? (pendList.length === 0);
 
     document.getElementById('res-dot').className = `pulse-dot ${aprovado ? '' : 'warn'}`;
-    document.getElementById('res-label').textContent = aprovado ? 'â EpisÃ³dio validado â Envio liberado' : 'â  PendÃªncias detectadas â Envio bloqueado';
+    document.getElementById('res-label').textContent = aprovado ? '✓ Episódio validado — Envio liberado' : '⚠ Pendências detectadas — Envio bloqueado';
     document.getElementById('res-label').style.color = aprovado ? 'var(--accent)' : 'var(--warn)';
     document.getElementById('res-ep-id').textContent = 'ID: ' + epId;
 
     const checkNames = {
       completude: 'Completude',
-      clinico: 'Compatibilidade clÃ­nica',
-      regulatorio: 'RegulatÃ³rio',
-      cobertura: 'Cobertura convÃªnio'
+      clinico: 'Compatibilidade clínica',
+      regulatorio: 'Regulatório',
+      cobertura: 'Cobertura convênio'
     };
 
     const checksEl = document.getElementById('res-checks');
@@ -1457,7 +1459,7 @@ async function runDemo() {
       row.innerHTML = `
         <span style="color:var(--muted)">${checkNames[k] || k}</span>
         <span style="color:${ok ? 'var(--accent)' : 'var(--warn)'}; font-weight:600">
-          ${ok ? 'â OK' : 'â  Pendente'}
+          ${ok ? '✓ OK' : '⚠ Pendente'}
         </span>
       `;
       checksEl.appendChild(row);
@@ -1465,11 +1467,11 @@ async function runDemo() {
 
     if (pendList.length > 0) {
       const pEl = document.getElementById('res-pendencias');
-      pEl.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase">PendÃªncias (${pendList.length})</div>`;
+      pEl.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase">Pendências (${pendList.length})</div>`;
       pendList.slice(0,3).forEach(p => {
         const div = document.createElement('div');
         div.style.cssText = 'padding:10px 14px;background:var(--danger-dim);border:1px solid rgba(239,68,68,0.15);border-radius:8px;margin-bottom:8px;font-size:13px;color:var(--text)';
-        div.innerHTML = `<span style="color:var(--danger)">â</span> ${p.descricao || p.mensagem || JSON.stringify(p)}`;
+        div.innerHTML = `<span style="color:var(--danger)">●</span> ${p.descricao || p.mensagem || JSON.stringify(p)}`;
         pEl.appendChild(div);
       });
     }
@@ -1480,18 +1482,18 @@ async function runDemo() {
     fetchHealth();
 
   } catch(err) {
-    document.getElementById('res-label').textContent = 'Erro na comunicaÃ§Ã£o com o Motor';
+    document.getElementById('res-label').textContent = 'Erro na comunicação com o Motor';
     document.getElementById('res-label').style.color = 'var(--danger)';
     document.getElementById('res-dot').className = 'pulse-dot off';
     document.getElementById('res-checks').innerHTML = `<div style="font-size:13px;color:var(--muted)">${err.message}</div>`;
     resultEl.classList.add('show');
   }
 
-  btn.innerHTML = 'Executar nova validaÃ§Ã£o â';
+  btn.innerHTML = 'Executar nova validação →';
   btn.disabled = false;
 }
 
-// ââ TERMINAL ANIMATION ââ
+// ── TERMINAL ANIMATION ──
 (function animateTerminal() {
   const body = document.getElementById('terminal-body');
   const lines = body.querySelectorAll('.term-line');
