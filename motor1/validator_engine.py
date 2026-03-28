@@ -113,7 +113,7 @@ def _check_a_completude(dados: dict) -> list[PendenciaResult]:
         ))
 
     # OPME
-    opme = dados.get("opme", {})
+    opme = dados.get("opme") or {}
     if opme.get("necessita_opme") is True:
         itens = opme.get("itens", [])
         if not itens:
