@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="description" content="NEUROAUTH — Sistema operacional para cirurgia de alta complexidade. Autorização, compliance TISS, OPME e rastreabilidade em um único fluxo."/>
+<title>NEUROAUTH — O sistema operacional da cirurgia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════════ */
+:root{
+  --ink:#07080C; --ink2:#0D1017; --ink3:#141820;
+  --dust:#F0ECE5; --dust2:#D5D0C8; --dust3:#8C8880;
+  --line:#1C2030; --line2:#252D42;
+  --signal:#2455C8; --pulse:#3EC9AD; --warn:#C8943E; --danger:#A34444;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --mono:'DM Mono',monospace;
+  --api:https://neuroauth-api.onrender.com;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{background:var(--ink);color:var(--dust);font-family:var(--sans);font-weight:300;line-height:1.65;overflow-x:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+/* grain */
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;opacity:.35;z-index:9000}
+
+/* ═══ NAV ════════════════════════════════════════ */
+nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:22px 48px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid transparent;transition:all .5s}
+nav.scrolled{background:rgba(7,8,12,.95);border-color:var(--line);backdrop-filter:blur(20px)}
+.nlg{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--dust);text-decoration:none;display:inline-flex;align-items:center;gap:9px}
+.nlm{width:18px;height:18px;border:1px solid var(--signal);border-radius:3px;display:flex;align-items:center;justify-content:center}
+.nlm span{width:7px;height:7px;background:var(--signal);border-radius:1px}
+.nav-links{display:flex;align-items:center;gap:36px}
+.nav-links a{font-size:12px;color:var(--dust3);text-decoration:none;letter-spacing:.03em;transition:color .2s}
+.nav-links a:hover{color:var(--dust)}
+
+/* live pill */
+.nav-live{display:flex;align-items:center;gap:16px}
+.live-pill{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--dust3);padding:5px 10px;border:1px solid var(--line2);border-radius:12px;transition:all .4s}
+.live-pill.ok{color:var(--pulse);border-color:rgba(62,201,173,.25)}
+.live-pill.err{color:var(--danger);border-color:rgba(163,68,68,.25)}
+.lpd{width:5px;height:5px;border-radius:50%;background:currentColor;animation:throb 2.5s ease-in-out infinite}
+@keyframes throb{0%,100%{opacity:1}50%{opacity:.3}}
+
+.nav-cta{font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--ink);background:var(--dust);border:none;padding:9px 20px;border-radius:2px;cursor:pointer;text-decoration:none;transition:background .25s}
+.nav-cta:hover{background:rgba(240,236,229,.88)}
+
+/* ═══ VIEWS ══════════════════════════════════════ */
+.view{display:none}
+.view.active{display:block}
+
+/* ═══════════════════════════════════════════════════
+   HOME VIEW
+═══════════════════════════════════════════════════ */
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;padding:0 48px 96px;position:relative;overflow:hidden}
+.hbg{position:absolute;inset:0;z-index:0}
+.hgrid{position:absolute;inset:0;background-image:linear-gradient(rgba(36,85,200,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(36,85,200,.035) 1px,transparent 1px);background-size:72px 72px}
+.horb{position:absolute;top:-15%;right:-8%;width:65vw;height:65vw;max-width:820px;max-height:820px;border-radius:50%;background:radial-gradient(ellipse at 35% 35%,rgba(36,85,200,.09) 0%,rgba(62,201,173,.03) 45%,transparent 70%);animation:orb 12s ease-in-out infinite}
+@keyframes orb{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+.hscan{position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--signal),transparent);animation:scan 10s ease-in-out infinite;opacity:0}
+@keyframes scan{0%,100%{transform:translateY(0);opacity:0}8%{opacity:.6}92%{opacity:.6}50%{transform:translateY(-100vh)}}
+
+.hero-in{position:relative;z-index:1;max-width:960px}
+.hbadge{display:inline-flex;align-items:center;gap:9px;margin-bottom:56px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--dust3);text-transform:uppercase}
+.hbdot{width:5px;height:5px;border-radius:50%;background:var(--pulse);animation:throb 3s ease-in-out infinite}
+h1.hero-h1{font-family:var(--serif);font-size:clamp(46px,6.5vw,96px);font-weight:300;line-height:1.0;letter-spacing:-.025em;margin-bottom:48px}
+h1.hero-h1 em{font-style:italic;color:var(--dust3)}
+
+.hero-story{max-width:440px;margin-bottom:56px;padding-left:16px;border-left:1px solid var(--line2)}
+.hs-ts{display:block;font-family:var(--mono);font-size:11px;color:var(--dust3);letter-spacing:.08em;margin-bottom:20px}
+.hs-l{display:block;font-size:15px;font-weight:300;color:var(--dust3);line-height:1;margin-bottom:12px}
+.hs-pause{display:block;height:24px}
+.hs-punch{display:block;font-size:15px;font-weight:400;color:var(--dust);line-height:1.6;padding-top:4px;border-top:1px solid var(--line2)}
+
+.hctas{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.btn-p{background:var(--dust);color:var(--ink);font-family:var(--sans);font-size:12px;font-weight:500;padding:13px 30px;border-radius:2px;text-decoration:none;letter-spacing:.05em;border:none;cursor:pointer;transition:background .25s}
+.btn-p:hover{background:rgba(240,236,229,.88)}
+.btn-s{color:var(--dust3);font-size:12px;font-weight:300;text-decoration:none;letter-spacing:.04em;border:none;background:none;cursor:pointer;padding:13px 0;display:flex;align-items:center;gap:6px;transition:color .25s}
+.btn-s:hover{color:var(--dust)}
+.btn-s::after{content:'→'}
+
+.hstats{position:absolute;bottom:44px;right:48px;z-index:1;display:flex;flex-direction:column;gap:20px;align-items:flex-end}
+.hst{text-align:right}
+.hstn{font-family:var(--mono);font-size:26px;color:var(--dust);line-height:1;letter-spacing:-.02em}
+.hstl{font-size:10px;color:var(--dust3);letter-spacing:.08em;margin-top:4px}
+
+/* UTIL */
+section{padding:120px 48px;position:relative}
+.w{max-width:1040px;margin:0 auto}
+.sl{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dust3);margin-bottom:20px;display:flex;align-items:center;gap:12px}
+.sl::before{content:'';width:20px;height:1px;background:var(--line2)}
+.dl{height:1px;background:linear-gradient(90deg,transparent,var(--line2) 20%,var(--line2) 80%,transparent);margin:0 48px}
+.r{opacity:0;transform:translateY(20px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+.r.v{opacity:1;transform:translateY(0)}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}.d4{transition-delay:.32s}
+
+/* PROBLEM */
+.prob{background:var(--ink2)}
+.prob-grid{display:grid;grid-template-columns:1fr 1fr;gap:88px;align-items:start;margin-top:64px}
+.prob-h2{font-family:var(--serif);font-size:clamp(34px,3.8vw,52px);font-weight:300;line-height:1.1;letter-spacing:-.015em}
+.prob-h2 em{font-style:italic;color:var(--dust3)}
+.scene-wrap{width:100%;margin-top:36px;border-radius:3px;overflow:hidden;border:1px solid var(--line2)}
+.scene-wrap svg{display:block;width:100%;height:auto}
+.scene-cap{font-family:var(--mono);font-size:9px;color:var(--dust3);letter-spacing:.08em;margin-top:8px}
+.emo .el{display:block;font-size:17px;font-weight:300;color:var(--dust3);line-height:1;margin-bottom:14px}
+.emo .epause{display:block;height:14px}
+.emo .ehit{display:block;font-size:15px;font-weight:400;color:var(--dust);line-height:1.6;padding-top:14px;border-top:1px solid var(--line2);margin-bottom:24px}
+.pp{font-size:14px;color:var(--dust3);line-height:1.9;margin-bottom:14px}
+.pp strong{color:var(--dust);font-weight:400}
+
+.pcards{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:72px}
+.pc{background:var(--ink2);padding:28px;transition:background .2s}
+.pc:hover{background:var(--ink3)}
+.pcn{font-family:var(--mono);font-size:9px;color:var(--line2);margin-bottom:14px;letter-spacing:.1em}
+.pct{font-size:14px;font-weight:400;color:var(--dust);margin-bottom:7px;line-height:1.3}
+.pcb{font-size:12px;color:var(--dust3);line-height:1.7}
+
+/* BEFORE/AFTER */
+.ba{margin-top:72px;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line)}
+.bac{padding:36px 32px}
+.bac.b{background:var(--ink2)}.bac.a{background:var(--ink3)}
+.bal{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:22px;display:flex;align-items:center;gap:7px}
+.bal.bl{color:var(--danger)}.bal.bl::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--danger)}
+.bal.al{color:var(--pulse)}.bal.al::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--pulse)}
+.bll{list-style:none}
+.bll li{padding:13px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--dust3);line-height:1.5;display:flex;align-items:baseline;gap:10px;cursor:default;transition:color .2s}
+.bll li:last-child{border-bottom:none}
+.bll li.hi{color:var(--dust)}
+.bac.b .bll li::before{content:'×';color:var(--danger);font-size:11px;flex-shrink:0;font-family:var(--mono)}
+.bac.a .bll li::before{content:'→';color:var(--pulse);font-size:11px;flex-shrink:0;font-family:var(--mono)}
+.bll li strong{color:var(--dust);font-weight:400}
+
+/* HOOK */
+.hook{background:var(--ink2);padding:96px 48px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.hookw{max-width:680px;margin:0 auto;text-align:center}
+.hookw p{font-family:var(--serif);font-size:clamp(20px,2.8vw,38px);font-weight:300;line-height:1.35;color:var(--dust3);font-style:italic}
+.hookw p strong{color:var(--dust);font-style:normal;font-weight:300}
+
+/* HOW */
+.how{background:var(--ink)}
+.how-flow{margin-top:72px}
+.how-step{display:grid;grid-template-columns:52px 1fr 1fr;gap:32px;padding:36px 0;border-top:1px solid var(--line);align-items:start}
+.how-step:last-child{border-bottom:1px solid var(--line)}
+.hnum{font-family:var(--mono);font-size:11px;color:var(--line2);padding-top:3px;letter-spacing:.06em}
+.htit{font-family:var(--serif);font-size:24px;font-weight:400;color:var(--dust);line-height:1.15;margin-bottom:12px}
+.hbod{font-size:13px;color:var(--dust3);line-height:1.75}
+.hpan{align-self:center;background:var(--ink2);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.hpr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10px}
+.hpr:last-child{border-bottom:none}
+.hpk{color:var(--dust3);letter-spacing:.04em}
+.hpv{color:var(--dust);display:flex;align-items:center;gap:5px}
+.pd{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.pd.ok{background:var(--pulse)}.pd.w{background:var(--warn)}.pd.x{background:var(--danger)}
+
+/* BENEFITS */
+.benefits{background:var(--ink2)}
+.bcols{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin-top:64px}
+.bcl{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--pulse);margin-bottom:22px}
+.bi{padding:18px 0;border-bottom:1px solid var(--line)}
+.bi:last-child{border-bottom:none}
+.bih{font-size:14px;color:var(--dust);font-weight:400;display:block;margin-bottom:5px;line-height:1.3}
+.bis{font-size:12px;color:var(--dust3);line-height:1.65}
+.bif{font-size:11px;color:var(--dust3);opacity:.65;margin-top:5px;font-style:italic;display:block}
+
+/* SIGNAL */
+.signal{background:var(--ink);overflow:hidden}
+.sig-in{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;margin-top:64px}
+.sigpre{font-family:var(--mono);font-size:10px;color:var(--dust3);letter-spacing:.06em;line-height:1.7;margin-bottom:36px;padding-bottom:20px;border-bottom:1px solid var(--line2)}
+.sigwin{background:var(--ink2);border:1px solid var(--line2);border-radius:3px;overflow:hidden}
+.swbar{background:var(--ink3);padding:11px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--line)}
+.swd{width:7px;height:7px;border-radius:50%;background:var(--line2)}
+.swt{font-family:var(--mono);font-size:9px;color:var(--dust3);letter-spacing:.07em;margin-left:6px}
+.swb{padding:20px}
+.sr{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:11px}
+.sr:last-child{border-bottom:none}
+.srk{color:var(--dust3);font-family:var(--mono);letter-spacing:.03em}
+.srv{color:var(--dust);display:flex;align-items:center;gap:5px}
+.sdok{width:5px;height:5px;border-radius:50%;background:var(--pulse)}
+.sdwn{width:5px;height:5px;border-radius:50%;background:var(--warn)}
+.sdrh{color:var(--dust3);text-align:right}
+
+/* live counter */
+.live-count{font-family:var(--mono);font-size:28px;color:var(--pulse);line-height:1;display:inline-block}
+.live-count.loading{color:var(--line2)}
+
+.sigr h2{font-family:var(--serif);font-size:clamp(30px,3.2vw,44px);font-weight:300;line-height:1.15;margin-bottom:20px}
+.sigr p{font-size:14px;color:var(--dust3);line-height:1.85;margin-bottom:14px}
+.sigr p strong{color:var(--dust);font-weight:400}
+.sigl{display:flex;flex-direction:column;margin-top:28px}
+.sii{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);align-items:flex-start;font-size:12px}
+.sii:last-child{border-bottom:none}
+.siid{width:5px;height:5px;border-radius:50%;background:var(--signal);flex-shrink:0;margin-top:4px}
+.siit{color:var(--dust3);line-height:1.6}
+.siit strong{color:var(--dust);font-weight:400}
+
+/* ROADMAP */
+.roadmap{background:var(--ink2);border-top:1px solid var(--line)}
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:64px}
+.rc{background:var(--ink2);padding:36px 28px;position:relative;overflow:hidden;transition:background .2s}
+.rc:hover{background:var(--ink3)}
+.rc.on{background:var(--ink3)}
+.rc.on::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--signal),transparent)}
+.rph{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dust3);margin-bottom:12px}
+.rc.on .rph{color:var(--pulse)}
+.rt{font-family:var(--serif);font-size:20px;font-weight:400;color:var(--dust);margin-bottom:10px;line-height:1.2}
+.rb{font-size:12px;color:var(--dust3);line-height:1.7}
+.rtag{display:inline-block;margin-top:18px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--dust3);border:1px solid var(--line2);padding:3px 9px;border-radius:2px}
+.rc.on .rtag{border-color:var(--signal);color:var(--signal)}
+
+/* MANIFESTO */
+.manifesto{background:var(--ink);padding:112px 48px;text-align:center;position:relative;overflow:hidden}
+.manifesto::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(36,85,200,.055) 0%,transparent 60%);pointer-events:none}
+.mw{position:relative;max-width:760px;margin:0 auto}
+.mlb{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dust3);margin-bottom:36px}
+.mh{font-family:var(--serif);font-size:clamp(30px,4.5vw,64px);font-weight:300;line-height:1.05;letter-spacing:-.025em;margin-bottom:28px}
+.mh em{font-style:italic;color:var(--dust3)}
+.mp{font-size:16px;font-weight:300;color:var(--dust3);line-height:1.9;max-width:540px;margin:0 auto 48px}
+.mp strong{color:var(--dust);font-weight:400}
+
+/* CTA */
+.ctas{background:var(--ink2);border-top:1px solid var(--line)}
+.ctain{display:grid;grid-template-columns:1fr 380px;gap:80px;align-items:center;padding:80px 0}
+.ctl h2{font-family:var(--serif);font-size:clamp(28px,3.5vw,48px);font-weight:300;line-height:1.1;margin-bottom:14px}
+.ctl p{font-size:14px;color:var(--dust3);line-height:1.8;max-width:420px;margin-top:14px}
+.ctf{background:var(--ink);border:1px solid var(--line2);border-radius:3px;padding:36px}
+.ctf h3{font-family:var(--serif);font-size:20px;font-weight:400;margin-bottom:5px}
+.ctfsub{font-size:12px;color:var(--dust3);margin-bottom:26px;line-height:1.6}
+.ff{margin-bottom:14px}
+.ff label{display:block;font-size:10px;color:var(--dust3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;font-family:var(--mono)}
+.ff input,.ff select{width:100%;background:var(--ink2);border:1px solid var(--line2);color:var(--dust);font-family:var(--sans);font-size:13px;font-weight:300;padding:10px 12px;border-radius:2px;outline:none;transition:border-color .2s;appearance:none}
+.ff input:focus,.ff select:focus{border-color:var(--signal)}
+.ff input::placeholder{color:var(--dust3)}
+.fsub{width:100%;background:var(--dust);color:var(--ink);font-family:var(--sans);font-size:12px;font-weight:500;padding:13px;border:none;border-radius:2px;cursor:pointer;letter-spacing:.06em;margin-top:8px;transition:background .2s}
+.fsub:hover{background:rgba(240,236,229,.88)}
+.fnote{font-size:11px;color:var(--dust3);margin-top:14px;text-align:center;font-family:var(--mono);letter-spacing:.04em;line-height:1.6}
+
+/* FOOTER */
+footer{background:var(--ink);border-top:1px solid var(--line);padding:56px 48px 36px}
+.fg{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:40px;padding-bottom:44px;border-bottom:1px solid var(--line)}
+.fb .flogo{font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:var(--dust);display:flex;align-items:center;gap:8px;margin-bottom:11px;text-decoration:none}
+.fb p{font-size:12px;color:var(--dust3);line-height:1.75;max-width:200px}
+.fc h4{font-size:10px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--dust3);margin-bottom:14px;font-family:var(--mono)}
+.fc a{display:block;font-size:12px;color:var(--dust3);text-decoration:none;margin-bottom:9px;transition:color .15s}
+.fc a:hover{color:var(--dust)}
+.fbot{max-width:1040px;margin:28px auto 0;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--dust3);font-family:var(--mono);letter-spacing:.05em}
+
+/* ═══════════════════════════════════════════════════
+   LOGIN VIEW
+═══════════════════════════════════════════════════ */
+#viewLogin{min-height:100vh;display:none}
+#viewLogin.active{display:grid;grid-template-columns:1fr 1fr}
+
+.lleft{background:var(--ink2);border-right:1px solid var(--line);padding:48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.llgrid{position:absolute;inset:0;background-image:linear-gradient(rgba(36,85,200,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(36,85,200,.03) 1px,transparent 1px);background-size:64px 64px;pointer-events:none}
+.llorb{position:absolute;bottom:-20%;right:-20%;width:70%;aspect-ratio:1;border-radius:50%;background:radial-gradient(ellipse at 40% 40%,rgba(36,85,200,.07) 0%,rgba(62,201,173,.03) 50%,transparent 70%);animation:orb 14s ease-in-out infinite}
+.lltop{position:relative;z-index:1}
+.llh{position:relative;z-index:1}
+.llh h1{font-family:var(--serif);font-size:clamp(40px,4vw,64px);font-weight:300;line-height:1.0;letter-spacing:-.025em;margin-bottom:28px}
+.llh h1 em{font-style:italic;color:var(--dust3)}
+.llh p{font-family:var(--mono);font-size:12px;color:var(--dust3);line-height:1.8;letter-spacing:.02em;max-width:360px}
+.sblock{position:relative;z-index:1;background:var(--ink);border:1px solid var(--line2);border-radius:3px;overflow:hidden}
+.sbh{padding:11px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.sbt{font-family:var(--mono);font-size:10px;color:var(--dust3);letter-spacing:.1em}
+.sblive{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;color:var(--pulse);letter-spacing:.08em}
+.sblive::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--pulse);animation:throb 2s ease-in-out infinite}
+.sbrows{padding:4px 0}
+.sbrow{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--line);font-size:12px}
+.sbrow:last-child{border-bottom:none}
+.sbk{font-family:var(--mono);font-size:10px;color:var(--dust3);letter-spacing:.04em}
+.sbv{color:var(--dust);display:flex;align-items:center;gap:6px;font-size:11px}
+.dot{width:4px;height:4px;border-radius:50%}
+.dok{background:var(--pulse)}.dwn{background:var(--warn)}
+.llfooter{position:relative;z-index:1}
+.llfooter p{font-size:11px;color:var(--dust3);line-height:1.7;font-family:var(--mono);letter-spacing:.03em}
+
+.lright{background:var(--ink);padding:48px;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.acard{width:100%;max-width:380px}
+.aclab{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dust3);margin-bottom:24px;display:flex;align-items:center;gap:10px}
+.aclab::before{content:'';width:16px;height:1px;background:var(--line2)}
+.actit{font-family:var(--serif);font-size:32px;font-weight:300;line-height:1.1;letter-spacing:-.02em;margin-bottom:8px}
+.acsub{font-family:var(--mono);font-size:11px;color:var(--dust3);line-height:1.65;letter-spacing:.02em;margin-bottom:12px}
+.acnext{font-family:var(--mono);font-size:10px;color:var(--dust3);letter-spacing:.04em;margin-bottom:36px;opacity:.6}
+.btng{width:100%;background:var(--dust);color:var(--ink);font-family:var(--sans);font-size:13px;font-weight:500;padding:14px 20px;border:none;border-radius:2px;cursor:pointer;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .25s;text-decoration:none;margin-bottom:16px}
+.btng:hover{background:rgba(240,236,229,.88)}
+.orline{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.orline::before,.orline::after{content:'';flex:1;height:1px;background:var(--line)}
+.orline span{font-family:var(--mono);font-size:9px;color:var(--dust3);letter-spacing:.1em}
+.btnem{width:100%;background:none;color:var(--dust3);font-family:var(--sans);font-size:12px;font-weight:300;padding:11px 20px;border:1px solid var(--line2);border-radius:2px;cursor:pointer;letter-spacing:.04em;transition:border-color .25s,color .25s;text-align:center}
+.btnem:hover{border-color:var(--line);color:var(--dust)}
+.actrust{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:28px;font-family:var(--mono);font-size:10px;color:var(--dust3);letter-spacing:.04em}
+.actrust span::before{content:'·';margin-right:8px;color:var(--line2)}
+.actrust span:first-child::before{display:none}
+
+/* ═══ EPISODE VIEW ══════════════════════════════ */
+#viewEpisode{min-height:100vh;display:none;background:var(--ink)}
+#viewEpisode.active{display:flex;flex-direction:column}
+.epnav{padding:22px 48px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.epgreet{font-family:var(--mono);font-size:11px;color:var(--dust3);letter-spacing:.08em;display:flex;align-items:center;gap:8px}
+.epgreet::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--pulse);animation:throb 2.5s ease-in-out infinite}
+.logout-btn{font-family:var(--mono);font-size:10px;color:var(--dust3);background:none;border:1px solid var(--line2);padding:5px 12px;border-radius:2px;cursor:pointer;letter-spacing:.06em;transition:all .2s}
+.logout-btn:hover{color:var(--dust);border-color:var(--line)}
+
+.epmain{flex:1;padding:56px 48px;max-width:720px;width:100%;margin:0 auto;animation:fadeUp .6s cubic-bezier(.16,1,.3,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.ep-section-lab{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--dust3);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.ep-section-lab::before{content:'';width:16px;height:1px;background:var(--line2)}
+
+.epcard{background:var(--ink2);border:1px solid var(--line2);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.epch{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between}
+.epct{font-family:var(--serif);font-size:22px;font-weight:400;color:var(--dust);line-height:1.2}
+.epcs{font-family:var(--mono);font-size:10px;color:var(--dust3);margin-top:4px;letter-spacing:.04em}
+.epbadge{font-family:var(--mono);font-size:9px;letter-spacing:.08em;padding:3px 8px;border-radius:2px;white-space:nowrap;background:rgba(200,148,62,.1);color:var(--warn);border:1px solid rgba(200,148,62,.2)}
+.epbadge.ok{background:rgba(62,201,173,.1);color:var(--pulse);border-color:rgba(62,201,173,.2)}
+.eprows{padding:4px 0}
+.eprow{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1px solid var(--line);font-size:12px}
+.eprow:last-child{border-bottom:none}
+.eprk{font-family:var(--mono);font-size:10px;color:var(--dust3);letter-spacing:.04em}
+.eprv{color:var(--dust);display:flex;align-items:center;gap:5px;font-size:11px}
+
+.epact{background:var(--dust);color:var(--ink);width:100%;border:none;border-radius:2px;font-family:var(--sans);font-size:12px;font-weight:500;padding:14px;cursor:pointer;letter-spacing:.05em;transition:background .25s;margin-bottom:12px}
+.epact:hover{background:rgba(240,236,229,.88)}
+.epsec{display:flex;justify-content:center;gap:28px;margin-top:8px}
+.epsl{font-family:var(--mono);font-size:10px;color:var(--dust3);letter-spacing:.06em;transition:color .2s;cursor:pointer;background:none;border:none;padding:0}
+.epsl:hover{color:var(--dust)}
+
+/* NEW EPISODE FORM */
+.newep-form{display:none;background:var(--ink2);border:1px solid var(--line2);border-radius:3px;padding:28px;margin-top:16px;animation:fadeUp .4s cubic-bezier(.16,1,.3,1)}
+.newep-form.open{display:block}
+
+/* ═══ RESPONSIVE ════════════════════════════════ */
+@media(max-width:900px){
+  nav{padding:18px 20px}
+  .nav-links,.hstats,.nav-live{display:none}
+  .hero{padding:0 20px 60px;min-height:100svh}
+  section{padding:80px 20px}
+  .dl{margin:0 20px}
+  .prob-grid,.bcols,.sig-in,.ctain{grid-template-columns:1fr;gap:48px}
+  .how-step{grid-template-columns:40px 1fr}
+  .hpan{display:none}
+  .rgrid{grid-template-columns:1fr}
+  .pcards,.ba{grid-template-columns:1fr}
+  .manifesto{padding:80px 20px}
+  .hook{padding:72px 20px}
+  .fg{grid-template-columns:1fr 1fr}
+  #viewLogin.active{grid-template-columns:1fr}
+  .lleft{display:none}
+  .lright{min-height:100vh;padding:32px 24px}
+  .epmain{padding:40px 20px}
+  .epnav{padding:18px 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav id="nav">
+  <a href="#" class="nlg" onclick="showView('home');return false"><div class="nlm"><span></span></div>NEUROAUTH</a>
+  <div class="nav-links">
+    <a href="#problema">O problema</a>
+    <a href="#como-funciona">Como funciona</a>
+    <a href="#para-quem">Para quem</a>
+    <a href="#roadmap">Evolução</a>
+  </div>
+  <div class="nav-live">
+    <div class="live-pill" id="livePill"><div class="lpd"></div><span id="liveText">verificando</span></div>
+    <a href="#" class="nav-cta" id="navCta" onclick="showView('login');return false">Acessar sistema</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════
+     HOME VIEW
+═══════════════════════════════════════════════ -->
+<div id="viewHome" class="view active">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hbg"><div class="hgrid"></div><div class="horb"></div><div class="hscan"></div></div>
+  <div class="hero-in">
+    <div class="hbadge"><div class="hbdot"></div>Sistema operacional · Cirurgia de alta complexidade</div>
+    <h1 class="hero-h1">Você opera.<br><em>O resto</em><br>acontece.</h1>
+
+    <div class="hero-story">
+      <span class="hs-ts">18h40</span>
+      <span class="hs-l">A consulta acabou.</span>
+      <span class="hs-l">Ainda faltam 3 guias.</span>
+      <span class="hs-l">Uma OPME incompleta.</span>
+      <span class="hs-l">Um convênio que você já conhece.</span>
+      <span class="hs-pause"></span>
+      <span class="hs-punch">Isso não deveria depender de você.</span>
+    </div>
+
+    <div class="hctas">
+      <a href="#" class="btn-p" onclick="showView('login');return false">Acessar o sistema</a>
+      <button class="btn-s" onclick="document.getElementById('problema').scrollIntoView({behavior:'smooth'})">Como funciona</button>
+    </div>
+  </div>
+
+  <div class="hstats">
+    <div class="hst"><div class="hstn" id="heroEps">—</div><div class="hstl">episódios processados</div></div>
+    <div class="hst"><div class="hstn">−80%</div><div class="hstl">negativas evitáveis</div></div>
+    <div class="hst"><div class="hstn">100%</div><div class="hstl">rastreabilidade</div></div>
+  </div>
+</div>
+
+<div class="dl"></div>
+
+<!-- PROBLEM -->
+<section class="prob" id="problema">
+  <div class="w">
+    <div class="sl r">O problema invisível</div>
+    <div class="prob-grid">
+      <div class="r">
+        <h2 class="prob-h2">Você atende.<br>Opera.<br>Resolve.<br><br><em>Mas termina o dia preenchendo o que o sistema não resolveu por você.</em></h2>
+        <div class="scene-wrap r d2">
+          <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg">
+            <rect width="640" height="340" fill="#0D1017"/>
+            <rect x="175" y="195" width="290" height="14" rx="2" fill="#1C2030"/>
+            <rect x="195" y="209" width="250" height="52" rx="2" fill="#131820"/>
+            <ellipse cx="320" cy="193" rx="54" ry="13" fill="#181F30"/>
+            <ellipse cx="320" cy="180" rx="26" ry="26" fill="#131820"/>
+            <ellipse cx="462" cy="155" rx="20" ry="20" fill="#181F30"/>
+            <rect x="444" y="175" width="36" height="72" rx="5" fill="#181F30"/>
+            <path d="M444 194 Q395 215 368 204" stroke="#181F30" stroke-width="13" fill="none" stroke-linecap="round"/>
+            <ellipse cx="178" cy="162" rx="18" ry="18" fill="#181F30"/>
+            <rect x="162" y="180" width="32" height="68" rx="5" fill="#181F30"/>
+            <path d="M192 198 Q240 212 275 208" stroke="#181F30" stroke-width="11" fill="none" stroke-linecap="round"/>
+            <circle cx="320" cy="52" r="38" fill="none" stroke="#1C2A50" stroke-width="1"/>
+            <circle cx="320" cy="52" r="25" fill="none" stroke="#2455C8" stroke-width="0.5" opacity=".3"/>
+            <rect x="52" y="90" width="112" height="76" rx="2" fill="#0E1018" stroke="#1C2030" stroke-width="1"/>
+            <polyline points="62,148 78,126 95,138 112,114 128,132 142,122 155,135" fill="none" stroke="#3EC9AD" stroke-width="1.2" opacity=".65"/>
+            <text x="62" y="106" font-family="DM Mono,monospace" font-size="7" fill="#2455C8" opacity=".55">EPISÓDIO_2025_001</text>
+            <text x="62" y="116" font-family="DM Mono,monospace" font-size="6.5" fill="#8C8880" opacity=".5">ACDF C5–C6 · Unimed</text>
+            <rect x="436" y="72" width="158" height="72" rx="3" fill="#0E1018" stroke="#252D42" stroke-width="1"/>
+            <rect x="436" y="72" width="158" height="3" rx="1" fill="#A34444" opacity=".7"/>
+            <text x="447" y="92" font-family="DM Mono,monospace" font-size="7.5" fill="#A34444">⚠ OPME incompleta</text>
+            <text x="447" y="104" font-family="DM Mono,monospace" font-size="7" fill="#8C8880">2 marcas · faltam 1</text>
+            <text x="447" y="118" font-family="DM Mono,monospace" font-size="7" fill="#8C8880">ANVISA pendente</text>
+            <text x="447" y="132" font-family="DM Mono,monospace" font-size="6.5" fill="#A34444">← corrigir antes do envio</text>
+            <ellipse cx="320" cy="330" rx="220" ry="18" fill="rgba(36,85,200,0.04)"/>
+          </svg>
+          <div class="scene-cap">O NEUROAUTH detecta o erro antes do envio. Não depois da negativa.</div>
+        </div>
+      </div>
+
+      <div class="r d2">
+        <div class="emo">
+          <span class="el">O cansaço não vem da cirurgia.</span>
+          <span class="el">Vem do depois.</span>
+          <span class="epause"></span>
+          <span class="el">Da guia que volta.</span>
+          <span class="el">Do material que não passou.</span>
+          <span class="el">Do silêncio do convênio.</span>
+          <span class="ehit">O desgaste não é técnico. É operacional.</span>
+        </div>
+        <p class="pp">Cada guia negada é um caso reaberto. Um prazo perdido. Uma cirurgia adiada. <strong>O NEUROAUTH foi construído do ponto de vista de quem opera.</strong></p>
+        <p class="pp">Não de quem audita.</p>
+      </div>
+    </div>
+
+    <div class="pcards">
+      <div class="pc r"><div class="pcn">01</div><div class="pct">Documentação inconsistente</div><div class="pcb">CID incompatível. OPME sem três marcas. Justificativa que não diz nada. O erro saiu porque nada o travou.</div></div>
+      <div class="pc r d1"><div class="pcn">02</div><div class="pct">Fluxo fragmentado</div><div class="pcb">Médico. Secretária. Hospital. Convênio. Ninguém tem visão completa. O erro mora exatamente nessa lacuna.</div></div>
+      <div class="pc r d2"><div class="pcn">03</div><div class="pct">Zero rastreabilidade</div><div class="pcb">Depois que envia, ninguém sabe. O silêncio vira ansiedade. A ansiedade vira ligação. A ligação vira retrabalho.</div></div>
+      <div class="pc r d3"><div class="pcn">04</div><div class="pct">Ausência de aprendizado</div><div class="pcb">A equipe repete os mesmos erros. Não existe memória de glosa. Cada caso começa do zero.</div></div>
+    </div>
+
+    <div class="ba">
+      <div class="bac b r">
+        <div class="bal bl">Antes do NEUROAUTH</div>
+        <ul class="bll" id="beforeList">
+          <li data-pair="0"><strong>Guia volta.</strong> Retrabalho. Atraso.</li>
+          <li data-pair="1"><strong>OPME recusada.</strong> Ligação. Renegociação.</li>
+          <li data-pair="2"><strong>Silêncio do convênio.</strong> Ninguém sabe o status.</li>
+          <li data-pair="3"><strong>Mesmo erro, de novo.</strong> Cada caso começa do zero.</li>
+          <li data-pair="4"><strong>Secretária sobrecarregada.</strong> Médico envolvido.</li>
+          <li data-pair="5"><strong>Cirurgia atrasada.</strong> Paciente esperando.</li>
+        </ul>
+      </div>
+      <div class="bac a r d2">
+        <div class="bal al">Com o NEUROAUTH</div>
+        <ul class="bll" id="afterList">
+          <li data-pair="0"><strong>Guia certa.</strong> Da primeira vez.</li>
+          <li data-pair="1"><strong>OPME validada</strong> antes do envio. 3 marcas. ANVISA ok.</li>
+          <li data-pair="2"><strong>Status em tempo real.</strong> Notificação automática.</li>
+          <li data-pair="3"><strong>Sistema não pergunta duas vezes.</strong> Próximo caso mais protegido.</li>
+          <li data-pair="4"><strong>Equipe focada.</strong> Fluxo coordenado.</li>
+          <li data-pair="5"><strong>Cirurgia acontece.</strong> No prazo. Sem surpresa.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="dl"></div>
+<div class="hook"><div class="hookw r"><p>"Se você já perdeu uma cirurgia<br>por causa de uma autorização,<br><strong>você entende por que isso existe.</strong>"</p></div></div>
+<div class="dl"></div>
+
+<!-- HOW -->
+<section class="how" id="como-funciona">
+  <div class="w">
+    <div class="sl r">Como funciona</div>
+    <h2 class="r" style="font-family:var(--serif);font-size:clamp(30px,3.8vw,48px);font-weight:300;line-height:1.1;max-width:500px;margin-bottom:0">Um episódio cirúrgico digital.<br>Do início ao arquivo.</h2>
+    <div class="how-flow">
+      <div class="how-step r">
+        <div class="hnum">01</div>
+        <div><div class="htit">Indicação &amp; contexto</div><div class="hbod">Cirurgia identificada. Convênio carregado. Regras ativas.<br>O contexto existe antes do primeiro campo.</div></div>
+        <div class="hpan"><div class="hpr"><span class="hpk">convênio</span><span class="hpv">Unimed Cariri</span></div><div class="hpr"><span class="hpk">procedimento</span><span class="hpv">ACDF C5–C6</span></div><div class="hpr"><span class="hpk">regras</span><span class="hpv"><div class="pd ok"></div>16 ativas</span></div></div>
+      </div>
+      <div class="how-step r">
+        <div class="hnum">02</div>
+        <div><div class="htit">Validação contínua</div><div class="hbod">Cada campo validado em tempo real.<br>O erro não passa. Nunca.</div></div>
+        <div class="hpan"><div class="hpr"><span class="hpk">CID</span><span class="hpv"><div class="pd ok"></div>M50.1 ✓</span></div><div class="hpr"><span class="hpk">OPME marcas</span><span class="hpv"><div class="pd w"></div>2/3</span></div><div class="hpr"><span class="hpk">envio</span><span class="hpv"><div class="pd x"></div>bloqueado</span></div></div>
+      </div>
+      <div class="how-step r">
+        <div class="hnum">03</div>
+        <div><div class="htit">Documentação &amp; envio</div><div class="hbod">SADT, guia, OPME, laudo.<br>Gerados. Versionados. Enviados.</div></div>
+        <div class="hpan"><div class="hpr"><span class="hpk">SADT</span><span class="hpv"><div class="pd ok"></div>SADT_v1.pdf</span></div><div class="hpr"><span class="hpk">OPME</span><span class="hpv"><div class="pd ok"></div>OPME_v1.pdf</span></div><div class="hpr"><span class="hpk">canal</span><span class="hpv">portal Unimed</span></div></div>
+      </div>
+      <div class="how-step r">
+        <div class="hnum">04</div>
+        <div><div class="htit">Monitoramento &amp; retorno</div><div class="hbod">Status atualizado. Negativa detectada.<br>Recurso sugerido. Loop fechado.</div></div>
+        <div class="hpan"><div class="hpr"><span class="hpk">status</span><span class="hpv"><div class="pd w"></div>em análise 3d</span></div><div class="hpr"><span class="hpk">prazo ANS</span><span class="hpv"><div class="pd ok"></div>18d restantes</span></div><div class="hpr"><span class="hpk">equipe</span><span class="hpv"><div class="pd ok"></div>notificada</span></div></div>
+      </div>
+      <div class="how-step r">
+        <div class="hnum">05</div>
+        <div><div class="htit">Inteligência acumulada</div><div class="hbod">Cada caso melhora o próximo.<br>O sistema não pergunta duas vezes.</div></div>
+        <div class="hpan"><div class="hpr"><span class="hpk">glosas</span><span class="hpv">47 analisadas</span></div><div class="hpr"><span class="hpk">padrões</span><span class="hpv">8 identificados</span></div><div class="hpr"><span class="hpk">sugestão</span><span class="hpv"><div class="pd ok"></div>ativa</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="dl"></div>
+
+<!-- BENEFITS -->
+<section class="benefits" id="para-quem">
+  <div class="w">
+    <div class="sl r">Para quem é</div>
+    <h2 class="r" style="font-family:var(--serif);font-size:clamp(30px,3.8vw,48px);font-weight:300;line-height:1.1;margin-bottom:0">Feito para quem opera.<br>Pensado para quem gerencia.</h2>
+    <div class="bcols" style="margin-top:64px">
+      <div class="r">
+        <div class="bcl">Para o médico</div>
+        <h3 style="font-family:var(--serif);font-size:28px;font-weight:300;line-height:1.2;margin-bottom:28px">Menos carga.<br>Mais medicina.</h3>
+        <div>
+          <div class="bi"><span class="bih">Você não precisa lembrar de tudo.</span><span class="bis">O sistema lembra por você — campos, regras, documentos, prazos.</span><span class="bif">Isso reduz a carga mental no fim do dia.</span></div>
+          <div class="bi"><span class="bih">A guia sai certa. Da primeira vez.</span><span class="bis">Validação em tempo real. Sem revisão. Sem retrabalho.</span></div>
+          <div class="bi"><span class="bih">O convênio não te surpreende mais.</span><span class="bis">Regras de cada operadora antes do envio. Não depois da negativa.</span><span class="bif">A sensação de controle que você não sabia que faltava.</span></div>
+          <div class="bi"><span class="bih">O recurso de glosa leva minutos.</span><span class="bis">Baseado em casos anteriores bem-sucedidos.</span></div>
+          <div class="bi"><span class="bih">Você sabe onde está cada caso.</span><span class="bis">Status em tempo real. Notificação automática.</span><span class="bif">Sem ligação. Sem espera. Sem ansiedade.</span></div>
+        </div>
+      </div>
+      <div class="r d2">
+        <div class="bcl">Para o serviço</div>
+        <h3 style="font-family:var(--serif);font-size:28px;font-weight:300;line-height:1.2;margin-bottom:28px">Previsibilidade real.<br>Escala sem caos.</h3>
+        <div>
+          <div class="bi"><span class="bih">Visão completa do pipeline.</span><span class="bis">Autorizadas, pendentes, em risco — em um painel.</span></div>
+          <div class="bi"><span class="bih">Redução de glosa mensurada.</span><span class="bis">Por convênio, por procedimento, por médico.</span><span class="bif">Dados reais. Não estimativas.</span></div>
+          <div class="bi"><span class="bih">A equipe opera no mesmo fluxo.</span><span class="bis">Padronização entre todos os médicos do serviço.</span></div>
+          <div class="bi"><span class="bih">Relatório mensal automático.</span><span class="bis">Sem montar planilha. O sistema entrega.</span></div>
+          <div class="bi"><span class="bih">Base para decisão estratégica.</span><span class="bis">Quais convênios negam mais. Onde está o risco real.</span><span class="bif">O que antes era intuição vira dado.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="dl"></div>
+
+<!-- SIGNAL -->
+<section class="signal">
+  <div class="w">
+    <div class="sl r">Motor 1 — ao vivo</div>
+    <div class="sig-in">
+      <div class="r">
+        <p class="sigpre">Tudo isso acontece antes de você perceber<br>que precisaria conferir.</p>
+        <div class="sigwin">
+          <div class="swbar"><div class="swd"></div><div class="swd"></div><div class="swd"></div><span class="swt" style="margin-left:8px">MOTOR 1 — status em tempo real</span></div>
+          <div class="swb">
+            <div class="sr"><span class="srk">sistema</span><span class="srv"><div class="sdok" id="sysDot"></div><span id="sysStatus">verificando...</span></span></div>
+            <div class="sr"><span class="srk">episódios processados</span><span class="srv"><span class="live-count loading" id="epsCount">—</span></span></div>
+            <div class="sr"><span class="srk">banco de dados</span><span class="srv"><div class="sdok" id="dbDot"></div><span id="dbStatus">verificando...</span></span></div>
+            <div class="sr"><span class="srk">compliance engine</span><span class="srv"><div class="sdok"></div>TISS RN501 · RN424 · RN623</span></div>
+            <div class="sr"><span class="srk">Make.com</span><span class="srv"><div class="sdok"></div>webhook ativo</span></div>
+            <div class="sr"><span class="srk">versão</span><span class="srv" style="font-family:var(--mono);font-size:10px" id="apiVersion">—</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="sigr r d2">
+        <h2>Rastreável.<br>Auditável.<br>Imutável.</h2>
+        <p>Cada ação registrada. Carimbada no tempo. Vinculada à origem. Nenhum documento sobrescreve outro.</p>
+        <p><strong>O histórico do caso é sempre reconstituível.</strong></p>
+        <div class="sigl">
+          <div class="sii"><div class="siid"></div><div class="siit"><strong>Conformidade TISS / ANS</strong> — RN 501/2022, RN 424/2017, RN 623/2024</div></div>
+          <div class="sii"><div class="siid"></div><div class="siit"><strong>LGPD integrada</strong> — comportamento padrão, não camada adicional</div></div>
+          <div class="sii"><div class="siid"></div><div class="siit"><strong>Versionamento documental</strong> — SADT_v1, SADT_v2_complemento, recurso_v1</div></div>
+          <div class="sii"><div class="siid"></div><div class="siit"><strong>Log de auditoria por episódio</strong> — quem, quando, por qual evento</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="dl"></div>
+
+<!-- ROADMAP -->
+<section class="roadmap" id="roadmap">
+  <div class="w">
+    <div class="sl r">Evolução do sistema</div>
+    <h2 class="r" style="font-family:var(--serif);font-size:clamp(26px,3.2vw,42px);font-weight:300;line-height:1.15;margin-bottom:0">Começa resolvendo o operacional.<br>Termina sendo a infraestrutura da prática.</h2>
+    <div class="rgrid" style="margin-top:64px">
+      <div class="rc on r"><div class="rph">Agora — Alpha</div><div class="rt">Guia certa. Sem retrabalho.</div><div class="rb">Validação em tempo real, compliance por operadora, documentação automática. O fluxo sai certo da primeira vez.</div><div class="rtag">Em produção</div></div>
+      <div class="rc r d1"><div class="rph">Próximos meses</div><div class="rt">Episódio digital completo</div><div class="rb">Calendar integrado. OPME coordenada. Status monitorado. Recurso de glosa sugerido automaticamente.</div><div class="rtag">Em desenvolvimento</div></div>
+      <div class="rc r d2"><div class="rph">Longo prazo</div><div class="rt">O sistema não pergunta duas vezes.</div><div class="rb">Aprende o padrão. Antecipa o contexto. O médico valida — o NEUROAUTH já estruturou.</div><div class="rtag">Roadmap</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- MANIFESTO -->
+<div class="manifesto">
+  <div class="mw">
+    <div class="mlb r">O que estamos construindo</div>
+    <h2 class="mh r d1">Quando o sistema está<br><em>bem feito,</em><br>ele desaparece.</h2>
+    <p class="mp r d2">O médico não pensa em "preencher guia". Não pensa em "checar OPME". Não pensa em "monitorar autorização". <strong>Ele pensa na cirurgia. No paciente.</strong> A burocracia vira invisível. O que sobra é a medicina.</p>
+    <div style="display:flex;justify-content:center" class="r d3"><a href="#" class="btn-p" onclick="showView('login');return false">Solicitar demonstração</a></div>
+  </div>
+</div>
+
+<!-- CTA -->
+<section class="ctas" id="demo">
+  <div class="w"><div class="ctain">
+    <div class="ctl r">
+      <div class="sl" style="margin-bottom:20px">Demonstração</div>
+      <h2>Veja o NEUROAUTH<br>no seu contexto real.</h2>
+      <p>Nenhuma apresentação genérica. Mostramos o sistema com o tipo de cirurgia que você realiza, no convênio que você usa, com as regras que você enfrenta.</p>
+    </div>
+    <div class="ctf r d2">
+      <h3>Agendar demonstração</h3>
+      <div class="ctfsub">Geralmente respondemos em menos de 24 horas.</div>
+      <div class="ff"><label>Nome</label><input type="text" placeholder="Dr. José Correia"/></div>
+      <div class="ff"><label>Especialidade</label><select><option value="">Selecionar</option><option>Neurocirurgia</option><option>Cirurgia de Coluna</option><option>Grupo / Serviço médico</option><option>Hospital</option></select></div>
+      <div class="ff"><label>Email</label><input type="email" placeholder="nome@hospital.com.br"/></div>
+      <div class="ff"><label>Convênio principal</label><input type="text" placeholder="Ex: Unimed, Bradesco, Hapvida"/></div>
+      <button class="fsub" onclick="submitDemo(this)">Solicitar demonstração →</button>
+      <div class="fnote">Nenhum compromisso. Nenhuma pressão.<br>Apenas clareza.</div>
+    </div>
+  </div></div>
+</section>
+
+<footer>
+  <div class="fg">
+    <div class="fb"><a href="#" class="flogo" onclick="showView('home');return false"><div class="nlm"><span></span></div>NEUROAUTH</a><p>Sistema operacional para cirurgia de alta complexidade. HSA Barbalha · Cariri, Ceará.</p></div>
+    <div class="fc"><h4>Produto</h4><a href="#">Como funciona</a><a href="#">Documentação</a><a href="#">Integrações</a><a href="#">Roadmap</a></div>
+    <div class="fc"><h4>Para médicos</h4><a href="#">Neurocirurgia</a><a href="#">Cirurgia de coluna</a><a href="#">Grupos médicos</a><a href="#">Hospitais</a></div>
+    <div class="fc"><h4>Conformidade</h4><a href="#">TISS / ANS</a><a href="#">LGPD</a><a href="#">RN 424/2017</a><a href="#">Segurança</a></div>
+  </div>
+  <div class="fbot"><span>© 2025 NEUROAUTH · Todos os direitos reservados</span><span id="footerVer">v3.0.0 · HSA Barbalha · Cariri CE</span></div>
+</footer>
+
+</div><!-- /viewHome -->
+
+<!-- ═══════════════════════════════════════════════
+     LOGIN VIEW
+═══════════════════════════════════════════════ -->
+<div id="viewLogin">
+  <div class="lleft">
+    <div class="llgrid"></div><div class="llorb"></div>
+    <div class="lltop"><a href="#" class="nlg" onclick="showView('home');return false"><div class="nlm"><span></span></div>NEUROAUTH</a></div>
+    <div class="llh">
+      <h1>O sistema<br>não começa<br><em>aqui.</em></h1>
+      <p>Episódios ativos.<br>Pendências abertas.<br>O sistema já está em curso.</p>
+    </div>
+    <div class="sblock">
+      <div class="sbh"><span class="sbt">Contexto ativo</span><span class="sblive">ao vivo</span></div>
+      <div class="sbrows">
+        <div class="sbrow"><span class="sbk">convênio</span><span class="sbv">Unimed Cariri</span></div>
+        <div class="sbrow"><span class="sbk">episódios em análise</span><span class="sbv"><div class="dot dok"></div>3 ativos</span></div>
+        <div class="sbrow"><span class="sbk">pendência OPME</span><span class="sbv"><div class="dot dwn"></div>1 aberta</span></div>
+        <div class="sbrow"><span class="sbk">prazo crítico</span><span class="sbv">ACDF C5–C6 · 7 dias</span></div>
+      </div>
+    </div>
+    <div class="llfooter"><p>Você só retoma.<br>O sistema já sabe onde estava.</p></div>
+  </div>
+
+  <div class="lright">
+    <div class="acard" id="loginCard">
+      <div class="aclab">Acesso clínico</div>
+      <div class="actit">Acessar o sistema.</div>
+      <p class="acsub">O sistema não começa aqui.<br>Você só retoma.</p>
+      <p class="acnext">Seu próximo passo já está definido.</p>
+      <button class="btng" onclick="handleGoogleLogin()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Entrar com Google
+      </button>
+      <div class="orline"><span>ou</span></div>
+      <button class="btnem" onclick="handleEmailLogin(this)">Acessar com email institucional</button>
+      <div class="actrust"><span>Sessão segura</span><span>Episódios rastreáveis</span><span>Continuidade imediata</span></div>
+    </div>
+
+    <div id="episodeCard" style="display:none;width:100%;max-width:420px;animation:fadeUp .6s cubic-bezier(.16,1,.3,1)">
+      <div class="ep-section-lab" id="epGreet" style="margin-bottom:28px">Retomando sessão</div>
+      <div class="epcard">
+        <div class="epch">
+          <div><div class="epct" id="epTitle">ACDF C5–C6</div><div class="epcs" id="epSub">José S. · Unimed Cariri · PROC001</div></div>
+          <div class="epbadge" id="epBadge">Ação pendente</div>
+        </div>
+        <div class="eprows">
+          <div class="eprow"><span class="eprk">status</span><span class="eprv" id="epStatus"><div class="dot dwn"></div>em análise</span></div>
+          <div class="eprow"><span class="eprk">prazo ANS</span><span class="eprv"><div class="dot dok"></div><span id="epPrazo">7 dias restantes</span></span></div>
+          <div class="eprow"><span class="eprk">pendência</span><span class="eprv" id="epPend"><div class="dot dwn"></div>OPME · 1 marca faltando</span></div>
+          <div class="eprow"><span class="eprk">compliance</span><span class="eprv"><div class="dot dok"></div><span id="epComp">11/12 regras</span></span></div>
+        </div>
+      </div>
+      <button class="epact" id="epActBtn" onclick="openApp()">Abrir episódio → completar OPME</button>
+      <div class="epsec">
+        <button class="epsl" onclick="openApp()">Ver todos os episódios</button>
+        <button class="epsl" onclick="openApp()">Novo episódio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     EPISODE VIEW (app entry)
+═══════════════════════════════════════════════ -->
+<div id="viewEpisode">
+  <div class="epnav">
+    <a href="#" class="nlg" onclick="showView('home');return false"><div class="nlm"><span></span></div>NEUROAUTH</a>
+    <div class="epgreet" id="appGreet">Carregando...</div>
+    <button class="logout-btn" onclick="doLogout()">Sair</button>
+  </div>
+  <div class="epmain">
+    <div class="ep-section-lab">Episódio ativo</div>
+    <div class="epcard">
+      <div class="epch">
+        <div><div class="epct" id="appEpTitle">—</div><div class="epcs" id="appEpSub">—</div></div>
+        <div class="epbadge" id="appEpBadge">—</div>
+      </div>
+      <div class="eprows">
+        <div class="eprow"><span class="eprk">status</span><span class="eprv" id="appStatus">—</span></div>
+        <div class="eprow"><span class="eprk">prazo ANS</span><span class="eprv" id="appPrazo">—</span></div>
+        <div class="eprow"><span class="eprk">compliance</span><span class="eprv" id="appComp">—</span></div>
+      </div>
+    </div>
+    <button class="epact" id="appActBtn">Carregando episódio...</button>
+    <div class="epsec">
+      <button class="epsl" onclick="showNewEpForm()">+ Novo episódio</button>
+      <button class="epsl" onclick="window.location.href='/'">Dashboard completo</button>
+    </div>
+
+    <div class="newep-form" id="newEpForm">
+      <div class="ep-section-lab" style="margin-bottom:20px">Novo episódio</div>
+      <div class="ff"><label>Procedimento</label><input type="text" id="neProcedimento" placeholder="ACDF C5–C6"/></div>
+      <div class="ff"><label>Paciente</label><input type="text" id="nePaciente" placeholder="Nome do paciente"/></div>
+      <div class="ff"><label>Convênio</label><select id="neConvenio"><option>Unimed Cariri</option><option>Bradesco Saúde</option><option>SulAmérica</option><option>Hapvida</option><option>Amil</option></select></div>
+      <button class="epact" onclick="createEpisode()" style="margin-top:4px">Criar episódio →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://neuroauth-api.onrender.com';
+
+/* ═══ VIEW ROUTER ════════════════════════════════ */
+function showView(v) {
+  document.querySelectorAll('.view,[id^=view]').forEach(el => {
+    el.classList.remove('active');
+    if (el.id && el.id.startsWith('view')) el.style.display = 'none';
+  });
+  const nav = document.getElementById('nav');
+  if (v === 'home') {
+    document.getElementById('viewHome').classList.add('active');
+    document.getElementById('viewHome').style.display = 'block';
+    nav.style.display = 'flex';
+    window.scrollTo(0,0);
+  } else if (v === 'login') {
+    const vl = document.getElementById('viewLogin');
+    vl.classList.add('active');
+    vl.style.display = 'grid';
+    nav.style.display = 'none';
+  } else if (v === 'episode') {
+    const ve = document.getElementById('viewEpisode');
+    ve.classList.add('active');
+    ve.style.display = 'flex';
+    nav.style.display = 'none';
+  }
+}
+
+/* ═══ HEALTH CHECK — com wake-up gracioso ═══ */
+async function fetchHealth() {
+  const pill = document.getElementById('livePill');
+  const txt  = document.getElementById('liveText');
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12000); // Render pode demorar ~10s pra acordar
+    const res = await fetch(`${API}/health`, {signal: ctrl.signal});
+    clearTimeout(t);
+    const d = await res.json();
+
+    // Nav pill
+    pill.className = 'live-pill ok';
+    txt.textContent = 'Motor 1 ativo';
+
+    // Signal section
+    document.getElementById('sysDot').style.background = 'var(--pulse)';
+    document.getElementById('sysStatus').textContent = d.status || 'ok';
+    document.getElementById('dbDot').style.background = d.db === 'connected' ? 'var(--pulse)' : 'var(--warn)';
+    document.getElementById('dbStatus').textContent = d.db || 'conectado';
+    document.getElementById('apiVersion').textContent = d.version || '1.0.0';
+
+    // Hero count
+    const eps = d.episodios_total ?? d.total_episodios ?? d.count ?? null;
+    if (eps !== null) {
+      document.getElementById('epsCount').textContent = eps;
+      document.getElementById('epsCount').classList.remove('loading');
+      animCount('heroEps', eps);
+    }
+
+    return d;
+  } catch {
+    pill.className = 'live-pill err';
+    txt.textContent = 'reconectando...';
+    document.getElementById('sysDot').style.background = 'var(--warn)';
+    document.getElementById('sysStatus').textContent = 'aguardando...';
+    // Retry em 15s (Render acorda)
+    setTimeout(fetchHealth, 15000);
+    return null;
+  }
+}
+
+function animCount(id, target) {
+  const el = document.getElementById(id);
+  if (!el || isNaN(target)) return;
+  let c = 0, step = Math.max(1, Math.floor(target / 20));
+  const t = setInterval(() => {
+    c = Math.min(c + step, target);
+    el.textContent = c;
+    if (c >= target) clearInterval(t);
+  }, 40);
+}
+
+/* ═══ GOOGLE OAUTH ════════════════════════════ */
+if (window.location.pathname === '/callback') handleCallback();
+
+function handleGoogleLogin() {
+  localStorage.removeItem('na_user');
+  // Para demo/alpha: simular login enquanto OAuth não está configurado
+  if (window.location.hostname === 'localhost' || window.location.hostname.includes('github.io')) {
+    simulateLogin();
+    return;
+  }
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+    'client_id=SEU_CLIENT_ID' +
+    '&redirect_uri=' + encodeURIComponent(window.location.origin + '/callback') +
+    '&response_type=id_token' +
+    '&scope=openid email profile' +
+    '&nonce=' + crypto.randomUUID();
+}
+
+async function simulateLogin() {
+  const mockUser = {
+    nome: 'José Jr.',
+    email: 'josejuniorsaraiva@gmail.com',
+    sub: 'demo_user',
+    ultimo_ep_id: 'DEMO_EP_001'
+  };
+  localStorage.setItem('na_user', JSON.stringify(mockUser));
+  await hydrateFromBackend(mockUser);
+}
+
+async function handleCallback() {
+  const params = new URLSearchParams(window.location.hash.substring(1));
+  const idToken = params.get('id_token');
+  if (!idToken) return;
+  window.history.replaceState({}, document.title, '/callback');
+  try {
+    const res = await fetch(`${API}/auth/google`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({id_token: idToken})
+    });
+    const user = await res.json();
+    localStorage.setItem('na_user', JSON.stringify(user));
+  } catch {}
+  window.history.replaceState({}, document.title, '/');
+  window.location.href = '/';
+}
+
+function handleEmailLogin(btn) {
+  btn.textContent = 'Acesso institucional indisponível neste ambiente';
+  btn.style.opacity = '.4';
+  btn.disabled = true;
+}
+
+/* ═══ AUTO-HYDRATE ═════════════════════════════ */
+window.addEventListener('load', async () => {
+  // Iniciar health check imediatamente
+  fetchHealth();
+
+  const user = JSON.parse(localStorage.getItem('na_user') || 'null');
+  if (!user) return;
+
+  // Usuário logado — ir para login view e mostrar episódio
+  showView('login');
+  await hydrateFromBackend(user);
+});
+
+/* ═══ HYDRATE ══════════════════════════════════ */
+async function hydrateFromBackend(user) {
+  const lc = document.getElementById('loginCard');
+  const ec = document.getElementById('episodeCard');
+  const greet = document.getElementById('epGreet');
+
+  lc.style.opacity = '0';
+  lc.style.transition = 'opacity .4s ease';
+  await sleep(400);
+  lc.style.display = 'none';
+  ec.style.display = 'block';
+
+  const h = new Date().getHours();
+  const g = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+  const nome = user.nome || user.email?.split('@')[0] || 'Dr.';
+
+  setGreet(greet, 'Validando identidade...');
+  await sleep(440);
+
+  if (!user.ultimo_ep_id) {
+    setGreet(greet, `${g}, ${nome}`, '· nenhum episódio ativo');
+    document.getElementById('epActBtn').textContent = 'Iniciar primeiro episódio →';
+    document.getElementById('epActBtn').onclick = () => showView('episode');
+    return;
+  }
+
+  setGreet(greet, 'Recuperando último episódio...');
+  await sleep(440);
+
+  try {
+    const ep = await fetchWithTimeout(`${API}/episodios/${user.ultimo_ep_id}`);
+    setGreet(greet, `${g}, ${nome}`, '· último episódio reaberto');
+    populateEpCard(ep);
+  } catch {
+    // Se for sessão demo ou backend indisponível, injetar episódio visual de demonstração
+    const isDemo = user.sub === 'demo_user' || user.ultimo_ep_id === 'DEMO_EP_001';
+    if (isDemo) {
+      setGreet(greet, `${g}, ${nome}`, '· último episódio reaberto');
+      populateEpCard({
+        procedimento: 'ACDF C5–C6',
+        paciente: 'José S. · 58a',
+        convenio: 'Unimed Cariri',
+        proc_id: 'PROC001',
+        pendencia: 'OPME',
+        status: 'em_analise',
+        prazo_restante: 7,
+        compliance_score: 0.91
+      });
+    } else {
+      setGreet(greet, `${g}, ${nome}`, '· verificar conexão');
+    }
+  }
+}
+
+function populateEpCard(ep) {
+  if (!ep) return;
+  document.getElementById('epTitle').textContent  = ep.procedimento || 'Episódio';
+  document.getElementById('epSub').textContent    = [ep.paciente, ep.convenio, ep.proc_id].filter(Boolean).join(' · ');
+  document.getElementById('epActBtn').textContent = `Abrir episódio → completar ${ep.pendencia || 'OPME'}`;
+  document.getElementById('epActBtn').onclick = () => loadAppView(ep);
+}
+
+/* ═══ APP VIEW ══════════════════════════════════ */
+async function openApp() {
+  const user = JSON.parse(localStorage.getItem('na_user') || 'null');
+  showView('episode');
+
+  const g = document.getElementById('appGreet');
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+  setGreet(g, `${greet}, ${user?.nome || 'Dr.'}`);
+
+  document.getElementById('appActBtn').textContent = 'Carregando...';
+
+  try {
+    const ep = user?.ultimo_ep_id
+      ? await fetchWithTimeout(`${API}/episodios/${user.ultimo_ep_id}`)
+      : null;
+    loadAppView(ep);
+  } catch {
+    document.getElementById('appActBtn').textContent = 'Verificar conexão — tentar novamente';
+  }
+}
+
+function loadAppView(ep) {
+  if (!ep) {
+    document.getElementById('appEpTitle').textContent = 'Nenhum episódio ativo';
+    document.getElementById('appEpBadge').textContent = 'Novo';
+    document.getElementById('appEpBadge').className = 'epbadge ok';
+    document.getElementById('appActBtn').textContent = 'Criar primeiro episódio →';
+    document.getElementById('appActBtn').onclick = showNewEpForm;
+    return;
+  }
+  document.getElementById('appEpTitle').textContent = ep.procedimento || 'Episódio';
+  document.getElementById('appEpSub').textContent   = [ep.paciente, ep.convenio].filter(Boolean).join(' · ');
+  document.getElementById('appEpBadge').textContent = ep.pendencia ? 'Ação pendente' : 'Em dia';
+  document.getElementById('appEpBadge').className   = 'epbadge' + (ep.pendencia ? '' : ' ok');
+  document.getElementById('appStatus').innerHTML    = `<div class="dot ${ep.status === 'autorizado' ? 'dok' : 'dwn'}"></div>${ep.status || 'em análise'}`;
+  document.getElementById('appPrazo').textContent   = ep.prazo_restante ? `${ep.prazo_restante} dias` : '—';
+  document.getElementById('appComp').textContent    = ep.compliance_score ? `${Math.round(ep.compliance_score * 100)}%` : '—';
+  document.getElementById('appActBtn').textContent  = `Completar ${ep.pendencia || 'OPME'} →`;
+  document.getElementById('appActBtn').onclick      = () => window.location.href = '/';
+}
+
+async function createEpisode() {
+  const btn = document.querySelector('#newEpForm .epact');
+  btn.textContent = 'Criando...';
+  btn.disabled = true;
+
+  const user = JSON.parse(localStorage.getItem('na_user') || '{}');
+  const body = {
+    procedimento: document.getElementById('neProcedimento').value || 'Novo episódio',
+    paciente:     document.getElementById('nePaciente').value,
+    convenio:     document.getElementById('neConvenio').value,
+    user_sub:     user.sub
+  };
+
+  try {
+    const res = await fetchWithTimeout(`${API}/episodios`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (res.id) {
+      user.ultimo_ep_id = res.id;
+      localStorage.setItem('na_user', JSON.stringify(user));
+      loadAppView(res);
+      document.getElementById('newEpForm').classList.remove('open');
+    }
+  } catch {
+    btn.textContent = 'Erro ao criar — tentar novamente';
+    btn.disabled = false;
+  }
+}
+
+function showNewEpForm() {
+  document.getElementById('newEpForm').classList.toggle('open');
+}
+
+function doLogout() {
+  localStorage.removeItem('na_user');
+  showView('home');
+}
+
+function submitDemo(btn) {
+  btn.textContent = 'Enviado ✓ — retornamos em breve';
+  btn.style.background = 'var(--ink2)';
+  btn.style.color = 'var(--pulse)';
+  btn.style.border = '1px solid rgba(62,201,173,.3)';
+  btn.disabled = true;
+}
+
+/* ═══ UTIL ═════════════════════════════════════ */
+async function fetchWithTimeout(url, opts = {}, ms = 5000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, {...opts, signal: ctrl.signal});
+    return await res.json();
+  } finally { clearTimeout(t); }
+}
+
+function setGreet(el, text, sub) {
+  el.innerHTML = '';
+  el.textContent = text;
+  if (sub) {
+    const s = document.createElement('span');
+    s.style.cssText = 'font-size:9px;opacity:.65;margin-left:8px';
+    s.textContent = sub;
+    el.appendChild(s);
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* ═══ NAV SCROLL ════════════════════════════════ */
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', scrollY > 40);
+}, {passive: true});
+
+/* ═══ REVEAL ════════════════════════════════════ */
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('v'); });
+}, {threshold: .08, rootMargin: '0px 0px -32px 0px'});
+document.querySelectorAll('.r').forEach(el => obs.observe(el));
+
+/* ═══ BEFORE/AFTER CROSS-LINK ════════════════== */
+const bIs = document.querySelectorAll('#beforeList li');
+const aIs = document.querySelectorAll('#afterList li');
+[...bIs, ...aIs].forEach(li => {
+  const idx = parseInt(li.dataset.pair);
+  li.addEventListener('mouseenter', () => {
+    bIs.forEach((x,i) => x.classList.toggle('hi', i === idx));
+    aIs.forEach((x,i) => x.classList.toggle('hi', i === idx));
+  });
+  li.addEventListener('mouseleave', () => {
+    bIs.forEach(x => x.classList.remove('hi'));
+    aIs.forEach(x => x.classList.remove('hi'));
+  });
+});
+</script>
+</body>
+</html>
