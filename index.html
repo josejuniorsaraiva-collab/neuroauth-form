@@ -457,7 +457,7 @@
     overflow: hidden;
   }
 
-  @media (max-width: 900pc) {
+  @media (max-width: 900px) {
     .steps-grid { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 520px) {
@@ -1412,15 +1412,19 @@ async function runDemo() {
     medico: { crm: document.getElementById('f-crm').value },
     hospital: { cnes: document.getElementById('f-cnes').value },
     procedimento: {
-      codig��\�Έ��[Y[���][[Y[��RY
-	ً]\���K��[YK��Y���[Y[���][[Y[��RY
-	ًX�Y	�K��[YK�\�ܚX�[Έ��[Y[���][[Y[��RY
-	ً]\���K��[X�Y�[ۜ��K�^��]
-	��%	�V�WO˝�[J
-H	���B�N��H��K�ܚX\�\\���[�ۜ��HH]�Z]�]�
-TH
-�	��\\��[���Y]��	���	��XY\�Έ�	��۝[�U\IΈ	�\X�][ۋڜ�ۉ�K���N���Ӌ���[��Y�J^[�Y
-B�});
+      codigo_tuss: document.getElementById('f-tuss').value,
+      cid: document.getElementById('f-cid').value,
+      descricao: document.getElementById('f-tuss').selectedOptions[0].text.split('—')[1]?.trim() || '',
+    }
+  };
+
+  try {
+    // 1. Criar episódio
+    const r1 = await fetch(API + '/episodios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
     const ep = await r1.json();
     const epId = ep.id_episodio || ep.id || 'EP_DEMO';
 
