@@ -1,486 +1,752 @@
 """
-app.py â NEUROAUTH Motor 1
-ServiÃ§o FastAPI de AutorizaÃ§Ã£o CirÃºrgica
-
-Endpoints:
-  GET  /health
-  POST /episodios
-  GET  /episodios
-  GET  /episodios/{id}
-  POST /episodios/{id}/validar
-  POST /episodios/{id}/resolver-pendencia
-  POST /episodios/{id}/transicionar
-  POST /submit   â compatibilidade com index.html legado
+NEUROAUTH — app.py
+Espinha dorsal operacional: pré, durante e pós autorização cirúrgica.
+Versão: BLOCO 1 — fechado em 2026-03-28
+PATCH 2026-03-28: EPISODIOS_COLS alinhado ao schema real de 22_EPISODIOS (head=3)
 """
-
+import os
 import uuid
 import json
+import logging
 from datetime import datetime, timezone
-from typing import Optional, Any
+from flask import Flask, request, jsonify, g
+import gspread
+from google.oauth2.service_account import Credentials
+from auth import login, require_auth, SPREADSHEET_ID, SHEETS_CREDENTIALS
+from middleware import check_usage
 
-from fastapi import FastAPI, HTTPException, Path, Body
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-
-from motor1 import episode_store as store
-from motor1 import workflow_engine as workflow
-from motor1 import validator_engine as validator
-from motor1 import pendencia_engine as pendencias
-
-# ââ INIT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
-store.init_db()
-
-app = FastAPI(
-    title="NEUROAUTH Motor 1",
-    description="Motor de AutorizaÃ§Ã£o CirÃºrgica â v1.0.0",
-    version="1.0.0",
+# ─── Logging ──────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
 )
+log = logging.getLogger("neuroauth")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# ─── Flask ────────────────────────────────────────────────────────────────────
+app = Flask(__name__)
+
+# ─── Scopes Google ────────────────────────────────────────────────────────────
+SCOPES = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive",
+]
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 1. CONSTANTES DE COLUNAS — única definição, referência central
+# ══════════════════════════════════════════════════════════════════════════════
+
+# PATCH 2026-03-28: alinhado com schema real da aba 22_EPISODIOS
+# linha 1=título, linha 2=subtítulo, linha 3=headers (A:T), linha 4+=dados
+EPISODIOS_COLS = [
+    "episodio_id",
+    "profile_id",
+    "convenio_id",
+    "cid_principal",
+    "tipo_anestesia",
+    "niveis",
+    "lateralidade",
+    "clinical_context_json",
+    "opme_context_json",
+    "dados_paciente_json",
+    "status_episodio",
+    "decision_status",
+    "decision_run_id",
+    "score_confianca",
+    "sugestao_principal",
+    "alternativas_json",
+    "sherlock_narrative",
+    "created_at",
+    "updated_at",
+    "usuario_id",
+]
+
+DECISION_RUNS_COLS = [
+    "decision_run_id",
+    "episodio_id",
+    "profile_id",
+    "decision_status",
+    "input_context_json",
+    "opcoes_geradas_json",
+    "opcao_escolhida_json",
+    "score_final",
+    "alertas_json",
+    "bloqueios_json",
+    "motor_version",
+    "created_at",
+]
+
+USAGE_COLS = [
+    "log_id",
+    "user_id",
+    "email",
+    "action",
+    "endpoint",
+    "episodio_id",
+    "ip_address",
+    "user_agent",
+    "created_at",
+]
+
+USERS_COLS_FULL = [
+    "user_id",
+    "email",
+    "name",
+    "crm",
+    "institution",
+    "plan",
+    "status",
+    "password_hash",
+    "api_key",
+    "requests_month",
+    "requests_total",
+    "usage_reset_date",
+    "created_at",
+    "last_login",
+    "plan_expires_at",
+    "asaas_customer_id",
+    "asaas_subscription_id",
+    "payment_status",
+    "notes",
+    "created_by",
+]
+
+PROC_MESTRE_COLS = [
+    "profile_id",
+    "codigo_tuss",
+    "codigo_cbhpm",
+    "descricao",
+    "especialidade",
+    "convenio_default",
+    "porte",
+    "porte_anestesico",
+    "filme",
+    "via_acesso",
+    "lateralidade_obrigatoria",
+    "opme_frequente",
+    "regras_json",
+    "updated_at",
+]
+
+# ─── Nomes das abas ───────────────────────────────────────────────────────────
+EPISODIOS_SHEET = "22_EPISODIOS"
+DECISION_RUNS_SHEET = "21_DECISION_RUNS"
+USAGE_SHEET = "03_USAGE_LOG"
+USERS_SHEET = "02_USERS"
+PROC_MESTRE_SHEET = "PROC_MESTRE"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 2. HELPERS — única definição de cada função base
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _get_workbook():
+    """Retorna o objeto Spreadsheet autenticado."""
+    creds = Credentials.from_service_account_file(SHEETS_CREDENTIALS, scopes=SCOPES)
+    client = gspread.authorize(creds)
+    return client.open_by_key(SPREADSHEET_ID)
 
 
-# ââ HELPERS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+def _get_worksheet(sheet_name: str):
+    """Retorna worksheet pelo nome."""
+    return _get_workbook().worksheet(sheet_name)
+
+
+def _safe_int(val, default: int = 0) -> int:
+    """Converte para int sem lançar exceção."""
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return default
+
+
+def _is_float(val) -> bool:
+    """Retorna True se val é conversível para float."""
+    try:
+        float(val)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def _read_rows_fixed(ws, cols: list) -> list:
+    """
+    Lê todas as linhas do worksheet usando linha 3 como cabeçalho (head=3).
+    Retorna list[dict] com exatamente as colunas em `cols`.
+    Colunas ausentes no sheet retornam string vazia.
+
+    PATCH 2026-03-28: head=3 corrige bug onde linha 1 (título) era tratada como
+    header, tornando episodio_id irrecuperável e causando 404 em todos os lookups.
+    """
+    try:
+        all_rows = ws.get_all_records(head=3, default_blank="")
+    except Exception as exc:
+        log.warning("_read_rows_fixed fallback: %s", exc)
+        all_rows = []
+    return [{c: str(row.get(c, "")) for c in cols} for row in all_rows]
+
+
+def _append_row(ws, cols: list, data: dict) -> None:
+    """
+    Adiciona linha ao worksheet na ordem de `cols`.
+    Campos ausentes em `data` ficam como string vazia.
+    """
+    row = [str(data.get(col, "")) for col in cols]
+    ws.append_row(row, value_input_option="RAW")
+
+
+def _update_row_by_id(ws, id_col: str, id_val: str, cols: list, updates: dict) -> bool:
+    """
+    Localiza a linha onde id_col == id_val e atualiza os campos em `updates`.
+    Retorna True se encontrou e atualizou; False caso contrário.
+    """
+    try:
+        header = ws.row_values(1)
+        if id_col not in header:
+            log.warning("_update_row_by_id: '%s' não está no header", id_col)
+            return False
+        id_col_idx = header.index(id_col) + 1  # 1-based
+        col_values = ws.col_values(id_col_idx)
+        for i, val in enumerate(col_values[1:], start=2):  # pula header (linha 1)
+            if str(val).strip() == str(id_val).strip():
+                batch = []
+                for col_name, new_val in updates.items():
+                    if col_name in header:
+                        col_idx = header.index(col_name) + 1
+                        batch.append({
+                            "range": gspread.utils.rowcol_to_a1(i, col_idx),
+                            "values": [[str(new_val)]],
+                        })
+                if batch:
+                    ws.batch_update(batch)
+                return True
+    except Exception as exc:
+        log.error("_update_row_by_id error: %s", exc)
+    return False
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-def _novo_id() -> str:
-    return str(uuid.uuid4())
 
-def _err(status: int, codigo: str, mensagem: str, **extras) -> HTTPException:
-    return HTTPException(
-        status_code=status,
-        detail={"erro": codigo, "mensagem": mensagem, **extras},
-    )
-
-def _get_episodio_ou_404(id_episodio: str) -> dict:
-    ep = store.get_episodio(id_episodio)
-    if not ep:
-        raise _err(404, "episodio_nao_encontrado",
-                   f"EpisÃ³dio '{id_episodio}' nÃ£o encontrado.")
-    return ep
-
-def _registrar(id_episodio: str, tipo: str, origem: str,
-               estado_antes: Optional[str] = None,
-               estado_depois: Optional[str] = None,
-               dados: Optional[dict] = None):
-    store.append_evento(
-        id_episodio=id_episodio,
-        id_evento=_novo_id(),
-        tipo=tipo,
-        origem=origem,
-        estado_antes=estado_antes,
-        estado_depois=estado_depois,
-        dados=dados,
-    )
-
-def _montar_resposta(id_episodio: str) -> dict:
-    ep   = store.get_episodio(id_episodio)
-    pend = store.get_pendencias(id_episodio)
-    tl   = store.get_timeline(id_episodio)
-    dados = json.loads(ep["dados"])
-
-    bloqueantes = sum(1 for p in pend if p["bloqueia_envio"] and p["status"] == "aberta")
-
-    return {
-        "id_episodio":   ep["id_episodio"],
-        "request_id":    ep["request_id"],
-        "estado_atual":  ep["estado_atual"],
-        "criado_em":     ep["criado_em"],
-        "atualizado_em": ep["atualizado_em"],
-        "dados":         dados,
-        "pendencias": {
-            "total":         len(pend),
-            "abertas":       sum(1 for p in pend if p["status"] == "aberta"),
-            "bloqueantes":   bloqueantes,
-            "pode_revalidar": bloqueantes == 0,
-            "itens":         pend,
-        },
-        "timeline": {
-            "total":  len(tl),
-            "eventos": tl,
-        },
-        "transicoes_permitidas": workflow.transicoes_permitidas(ep["estado_atual"]),
-    }
+def _err(code: str, message: str, status: int):
+    """Resposta de erro estruturada — nunca expõe traceback."""
+    return jsonify({"error": code, "message": message}), status
 
 
-# ââ PIPELINE DE VALIDAÃÃO (interno) ââââââââââââââââââââââââââââââââââââââââââ
-
-def _executar_pipeline_validacao(id_episodio: str, dados: dict, rodada: int = 1):
-    """
-    Executa os 4 checks e transiciona o estado conforme resultado.
-    Chamado apÃ³s criaÃ§Ã£o e apÃ³s revalidaÃ§Ã£o.
-    """
-    estado_antes = store.get_episodio(id_episodio)["estado_atual"]
-
-    # â validacao
-    store.update_estado(id_episodio, "validacao")
-    _registrar(id_episodio, "estado_alterado", "motor_1",
-               estado_antes=estado_antes, estado_depois="validacao",
-               dados={"rodada": rodada})
-    _registrar(id_episodio, "validacao_iniciada", "motor_1",
-               dados={"rodada": rodada, "checks": ["completude", "clinico", "regulatorio", "cobertura"]})
-
-    resultado = validator.executar(dados)
-
-    _registrar(id_episodio, "validacao_concluida", "motor_1",
-               dados=resultado.to_dict())
-
-    novas = pendencias.criar_pendencias_do_resultado(id_episodio, resultado.todas_pendencias)
-
-    for p in novas:
-        _registrar(id_episodio, "pendencia_criada", "motor_1",
-                   dados={"id_pendencia": p["id_pendencia"],
-                          "tipo": p["tipo"],
-                          "campo": p["campo_afetado"],
-                          "bloqueia": bool(p["bloqueia_envio"])})
-
-    if resultado.aprovado:
-        store.update_estado(id_episodio, "em_analise")
-        _registrar(id_episodio, "estado_alterado", "motor_1",
-                   estado_antes="validacao", estado_depois="em_analise",
-                   dados={"rodada": rodada, "motivo": "Todos os checks aprovados"})
-    else:
-        store.update_estado(id_episodio, "pendente_complemento")
-        _registrar(id_episodio, "estado_alterado", "motor_1",
-                   estado_antes="validacao", estado_depois="pendente_complemento",
-                   dados={"rodada": rodada,
-                          "total_pendencias_novas": len(novas),
-                          "motivo": f"{len(novas)} pendÃªncia(s) encontrada(s)"})
-        _registrar(id_episodio, "comunicacao_disparada", "motor_1",
-                   dados={"canal": "whatsapp", "destinatario": "operador",
-                          "template": "pendencias_identificadas",
-                          "total": len(novas)})
-
-    return resultado
+def _log_usage(action: str, endpoint: str, episodio_id: str = "") -> None:
+    """Grava evento em 03_USAGE_LOG. Silencioso em caso de falha."""
+    try:
+        ws = _get_worksheet(USAGE_SHEET)
+        _append_row(ws, USAGE_COLS, {
+            "log_id": str(uuid.uuid4()),
+            "user_id": getattr(g, "user_id", ""),
+            "email": getattr(g, "email", ""),
+            "action": action,
+            "endpoint": endpoint,
+            "episodio_id": episodio_id,
+            "ip_address": request.remote_addr or "",
+            "user_agent": (request.headers.get("User-Agent") or "")[:200],
+            "created_at": _now(),
+        })
+    except Exception as exc:
+        log.warning("_log_usage failed: %s", exc)
 
 
-# ââ MODELS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
-class CriarEpisodioRequest(BaseModel):
-    request_id: str = Field(..., description="UUID v4 â obrigatÃ³rio para idempotÃªncia")
-    identificacao_caso: dict
-    paciente: dict
-    medico: dict
-    hospital: dict
-    convenio: dict
-    procedimento_principal: dict
-    opme: Optional[dict] = None
-    metadata: Optional[dict] = None
-
-    model_config = {"extra": "allow"}
+# ══════════════════════════════════════════════════════════════════════════════
+# 3. MOTOR DE DECISÃO — Motor 2 (DecisionEngine via gspread)
+# ══════════════════════════════════════════════════════════════════════════════
+try:
+    from decision_engine import DecisionEngine, build_context_from_payload
+    MOTOR_VERSION = "2.0"
+    log.info("decision_engine carregado — Motor 2 — versão %s", MOTOR_VERSION)
+except ImportError:
+    DecisionEngine = None  # type: ignore
+    build_context_from_payload = None  # type: ignore
+    MOTOR_VERSION = "stub"
+    log.warning("decision_engine não encontrado — motor indisponível")
 
 
-class TransicionarRequest(BaseModel):
-    estado_destino: str
-    origem_acao: str = "operador"
-    observacao: Optional[str] = None
-    request_id: Optional[str] = None
-    # Campos extras por estado
-    numero_autorizacao: Optional[str] = None
-    validade_autorizacao: Optional[str] = None
-    motivo_negativa: Optional[str] = None
-    codigo_negativa_tiss: Optional[str] = None
-    valor_autorizado: Optional[float] = None
+# ══════════════════════════════════════════════════════════════════════════════
+# ROTAS PÚBLICAS
+# ══════════════════════════════════════════════════════════════════════════════
 
-
-class ResolverPendenciaRequest(BaseModel):
-    id_pendencia: str
-    resolucao: str = Field(..., min_length=10,
-                           description="DescriÃ§Ã£o da resoluÃ§Ã£o â mÃ­nimo 10 chars")
-    resolvido_por: str = "operador"
-
-
-# ââ ENDPOINTS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
-@app.get("/health")
+@app.route("/health", methods=["GET"])
 def health():
-    ep_count = len(store.list_episodios(limite=1000))
-    return {
-        "status":  "ok",
-        "motor":   "1",
-        "versao":  "1.0.0",
-        "db_path": store.DB_PATH,
-        "episodios_total": ep_count,
-        "timestamp": _now(),
+    return jsonify({"status": "ok", "motor_version": MOTOR_VERSION}), 200
+
+
+@app.route("/auth/login", methods=["POST"])
+def route_login():
+    """POST /auth/login — valida credenciais e devolve JWT."""
+    data = request.get_json(force=True) or {}
+    email = data.get("email", "")
+    password = data.get("password", "")
+    if not email or not password:
+        return _err("missing_credentials", "Email e senha obrigatórios.", 400)
+    response, status = login(email, password)
+    return jsonify(response), status
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PROFILES — busca em PROC_MESTRE
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/profiles/search", methods=["GET"])
+@require_auth
+def profiles_search():
+    """
+    GET /profiles/search?q=<texto>
+    Busca livre em PROC_MESTRE: descricao, profile_id, codigo_tuss.
+    """
+    q = (request.args.get("q") or "").strip().lower()
+    if not q:
+        return _err("missing_param", "Parâmetro 'q' obrigatório.", 400)
+    try:
+        ws = _get_worksheet(PROC_MESTRE_SHEET)
+        rows = _read_rows_fixed(ws, PROC_MESTRE_COLS)
+    except Exception as exc:
+        log.error("/profiles/search error: %s", exc)
+        return _err("sheet_error", "Erro ao acessar PROC_MESTRE.", 503)
+    hits = [
+        r for r in rows
+        if q in r.get("descricao", "").lower()
+        or q in r.get("profile_id", "").lower()
+        or q in r.get("codigo_tuss", "").lower()
+        or q in r.get("codigo_cbhpm", "").lower()
+    ][:20]
+    _log_usage("profiles_search", "/profiles/search")
+    return jsonify({"results": hits, "total": len(hits)}), 200
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EPISÓDIOS — 22_EPISODIOS
+# Ordem de registro importa: /episodios/summary ANTES de /episodios/<id>
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/episodios/summary", methods=["GET"])
+@require_auth
+def episodios_summary():
+    """
+    GET /episodios/summary
+    Contagens por status_episodio e decision_status do usuário autenticado.
+    """
+    try:
+        ws = _get_worksheet(EPISODIOS_SHEET)
+        rows = _read_rows_fixed(ws, EPISODIOS_COLS)
+    except Exception as exc:
+        log.error("/episodios/summary error: %s", exc)
+        return _err("sheet_error", "Erro ao calcular summary.", 503)
+
+    rows = [r for r in rows if r.get("usuario_id", "") == g.user_id]
+    op_counts: dict = {}
+    dec_counts: dict = {}
+    for r in rows:
+        op = r.get("status_episodio", "")
+        dec = r.get("decision_status", "")
+        op_counts[op] = op_counts.get(op, 0) + 1
+        dec_counts[dec] = dec_counts.get(dec, 0) + 1
+    total = len(rows)
+    go_count = op_counts.get("confirmed", 0) + op_counts.get("closed", 0)
+    go_rate = round(go_count / total * 100, 1) if total else 0.0
+    return jsonify({
+        "total": total,
+        "go_count": go_count,
+        "go_rate": go_rate,
+        "por_status_episodio": op_counts,
+        "por_decision_status": dec_counts,
+    }), 200
+
+
+@app.route("/episodios", methods=["POST"])
+@require_auth
+def criar_episodio():
+    """
+    POST /episodios
+    Cria novo episódio clínico em 22_EPISODIOS.
+    """
+    data = request.get_json(force=True) or {}
+    episodio_id = str(uuid.uuid4())
+    now = _now()
+    row = {
+        "episodio_id": episodio_id,
+        "profile_id": data.get("profile_id", ""),
+        "convenio_id": data.get("convenio_id", ""),
+        "cid_principal": data.get("cid_principal", ""),
+        "tipo_anestesia": data.get("tipo_anestesia", ""),
+        "niveis": data.get("niveis", "1"),
+        "lateralidade": data.get("lateralidade", ""),
+        "clinical_context_json": json.dumps(
+            data.get("clinical_context", {}), ensure_ascii=False
+        ),
+        "opme_context_json": json.dumps(
+            data.get("opme_context", {}), ensure_ascii=False
+        ),
+        "dados_paciente_json": json.dumps(
+            data.get("dados_paciente", {}), ensure_ascii=False
+        ),
+        "status_episodio": "pending",
+        "decision_status": "nao_processado",
+        "decision_run_id": "",
+        "score_confianca": "",
+        "sugestao_principal": "",
+        "alternativas_json": "",
+        "sherlock_narrative": "",
+        "created_at": now,
+        "updated_at": now,
+        "usuario_id": g.user_id,
     }
+    try:
+        ws = _get_worksheet(EPISODIOS_SHEET)
+        _append_row(ws, EPISODIOS_COLS, row)
+    except Exception as exc:
+        log.error("/episodios POST error: %s", exc)
+        return _err("sheet_error", "Erro ao criar episódio.", 503)
+    _log_usage("criar_episodio", "/episodios", episodio_id)
+    return jsonify({"episodio_id": episodio_id, "status": "created"}), 201
 
 
-@app.get("/episodios")
-def listar_episodios(limite: int = 20):
-    eps = store.list_episodios(limite=limite)
-    return {"total": len(eps), "episodios": eps}
-
-
-@app.post("/episodios", status_code=201)
-def criar_episodio(req: CriarEpisodioRequest):
+@app.route("/episodios", methods=["GET"])
+@require_auth
+def listar_episodios():
     """
-    Cria um novo episÃ³dio cirÃºrgico e dispara validaÃ§Ã£o automaticamente.
-    Idempotente por request_id.
+    GET /episodios
+    Lista episódios do usuário autenticado.
+    Query: status_episodio=, decision_status=, limit= (default 50)
     """
-    # IdempotÃªncia
-    existente = store.get_by_request_id(req.request_id)
-    if existente:
-        return {
-            **_montar_resposta(existente["id_episodio"]),
-            "idempotente": True,
+    try:
+        ws = _get_worksheet(EPISODIOS_SHEET)
+        rows = _read_rows_fixed(ws, EPISODIOS_COLS)
+    except Exception as exc:
+        log.error("/episodios GET error: %s", exc)
+        return _err("sheet_error", "Erro ao listar episódios.", 503)
+
+    rows = [r for r in rows if r.get("usuario_id", "") == g.user_id]
+    if s := request.args.get("status_episodio"):
+        rows = [r for r in rows if r["status_episodio"] == s]
+    if d := request.args.get("decision_status"):
+        rows = [r for r in rows if r["decision_status"] == d]
+    limit = _safe_int(request.args.get("limit", 50), default=50)
+    rows = rows[-limit:] if limit else rows
+    return jsonify({"episodios": rows, "total": len(rows)}), 200
+
+
+@app.route("/episodios/<episodio_id>", methods=["GET"])
+@require_auth
+def get_episodio(episodio_id: str):
+    """GET /episodios/<episodio_id> — retorna episódio completo."""
+    try:
+        ws = _get_worksheet(EPISODIOS_SHEET)
+        rows = _read_rows_fixed(ws, EPISODIOS_COLS)
+    except Exception as exc:
+        log.error("/episodios/%s GET error: %s", episodio_id, exc)
+        return _err("sheet_error", "Erro ao acessar episódios.", 503)
+
+    ep = next((r for r in rows if r["episodio_id"] == episodio_id), None)
+    if not ep:
+        return _err("not_found", "Episódio não encontrado.", 404)
+    # Permite acesso se usuario_id não estiver definido (dados demo/seed sem dono)
+    ep_owner = ep.get("usuario_id", "")
+    if ep_owner and ep_owner != g.user_id:
+        return _err("forbidden", "Acesso negado.", 403)
+    _log_usage("get_episodio", f"/episodios/{episodio_id}", episodio_id)
+    return jsonify(ep), 200
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MOTOR DE DECISÃO — /decision/*
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/decision/run/<episodio_id>", methods=["POST"])
+@require_auth
+def decision_run(episodio_id: str):
+    """POST /decision/run/<episodio_id> — executa Motor 2 e retorna a decisão."""
+    if DecisionEngine is None:
+        return jsonify({"error": "motor_indisponivel", "message": "decision_engine não carregado"}), 503
+    try:
+        creds = Credentials.from_service_account_file(SHEETS_CREDENTIALS, scopes=SCOPES)
+        gc = gspread.authorize(creds)
+        ws = gc.open_by_key(SPREADSHEET_ID).worksheet("22_EPISODIOS")
+        eps = _read_rows_fixed(ws, EPISODIOS_COLS)
+        ep = next((e for e in eps if e.get("episodio_id") == episodio_id), None)
+        if not ep:
+            return _err("not_found", "Episódio não encontrado.", 404)
+        profile_id = ep.get("profile_id", "")
+        if not profile_id:
+            return _err("profile_id_vazio", "profile_id ausente no episódio.", 400)
+        payload = {
+            "episodio_id": episodio_id,
+            "profile_id": profile_id,
+            "convenio_id": ep.get("convenio_id", ""),
+            "clinical_context": {},
+            "opme_context": {},
+            "niveis": int(ep.get("niveis") or 1),
+            "lateralidade": ep.get("lateralidade", ""),
+            "dados_paciente": {},
+            "usuario_id": getattr(g, "user_id", ""),
         }
-
-    id_episodio = _novo_id()
-    dados = req.model_dump(exclude={"request_id"})
-
-    store.create_episodio(id_episodio, req.request_id, dados)
-
-    _registrar(id_episodio, "episodio_criado", "formulario_web",
-               estado_depois="preenchimento",
-               dados={"request_id": req.request_id,
-                      "tipo_atendimento": req.identificacao_caso.get("tipo_atendimento"),
-                      "convenio": req.convenio.get("id_convenio"),
-                      "tuss": req.procedimento_principal.get("codigo_tuss")})
-
-    # ValidaÃ§Ã£o automÃ¡tica
-    _executar_pipeline_validacao(id_episodio, dados, rodada=1)
-
-    return _montar_resposta(id_episodio)
+        context = build_context_from_payload(payload)
+        engine = DecisionEngine(gc, SPREADSHEET_ID)
+        decision = engine.run(context)
+        return jsonify(decision), 200
+    except Exception as exc:
+        log.error("decision_run: motor error: %s", exc)
+        return _err("motor_error", "Erro interno no motor de decisão.", 500)
 
 
-@app.get("/episodios/{id_episodio}")
-def ler_episodio(id_episodio: str = Path(...)):
-    _get_episodio_ou_404(id_episodio)
-    return _montar_resposta(id_episodio)
-
-
-@app.post("/episodios/{id_episodio}/validar")
-def revalidar(id_episodio: str = Path(...)):
+@app.route("/decision/confirm/<episodio_id>", methods=["POST"])
+@require_auth
+def decision_confirm(episodio_id: str):
     """
-    Re-executa o pipeline de validaÃ§Ã£o.
-    SÃ³ permitido a partir do estado 'pendente_complemento'
-    e sem pendÃªncias bloqueantes abertas.
+    POST /decision/confirm/<episodio_id>
+    Registra a confirmação do operador sobre a decisão gerada.
+    Body: { "opcao_confirmada": {...}, "feedback_resultado": "autorizado" | ... }
     """
-    ep = _get_episodio_ou_404(id_episodio)
-
-    if ep["estado_atual"] != "pendente_complemento":
-        raise _err(422, "revalidacao_invalida",
-                   "RevalidaÃ§Ã£o sÃ³ permitida a partir de 'pendente_complemento'.",
-                   estado_atual=ep["estado_atual"])
-
-    bloqueantes = store.count_bloqueantes_abertas(id_episodio)
-    if bloqueantes > 0:
-        raise _err(409, "pendencias_bloqueantes",
-                   f"Resolva as {bloqueantes} pendÃªncia(s) bloqueante(s) antes de revalidar.",
-                   total_bloqueantes=bloqueantes)
-
-    dados = json.loads(ep["dados"])
-    rodada = len([e for e in store.get_timeline(id_episodio)
-                  if e["tipo"] == "validacao_iniciada"]) + 1
-
-    _registrar(id_episodio, "revalidacao_solicitada", "operador",
-               dados={"rodada": rodada})
-
-    _executar_pipeline_validacao(id_episodio, dados, rodada=rodada)
-
-    return _montar_resposta(id_episodio)
-
-
-@app.post("/episodios/{id_episodio}/resolver-pendencia")
-def resolver_pendencia(
-    id_episodio: str = Path(...),
-    req: ResolverPendenciaRequest = Body(...),
-):
-    """
-    Resolve uma pendÃªncia especÃ­fica.
-    NÃ£o dispara revalidaÃ§Ã£o automaticamente â operador controla o momento.
-    """
-    ep = _get_episodio_ou_404(id_episodio)
+    data = request.get_json(force=True) or {}
+    opcao_confirmada = data.get("opcao_confirmada", {})
+    feedback_resultado = data.get("feedback_resultado", "")
 
     try:
-        p = pendencias.resolver(
-            id_episodio=id_episodio,
-            id_pendencia=req.id_pendencia,
-            resolucao=req.resolucao,
-            resolvido_por=req.resolvido_por,
-        )
-    except ValueError as e:
-        raise _err(422, "resolucao_invalida", str(e))
+        ws_ep = _get_worksheet(EPISODIOS_SHEET)
+        rows = _read_rows_fixed(ws_ep, EPISODIOS_COLS)
+    except Exception as exc:
+        log.error("decision_confirm: sheet error: %s", exc)
+        return _err("sheet_error", "Erro ao acessar episódios.", 503)
 
-    _registrar(id_episodio, "pendencia_resolvida", req.resolvido_por,
-               dados={"id_pendencia": req.id_pendencia,
-                      "tipo": p["tipo"],
-                      "resolucao": req.resolucao})
+    ep = next((r for r in rows if r["episodio_id"] == episodio_id), None)
+    if not ep:
+        return _err("not_found", "Episódio não encontrado.", 404)
+    ep_owner = ep.get("usuario_id", "")
+    if ep_owner and ep_owner != g.user_id:
+        return _err("forbidden", "Acesso negado.", 403)
 
-    resumo = pendencias.listar(id_episodio)
-
-    return {
-        "id_episodio":       id_episodio,
-        "pendencia_resolvida": p,
-        "pendencias_restantes": {
-            "abertas":     resumo["abertas"],
-            "bloqueantes": resumo["bloqueantes"],
-            "pode_revalidar": resumo["pode_revalidar"],
-        },
+    now = _now()
+    updates = {
+        "sugestao_principal": json.dumps(opcao_confirmada, ensure_ascii=False, default=str),
+        "decision_status": "confirmed",
+        "updated_at": now,
     }
+    try:
+        _update_row_by_id(ws_ep, "episodio_id", episodio_id, EPISODIOS_COLS, updates)
+    except Exception as exc:
+        log.error("decision_confirm: update error: %s", exc)
+        return _err("sheet_error", "Erro ao confirmar decisão.", 503)
+
+    _log_usage("decision_confirm", f"/decision/confirm/{episodio_id}", episodio_id)
+    return jsonify({
+        "episodio_id": episodio_id,
+        "status": "confirmed",
+        "confirmado_em": now,
+        "usuario_confirmou": g.user_id,
+    }), 200
 
 
-@app.post("/episodios/{id_episodio}/transicionar")
-def transicionar(
-    id_episodio: str = Path(...),
-    req: TransicionarRequest = Body(...),
-):
+# ══════════════════════════════════════════════════════════════════════════════
+# MÉTRICAS E OPERAÇÕES
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/metrics", methods=["GET"])
+@require_auth
+def metrics():
     """
-    Executa uma transiÃ§Ã£o de estado manual.
-    Motor 1 nÃ£o permite bypass de pendÃªncias bloqueantes.
-    Campos obrigatÃ³rios por estado sÃ£o validados aqui.
+    GET /metrics
+    Métricas operacionais reais — alimenta o painel de readiness.
     """
-    ep = _get_episodio_ou_404(id_episodio)
-    estado_atual  = ep["estado_atual"]
-    estado_destino = req.estado_destino
+    try:
+        ws_ep = _get_worksheet(EPISODIOS_SHEET)
+        ws_run = _get_worksheet(DECISION_RUNS_SHEET)
+        ep_rows = _read_rows_fixed(ws_ep, EPISODIOS_COLS)
+        run_rows = _read_rows_fixed(ws_run, DECISION_RUNS_COLS)
+    except Exception as exc:
+        log.error("/metrics error: %s", exc)
+        return _err("sheet_error", "Erro ao calcular métricas.", 503)
 
-    dados_extras = {
-        k: v for k, v in {
-            "numero_autorizacao":  req.numero_autorizacao,
-            "validade_autorizacao": req.validade_autorizacao,
-            "motivo_negativa":     req.motivo_negativa,
-            "codigo_negativa_tiss": req.codigo_negativa_tiss,
-            "valor_autorizado":    req.valor_autorizado,
-        }.items() if v is not None
+    total_eps = len(ep_rows)
+    total_runs = len(run_rows)
+    go_eps = [r for r in ep_rows if r["status_episodio"] in ("confirmed", "closed")]
+    blocked_eps = [r for r in ep_rows if r["decision_status"] == "blocked"]
+    go_rate = round(len(go_eps) / total_eps * 100, 1) if total_eps else 0.0
+    scores = [
+        float(r["score_final"])
+        for r in run_rows
+        if _is_float(r.get("score_final", ""))
+    ]
+    avg_score = round(sum(scores) / len(scores), 2) if scores else 0.0
+    active_users = 0
+    try:
+        ws_usage = _get_worksheet(USAGE_SHEET)
+        usage_rows = _read_rows_fixed(ws_usage, USAGE_COLS)
+        active_users = len({r["user_id"] for r in usage_rows if r["user_id"]})
+    except Exception as exc:
+        log.warning("/metrics: usage_log indisponível: %s", exc)
+
+    return jsonify({
+        "total_episodios": total_eps,
+        "total_decision_runs": total_runs,
+        "go_count": len(go_eps),
+        "go_rate": go_rate,
+        "blocked_count": len(blocked_eps),
+        "active_users": active_users,
+        "avg_score": avg_score,
+        "motor_version": MOTOR_VERSION,
+    }), 200
+
+
+@app.route("/ops/runs", methods=["GET"])
+@require_auth
+def ops_runs():
+    """
+    GET /ops/runs
+    Lista os últimos decision runs.
+    Query: limit= (default 20), episodio_id=
+    """
+    try:
+        ws = _get_worksheet(DECISION_RUNS_SHEET)
+        rows = _read_rows_fixed(ws, DECISION_RUNS_COLS)
+    except Exception as exc:
+        log.error("/ops/runs error: %s", exc)
+        return _err("sheet_error", "Erro ao listar runs.", 503)
+
+    if ep_id := request.args.get("episodio_id"):
+        rows = [r for r in rows if r["episodio_id"] == ep_id]
+    limit = _safe_int(request.args.get("limit", 20), default=20)
+    rows = rows[-limit:] if limit else rows
+    return jsonify({"runs": rows, "total": len(rows)}), 200
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LEGACY — rotas mantidas por compatibilidade
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/authorize", methods=["POST"])
+@require_auth
+@check_usage
+def authorize_surgery():
+    """POST /api/authorize — rota legada. Substituída por /decision/run."""
+    data = request.get_json(force=True) or {}
+    result = {
+        "status": "authorized",
+        "user_id": g.user_id,
+        "plan": g.plan,
+        "payload": data,
     }
+    response = jsonify(result)
+    _inject_usage_headers(response)
+    return response, 200
 
-    # Validar transiÃ§Ã£o
-    try:
-        workflow.validar_transicao(estado_atual, estado_destino)
-    except workflow.WorkflowError as e:
-        _registrar(id_episodio, "transicao_invalida_tentada", req.origem_acao,
-                   dados={"de": estado_atual, "para": estado_destino,
-                          "erro": e.codigo})
-        raise HTTPException(status_code=422, detail=e.to_dict())
 
-    # Validar bloqueio por pendÃªncias
-    bloqueantes = store.count_bloqueantes_abertas(id_episodio)
-    try:
-        workflow.validar_sem_bloqueio(estado_destino, bloqueantes)
-    except workflow.BloqueioError as e:
-        raise HTTPException(status_code=409, detail=e.to_dict())
+@app.route("/api/usage", methods=["GET"])
+@require_auth
+def get_usage():
+    """GET /api/usage — uso do plano do usuário autenticado."""
+    from auth import _get_user_by_id
+    from sheets_schema import PLAN_LIMITS
+    from middleware import _should_reset
+    user = _get_user_by_id(g.user_id)
+    if not user:
+        return _err("user_not_found", "Usuário não encontrado.", 404)
+    plan = user.get("plan", "starter")
+    limit = PLAN_LIMITS.get(plan, {}).get("requests_per_month", 100)
+    reset = _should_reset(user.get("usage_reset_date", ""))
+    used = 0 if reset else _safe_int(user.get("requests_month", 0))
+    return jsonify({
+        "plan": plan,
+        "plan_label": PLAN_LIMITS.get(plan, {}).get("label", plan),
+        "used": used,
+        "limit": limit,
+        "remaining": limit - used,
+        "resets_on": user.get("usage_reset_date", ""),
+        "total_ever": _safe_int(user.get("requests_total", 0)),
+    }), 200
 
-    # Validar campos obrigatÃ³rios por extado de destino
-    try:
-        workflow.validar_dados_estado(estado_destino, dados_extras)
-    except workflow.WorkflowError as e:
-        raise HTTPException(status_code=422, detail=e.to_dict())
 
-    # Executar transiÃ§Ã£o
-    store.update_estado(id_episodio, estado_destino)
-    _registrar(id_episodio, "estado_alterado", req.origem_acao,
-               estado_antes=estado_atual, estado_depois=estado_destino,
-               dados={"observacao": req.observacao, **dados_extras})
+# ══════════════════════════════════════════════════════════════════════════════
+# WEBHOOKS — Asaas
+# ══════════════════════════════════════════════════════════════════════════════
 
-    # AÃ§Ãµes por estado de destino
-    if estado_destino == "negado":
-        _registrar(id_episodio, "alerta_critico_disparado", "motor_1",
-                   dados={"motivo": "Estado 'negado' atingido",
-                          "canal": "whatsapp",
-                          "destinatario": "medico + operador",
-                          "template": "autorizacao_negada",
-                          "motivo_negativa": req.motivo_negativa})
-
-    if estado_destino == "autorizado":
-        _registrar(id_episodio, "comunicacao_disparada", "motor_1",
-                   dados={"canal": "whatsapp + email",
-                          "destinatario": "paciente + medico",
-                          "template": "autorizacao_concedida",
-                          "numero_autorizacao": req.numero_autorizacao})
-        _registrar(id_episodio, "motor_3_acionado", "motor_1",
-                   dados={"motivo": "AutorizaÃ§Ã£o concedida â billing liberado"})
-
-    if estado_destino == "em_analise":
-        _registrar(id_episodio, "motor_2_solicitado", "motor_1",
-                   dados={"motivo": "EpisÃ³dio em anÃ¡lise â solicitar geraÃ§Ã£o de documentos"})
-
-    if estado_destino == "recurso_em_preparo":
-        _registrar(id_episodio, "motor_2_solicitado", "motor_1",
-                   dados={"tipo_documento": "recurso_glosa",
-                          "motivo": "Recurso iniciado â gerar documento de recurso"})
-
-    return {
-        "id_episodio":   id_episodio,
-        "estado_anterior": estado_atual,
-        "estado_atual":  estado_destino,
-        "transicionado_em": _now(),
-        "origem":        req.origem_acao,
-        "transicoes_proximas": workflow.transicoes_permitidas(estado_destino),
+@app.route("/webhooks/asaas", methods=["POST"])
+def asaas_webhook():
+    payload = request.get_json(force=True) or {}
+    event = payload.get("event", "")
+    payment = payload.get("payment", {})
+    customer_id = payment.get("customer", "")
+    if not customer_id:
+        return _err("missing_field", "customer obrigatório.", 400)
+    EVENT_MAP = {
+        "PAYMENT_CONFIRMED": ("active", "paid"),
+        "PAYMENT_OVERDUE": (None, "overdue"),
+        "PAYMENT_DELETED": ("inactive", "cancelled"),
+        "SUBSCRIPTION_DELETED": ("inactive", "cancelled"),
     }
+    action = EVENT_MAP.get(event)
+    if action:
+        new_status, pay_status = action
+        updates = {
+            "payment_status": pay_status,
+            "plan_expires_at": payment.get("dueDate", ""),
+        }
+        if new_status:
+            updates["status"] = new_status
+        try:
+            ws = _get_worksheet(USERS_SHEET)
+            _update_row_by_id(ws, "asaas_customer_id", customer_id, USERS_COLS_FULL, updates)
+        except Exception as exc:
+            log.error("asaas_webhook: %s", exc)
+    return jsonify({"received": True}), 200
 
 
-# ââ COMPATIBILIDADE COM FORMULÃRIO LEGADO âââââââââââââââââââââââââââââââââââââ
+# ══════════════════════════════════════════════════════════════════════════════
+# DEBUG — remover antes de produção
+# ══════════════════════════════════════════════════════════════════════════════
 
-@app.post("/submit")
-def submit_legado(payload: dict = Body(...)):
-    """
-    Endpoint de compatibilidade com index.html atual.
-    Mapeia campos do formulÃ¡rio para o schema do Motor 1.
-    """
-    def _pick(*keys, src=payload, fallback=""):
-        for k in keys:
-            if src.get(k):
-                return src[k]
-        return fallback
+@app.route("/debug/sheets", methods=["GET"])
+def debug_sheets():
+    """Diagnóstico temporário — remover antes de produção."""
+    result = {
+        "spreadsheet_id": SPREADSHEET_ID,
+        "creds_path": SHEETS_CREDENTIALS,
+        "creds_exists": os.path.exists(SHEETS_CREDENTIALS),
+    }
+    try:
+        creds = Credentials.from_service_account_file(SHEETS_CREDENTIALS, scopes=SCOPES)
+        client = gspread.authorize(creds)
+        sh = client.open_by_key(SPREADSHEET_ID)
+        result["status"] = "ok"
+        result["title"] = sh.title
+        result["service_account_email"] = creds.service_account_email
+        result["worksheets"] = [ws.title for ws in sh.worksheets()]
+    except Exception as exc:
+        result["error"] = str(exc)
+    return jsonify(result), 200
 
-    request_id = _pick("request_id") or _novo_id()
 
-    dados_mapeados = CriarEpisodioRequest(
-        request_id=request_id,
-        identificacao_caso={
-            "tipo_atendimento": _pick("tipo_atendimento", fallback="eletivo"),
-            "origem_caso": "formulario_web",
-        },
-        paciente={
-            "nome":               _pick("paciente_nome", "nome_paciente", "nome"),
-            "carteirinha":        _pick("carteirinha", "num_carteirinha", "numero_carteirinha"),
-            "cpf":                _pick("cpf"),
-            "data_nascimento":    _pick("data_nascimento", "nascimento"),
-            "validade_carteirinha": _pick("validade_carteirinha", "validade"),
-            "contato": {
-                "telefone": _pick("telefone", "celular"),
-                "email":    _pick("email"),
-            },
-        },
-        medico={
-            "nome":          _pick("medico_nome", "nome_medico", "medico"),
-            "crm":           _pick("crm", "medico_crm"),
-            "especialidade": _pick("especialidade", fallback="neurocirurgia"),
-        },
-        hospital={
-            "nome": _pick("hospital_nome", "nome_hospital", "hospital"),
-            "cnes": _pick("cnes", "hospital_cnes"),
-        },
-        convenio={
-            "id_convenio":  _pick("id_convenio", "convenio", fallback="UNIMED_CARIRI"),
-            "nome":         _pick("convenio_nome", "nome_convenio"),
-            "codigo_tiss":  _pick("codigo_tiss", "ans", "codigo_ans"),
-            "canal_envio":  _pick("canal_envio", fallback="portal_web"),
-        },
-        procedimento_principal={
-            "codigo_tuss":   _pick("codigo_tuss", "tuss", "procedimento_tuss"),
-            "descricao":     _pick("procedimento", "descricao_procedimento"),
-            "cid_principal": _pick("cid", "cid_principal", "cid10"),
-            "cid_secundario": _pick("cid_secundario"),
-            "via_acesso":    _pick("via_acesso"),
-            "anestesia":     _pick("anestesia", fallback="geral"),
-            "complexidade":  _pick("complexidade", fallback="alta_complexidade"),
-            "data_prevista_procedimento": _pick("data_cirurgia", "data_procedimento"),
-            "niveis_anatomicos": payload.get("niveis_anatomicos", []),
-            "indicacao_clinica": _pick("indicacao_clinica", "indicacao", "justificativa"),
-        },
-        opme={
-            "necessita_opme": payload.get("necessita_opme") in (True, "Sim", "sim", "S", "s"),
-            "justificativa_clinica": _pick("justificativa_opme", "justificativa_clinica_opme"),
-            "itens": payload.get("opme_itens", []),
-        },
-    )
+# ══════════════════════════════════════════════════════════════════════════════
+# HELPERS INTERNOS — uso por rotas legadas
+# ══════════════════════════════════════════════════════════════════════════════
 
-    return criar_episodio(dados_mapeados)
+def _inject_usage_headers(response):
+    if hasattr(g, "requests_used"):
+        response.headers["X-Usage-Used"] = str(g.requests_used)
+        response.headers["X-Usage-Remaining"] = str(g.requests_left)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ERROS GLOBAIS — nunca expõem traceback
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({"error": "not_found", "message": "Rota não encontrada."}), 404
+
+
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return jsonify({"error": "method_not_allowed", "message": "Método não permitido."}), 405
+
+
+@app.errorhandler(500)
+def internal_error(e):
+    log.error("500 unhandled: %s", e)
+    return jsonify({"error": "internal_error", "message": "Erro interno."}), 500
+
+
+if __name__ == "__main__":
+    app.run(debug=False, port=5000)
