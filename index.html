@@ -1248,7 +1248,7 @@
 </div>
 
 <script>
-const API = 'https://neuroauth-api.onrender.com';
+const API = 'https://neuroauth-auth.onrender.com';
 
 // ── AOS ──
 const observer = new IntersectionObserver((entries) => {
@@ -1400,98 +1400,139 @@ async function runDemo() {
 
   const resultEl = document.getElementById('modal-result');
   resultEl.className = 'modal-result';
+  document.getElementById('res-checks').innerHTML = '';
+  document.getElementById('res-pendencias').innerHTML = '';
+  document.getElementById('res-ep-id').textContent = '';
 
-  const payload = {
-    request_id: 'DEMO_' + Date.now(),
-    identificacao_caso: {
-      numero_guia: 'DEMO_' + Date.now(),
-      tipo_atendimento: 'internacao',
-      carater_atendimento: 'eletivo',
-    },
-    paciente: {
-      nome: document.getElementById('f-paciente').value,
-      data_nascimento: document.getElementById('f-nasc').value,
-      carteirinha: document.getElementById('f-cart').value,
-    },
-    convenio: { nome: document.getElementById('f-conv').value },
-    medico: { crm: document.getElementById('f-crm').value },
-    hospital: { cnes: document.getElementById('f-cnes').value },
-    procedimento_principal: {
-      codigo_tuss: document.getElementById('f-tuss').value,
-      cid: document.getElementById('f-cid').value,
-      descricao: document.getElementById('f-tuss').selectedOptions[0].text.split('—')[1]?.trim() || '',
-    }
-  };
+  const tussCode = document.getElementById('f-tuss').value;
+  const cidCode  = document.getElementById('f-cid').value;
+  const convName = document.getElementById('f-conv').value;
 
   try {
-    // 1. Criar episódio
-    const r1 = await fetch(API + '/episodios', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const ep = await r1.json();
-    const epId = ep.id_episodio || ep.id || 'EP_DEMO';
+    // ── PASSO 1: JWT demo (sem senha) ──────────────────────────────────────
+    const authR = await fetch(API + '/auth/demo', { method: 'POST' });
+    if (!authR.ok) throw new Error('Falha ao obter token demo (' + authR.status + ')');
+    const auth  = await authR.json();
+    const token = auth.token;
+    const hdrs  = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
 
-    // 2. Validar
-    const r2 = await fetch(API + '/episodios/' + epId + '/validar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
-    });
-    const val = await r2.json();
+    // ── PASSO 2: Busca profile_id pelo código TUSS ─────────────────────────
+    let profileId = '';
+    try {
+      const profR = await fetch(API + '/profiles/search?q=' + encodeURIComponent(tussCode), { headers: hdrs });
+      if (profR.ok) {
+        const profData = await profR.json();
+        const profs = profData.profiles || profData.results || (Array.isArray(profData) ? profData : []);
+        if (profs.length > 0) profileId = profs[0].profile_id || '';
+      }
+    } catch(e) { /* sem perfil — retornará erro no motor */ }
 
-    // Render result
-    const resultadoV = val.resultado_validacao || val;
-    const pendList = val.pendencias || resultadoV.pendencias || [];
-    const checks = resultadoV.checks || {};
-    const aprovado = resultadoV.aprovado ?? (pendList.length === 0);
+    if (!profileId) throw new Error('Procedimento TUSS ' + tussCode + ' não encontrado no banco do motor.');
 
-    document.getElementById('res-dot').className = `pulse-dot ${aprovado ? '' : 'warn'}`;
-    document.getElementById('res-label').textContent = aprovado ? '✓ Episódio validado — Envio liberado' : '⚠ Pendências detectadas — Envio bloqueado';
-    document.getElementById('res-label').style.color = aprovado ? 'var(--accent)' : 'var(--warn)';
+    // ── PASSO 3: Criar episódio ────────────────────────────────────────────
+    const epPayload = {
+      profile_id:    profileId,
+      convenio_id:   convName,
+      cid_principal: cidCode,
+      niveis:        1,
+      clinical_context: {
+        codigo_tuss: tussCode,
+        cid:         cidCode,
+        descricao:   document.getElementById('f-tuss').selectedOptions[0]?.text?.split('—')[1]?.trim() || '',
+      },
+      dados_paciente: {
+        nome:             document.getElementById('f-paciente').value,
+        data_nascimento:  document.getElementById('f-nasc').value,
+        carteirinha:      document.getElementById('f-cart').value,
+      },
+    };
+
+    const epR = await fetch(API + '/episodios', { method: 'POST', headers: hdrs, body: JSON.stringify(epPayload) });
+    if (!epR.ok) {
+      const epErr = await epR.json().catch(() => ({}));
+      throw new Error(epErr.message || 'HTTP ' + epR.status + ' ao criar episódio');
+    }
+    const ep   = await epR.json();
+    const epId = ep.episodio_id || ep.id;
+    if (!epId) throw new Error('ID do episódio não retornado pelo backend');
     document.getElementById('res-ep-id').textContent = 'ID: ' + epId;
 
-    const checkNames = {
-      completude: 'Completude',
-      clinico: 'Compatibilidade clínica',
-      regulatorio: 'Regulatório',
-      cobertura: 'Cobertura convênio'
+    // ── PASSO 4: Executar motor de decisão ─────────────────────────────────
+    const decR = await fetch(API + '/decision/run/' + epId, { method: 'POST', headers: hdrs, body: '{}' });
+    if (!decR.ok) {
+      const decErr = await decR.json().catch(() => ({}));
+      throw new Error(decErr.message || 'HTTP ' + decR.status + ' no motor');
+    }
+    const dec = await decR.json();
+
+    // ── PASSO 5: Renderizar resposta do Motor 2 ────────────────────────────
+    const status      = dec.decision_status || 'UNKNOWN';
+    const aprovado    = status === 'GO';
+    const ressalvas   = status === 'GO_COM_RESSALVAS';
+    const allBlocks   = dec.all_blocks  || [];
+    const allAlerts   = dec.all_alerts  || [];
+    const score       = dec.score_confianca || 0;
+
+    document.getElementById('res-dot').className =
+      'pulse-dot ' + (aprovado ? '' : ressalvas ? 'warn' : 'off');
+
+    const statusLabels = {
+      GO:               '✓ Autorizado — Envio liberado',
+      GO_COM_RESSALVAS: '⚠ Autorizado com ressalvas',
+      NO_GO:            '✗ Bloqueado — Envio não autorizado',
     };
+    document.getElementById('res-label').textContent = statusLabels[status] || status;
+    document.getElementById('res-label').style.color =
+      aprovado ? 'var(--accent)' : ressalvas ? 'var(--warn)' : 'var(--danger)';
 
     const checksEl = document.getElementById('res-checks');
     checksEl.innerHTML = '';
-    for (const [k, v] of Object.entries(checks)) {
-      const ok = v === true || v === 'ok' || (typeof v === 'object' && v.ok);
-      const row = document.createElement('div');
-      row.className = 'result-check';
-      row.innerHTML = `
-        <span style="color:var(--muted)">${checkNames[k] || k}</span>
-        <span style="color:${ok ? 'var(--accent)' : 'var(--warn)'}; font-weight:600">
-          ${ok ? '✓ OK' : '⚠ Pendente'}
-        </span>
-      `;
-      checksEl.appendChild(row);
+
+    // Score de confiança
+    const scoreRow = document.createElement('div');
+    scoreRow.className = 'result-check';
+    scoreRow.innerHTML = `<span style="color:var(--muted)">Score de confiança</span><span style="font-weight:600">${Math.round(score * 100)}%</span>`;
+    checksEl.appendChild(scoreRow);
+
+    // Opção principal
+    if (dec.best_option) {
+      const optRow = document.createElement('div');
+      optRow.className = 'result-check';
+      optRow.innerHTML = `<span style="color:var(--muted)">Opção principal</span><span style="font-weight:600;font-size:12px">${dec.best_option.codigo_principal || dec.best_option.codigo || '—'}</span>`;
+      checksEl.appendChild(optRow);
     }
 
-    if (pendList.length > 0) {
-      const pEl = document.getElementById('res-pendencias');
-      pEl.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase">Pendências (${pendList.length})</div>`;
-      pendList.slice(0,3).forEach(p => {
-        const div = document.createElement('div');
-        div.style.cssText = 'padding:10px 14px;background:var(--danger-dim);border:1px solid rgba(239,68,68,0.15);border-radius:8px;margin-bottom:8px;font-size:13px;color:var(--text)';
-        div.innerHTML = `<span style="color:var(--danger)">●</span> ${p.descricao || p.mensagem || JSON.stringify(p)}`;
-        pEl.appendChild(div);
+    const pEl = document.getElementById('res-pendencias');
+    pEl.innerHTML = '';
+
+    if (allBlocks.length > 0) {
+      pEl.innerHTML += `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase">Bloqueios (${allBlocks.length})</div>`;
+      allBlocks.slice(0,3).forEach(b => {
+        const d = document.createElement('div');
+        d.style.cssText = 'padding:10px 14px;background:var(--danger-dim);border:1px solid rgba(239,68,68,.15);border-radius:8px;margin-bottom:8px;font-size:13px;color:var(--text)';
+        d.innerHTML = `<span style="color:var(--danger)">●</span> ${b}`;
+        pEl.appendChild(d);
+      });
+    }
+
+    if (allAlerts.length > 0) {
+      const aTitle = document.createElement('div');
+      aTitle.style.cssText = 'font-size:12px;color:var(--muted);margin:12px 0 8px;letter-spacing:.04em;text-transform:uppercase';
+      aTitle.textContent = `Alertas (${allAlerts.length})`;
+      pEl.appendChild(aTitle);
+      allAlerts.slice(0,3).forEach(a => {
+        const d = document.createElement('div');
+        d.style.cssText = 'padding:10px 14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;margin-bottom:8px;font-size:13px;color:var(--text)';
+        d.innerHTML = `<span style="color:var(--warn)">⚠</span> ${a}`;
+        pEl.appendChild(d);
       });
     }
 
     resultEl.classList.add('show');
-
-    // Atualiza health
     fetchHealth();
 
   } catch(err) {
-    document.getElementById('res-label').textContent = 'Erro na comunicação com o Motor';
+    document.getElementById('res-label').textContent = 'Erro: ' + err.message;
     document.getElementById('res-label').style.color = 'var(--danger)';
     document.getElementById('res-dot').className = 'pulse-dot off';
     document.getElementById('res-checks').innerHTML = `<div style="font-size:13px;color:var(--muted)">${err.message}</div>`;
