@@ -131,8 +131,8 @@ PROC_MESTRE_COLS = [
 EPISODIOS_SHEET = "22_EPISODIOS"
 DECISION_RUNS_SHEET = "21_DECISION_RUNS"
 USAGE_SHEET = "03_USAGE_LOG"
-USERS_SHEET = "02_USERS"
-PROC_MESTRE_SHEET = "PROC_MESTRE"
+USERS_SHEET = "USERS"
+PROC_MESTRE_SHEET = "20_PROC_MESTRE"
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 2. HELPERS — única definição de cada função base
@@ -476,11 +476,11 @@ def decision_run(episodio_id: str):
             "episodio_id": episodio_id,
             "profile_id": profile_id,
             "convenio_id": ep.get("convenio_id", ""),
-            "clinical_context": {},
-            "opme_context": {},
+            "clinical_context": json.loads(ep.get("clinical_context_json") or "{}"),
+            "opme_context": json.loads(ep.get("opme_context_json") or "{}"),
             "niveis": int(ep.get("niveis") or 1),
             "lateralidade": ep.get("lateralidade", ""),
-            "dados_paciente": {},
+            "dados_paciente": json.loads(ep.get("dados_paciente_json") or "{}"),
             "usuario_id": getattr(g, "user_id", ""),
         }
         context = build_context_from_payload(payload)
