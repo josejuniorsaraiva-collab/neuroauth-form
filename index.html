@@ -684,124 +684,7 @@
     margin-bottom: 44px;
   }
 
-  /* ── DEMO MODAL ── */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(8px);
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s;
-  }
-  .modal-overlay.open {
-    opacity: 1;
-    pointer-events: all;
-  }
-
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    width: 100%;
-    max-width: 640px;
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: 36px;
-    transform: scale(0.97) translateY(8px);
-    transition: transform 0.3s;
-  }
-  .modal-overlay.open .modal { transform: scale(1) translateY(0); }
-
-  .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 28px;
-  }
-
-  .modal-title { font-size: 20px; font-weight: 700; color: #fff; }
-
-  .modal-close {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--muted);
-    cursor: pointer;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-  }
-  .modal-close:hover { background: var(--surface2); color: var(--text); }
-
-  .modal-form { display: flex; flex-direction: column; gap: 16px; }
-
-  .form-group { display: flex; flex-direction: column; gap: 6px; }
-
-  .form-label { font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: 0.04em; }
-
-  .form-input, .form-select {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 14px;
-    color: var(--text);
-    font-family: inherit;
-    transition: border-color 0.2s;
-    width: 100%;
-  }
-  .form-input:focus, .form-select:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-  .form-select option { background: #1a2535; }
-
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-  .modal-result {
-    margin-top: 24px;
-    padding: 20px;
-    background: var(--surface2);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    display: none;
-  }
-  .modal-result.show { display: block; }
-
-  .result-state {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .result-state-label {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--accent);
-  }
-
-  .result-checks { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-
-  .result-check {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 13px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    background: rgba(0,0,0,0.2);
-  }
-
+  
   /* ── FOOTER ── */
   footer {
     padding: 40px;
@@ -907,10 +790,10 @@
     </div>
 
     <div class="hero-ctas">
-      <button class="btn-primary" onclick="openDemo()">
-        Ver seu fluxo rodando aqui
+      <a href="https://neuroauth-auth.onrender.com/form?v=3" class="btn-primary">
+        Iniciar solicitação cirúrgica
         <span>→</span>
-      </button>
+      </a>
       <a href="#live-episode" class="btn-ghost">Ver episódio ao vivo</a>
     </div>
   </div>
@@ -1142,16 +1025,13 @@
 </section>
 
 <!-- ── CTA ── -->
-<section id="cta">
-  <div class="inner">
-    <div class="section-label" style="display:inline-block;margin-bottom:20px" data-aos>Para equipes cirúrgicas</div>
-    <h2 data-aos>Ver seu fluxo<br/>rodando aqui.</h2>
-    <p data-aos>Não é uma demo gravada. É o sistema real processando sua solicitação agora.</p>
-    <div data-aos>
-      <button class="btn-primary" onclick="openDemo()" style="font-size:16px;padding:18px 36px">
-        Criar episódio real →
-      </button>
-    </div>
+<section id="cta" class="cta-section">
+  <div class="cta-card">
+    <h2>Inicie uma solicitação cirúrgica</h2>
+    <p>Entre no fluxo clínico do NEUROAUTH para validar o caso e seguir com a autorização.</p>
+    <a href="https://neuroauth-auth.onrender.com/form?v=3" class="cta-button">
+      Iniciar solicitação cirúrgica →
+    </a>
   </div>
 </section>
 
@@ -1160,92 +1040,6 @@
   <div class="footer-logo">NEURO<span>AUTH</span></div>
   <div class="footer-copy">Motor 1 · v1.0.0 · SQLite WAL · FastAPI</div>
 </footer>
-
-<!-- ── MODAL ── -->
-<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Criar episódio real</div>
-      <button class="modal-close" onclick="closeDemo()">✕</button>
-    </div>
-
-    <div class="modal-form">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">PACIENTE</label>
-          <input class="form-input" id="f-paciente" placeholder="Nome completo" value="Ana Beatriz Mota"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">DATA NASC.</label>
-          <input class="form-input" id="f-nasc" type="date" value="1975-04-12"/>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">CARTEIRINHA</label>
-          <input class="form-input" id="f-cart" placeholder="000.000.000-00" value="881247033001"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">CONVÊNIO</label>
-          <select class="form-select" id="f-conv">
-            <option value="Unimed Nacional">Unimed Nacional</option>
-            <option value="Bradesco Saúde">Bradesco Saúde</option>
-            <option value="Amil">Amil</option>
-            <option value="SulAmérica">SulAmérica</option>
-            <option value="Hapvida">Hapvida</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">MÉDICO (CRM)</label>
-          <input class="form-input" id="f-crm" placeholder="CRM-SP 000000" value="CRM-SP 124879"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">HOSPITAL (CNES)</label>
-          <input class="form-input" id="f-cnes" placeholder="0000000" value="2748291"/>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">CÓDIGO TUSS</label>
-          <select class="form-select" id="f-tuss">
-            <option value="31005020">31005020 — Artrodese cervical</option>
-            <option value="40803120">40803120 — Craniotomia</option>
-            <option value="31309179">31309179 — Laminectomia lombar</option>
-            <option value="30602018">30602018 — Microdiscectomia</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">CID-10</label>
-          <select class="form-select" id="f-cid">
-            <option value="M50.1">M50.1 — Disc. cervical c/ radiculopatia</option>
-            <option value="G35">G35 — Esclerose múltipla</option>
-            <option value="M51.1">M51.1 — Disc. lombar c/ radiculopatia</option>
-            <option value="M54.4">M54.4 — Lombociatalgia</option>
-          </select>
-        </div>
-      </div>
-
-      <button class="btn-primary" onclick="runDemo()" id="run-btn" style="width:100%;justify-content:center;margin-top:4px">
-        Executar validação agora →
-      </button>
-    </div>
-
-    <div class="modal-result" id="modal-result">
-      <div class="result-state">
-        <div id="res-dot" class="pulse-dot"></div>
-        <div id="res-label" class="result-state-label"></div>
-      </div>
-      <div id="res-ep-id" style="font-size:12px;font-family:monospace;color:var(--muted);margin-bottom:8px"></div>
-      <div class="result-checks" id="res-checks"></div>
-      <div id="res-pendencias" style="margin-top:16px"></div>
-    </div>
-  </div>
-</div>
 
 <script>
 const API = 'https://neuroauth-auth.onrender.com';
@@ -1377,195 +1171,6 @@ function restartDemoAnimation() {
 }
 
 runDemoAnimation();
-
-// ── MODAL ──
-function openDemo() {
-  document.getElementById('modal-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeDemo() {
-  document.getElementById('modal-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-function handleOverlayClick(e) {
-  if (e.target === document.getElementById('modal-overlay')) closeDemo();
-}
-
-async function runDemo() {
-  const btn = document.getElementById('run-btn');
-  btn.innerHTML = '<div class="spinner"></div> Processando...';
-  btn.disabled = true;
-
-  const resultEl = document.getElementById('modal-result');
-  resultEl.className = 'modal-result';
-  document.getElementById('res-checks').innerHTML = '';
-  document.getElementById('res-pendencias').innerHTML = '';
-  document.getElementById('res-ep-id').textContent = '';
-
-  const tussCode = document.getElementById('f-tuss').value;
-  const cidCode  = document.getElementById('f-cid').value;
-  const convName = document.getElementById('f-conv').value;
-
-  try {
-    // ── PASSO 1: JWT demo (sem senha) ──────────────────────────────────────
-    const authR = await fetch(API + '/auth/demo', { method: 'POST' });
-    if (!authR.ok) throw new Error('Falha ao obter token demo (' + authR.status + ')');
-    const auth  = await authR.json();
-    const token = auth.token;
-    const hdrs  = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-
-    // ── PASSO 2: Busca profile_id pelo código TUSS ─────────────────────────
-    let profileId = '';
-    try {
-      const profR = await fetch(API + '/profiles/search?q=' + encodeURIComponent(tussCode), { headers: hdrs });
-      if (profR.ok) {
-        const profData = await profR.json();
-        const profs = profData.profiles || profData.results || (Array.isArray(profData) ? profData : []);
-        if (profs.length > 0) profileId = profs[0].profile_id || '';
-      }
-    } catch(e) { /* sem perfil — retornará erro no motor */ }
-
-    if (!profileId) throw new Error('Procedimento TUSS ' + tussCode + ' não encontrado no banco do motor.');
-
-    // ── PASSO 3: Criar episódio ────────────────────────────────────────────
-    const epPayload = {
-      profile_id:    profileId,
-      convenio_id:   convName,
-      cid_principal: cidCode,
-      niveis:        1,
-      clinical_context: {
-        codigo_tuss: tussCode,
-        cid:         cidCode,
-        descricao:   document.getElementById('f-tuss').selectedOptions[0]?.text?.split('—')[1]?.trim() || '',
-      },
-      dados_paciente: {
-        nome:             document.getElementById('f-paciente').value,
-        data_nascimento:  document.getElementById('f-nasc').value,
-        carteirinha:      document.getElementById('f-cart').value,
-      },
-    };
-
-    const epR = await fetch(API + '/episodios', { method: 'POST', headers: hdrs, body: JSON.stringify(epPayload) });
-    if (!epR.ok) {
-      const epErr = await epR.json().catch(() => ({}));
-      throw new Error(epErr.message || 'HTTP ' + epR.status + ' ao criar episódio');
-    }
-    const ep   = await epR.json();
-    const epId = ep.episodio_id || ep.id;
-    if (!epId) throw new Error('ID do episódio não retornado pelo backend');
-    document.getElementById('res-ep-id').textContent = 'ID: ' + epId;
-
-    // ── PASSO 4: Executar motor de decisão ─────────────────────────────────
-    const decR = await fetch(API + '/decision/run/' + epId, { method: 'POST', headers: hdrs, body: '{}' });
-    if (!decR.ok) {
-      const decErr = await decR.json().catch(() => ({}));
-      throw new Error(decErr.message || 'HTTP ' + decR.status + ' no motor');
-    }
-    const dec = await decR.json();
-
-    // ── PASSO 5: Renderizar resposta do Motor 2 ────────────────────────────
-    const status      = dec.decision_status || 'UNKNOWN';
-    const aprovado    = status === 'GO';
-    const ressalvas   = status === 'GO_COM_RESSALVAS';
-    const allBlocks   = dec.all_blocks  || [];
-    const allAlerts   = dec.all_alerts  || [];
-    const score       = dec.score_confianca || 0;
-
-    document.getElementById('res-dot').className =
-      'pulse-dot ' + (aprovado ? '' : ressalvas ? 'warn' : 'off');
-
-    const statusLabels = {
-      GO:               '✓ Autorizado — Envio liberado',
-      GO_COM_RESSALVAS: '⚠ Autorizado com ressalvas',
-      NO_GO:            '✗ Bloqueado — Envio não autorizado',
-    };
-    document.getElementById('res-label').textContent = statusLabels[status] || status;
-    document.getElementById('res-label').style.color =
-      aprovado ? 'var(--accent)' : ressalvas ? 'var(--warn)' : 'var(--danger)';
-
-    const checksEl = document.getElementById('res-checks');
-    checksEl.innerHTML = '';
-
-    // Score de confiança
-    const scoreRow = document.createElement('div');
-    scoreRow.className = 'result-check';
-    scoreRow.innerHTML = `<span style="color:var(--muted)">Score de confiança</span><span style="font-weight:600">${Math.round(score * 100)}%</span>`;
-    checksEl.appendChild(scoreRow);
-
-    // Opção principal
-    if (dec.best_option) {
-      const optRow = document.createElement('div');
-      optRow.className = 'result-check';
-      optRow.innerHTML = `<span style="color:var(--muted)">Opção principal</span><span style="font-weight:600;font-size:12px">${dec.best_option.codigo_principal || dec.best_option.codigo || '—'}</span>`;
-      checksEl.appendChild(optRow);
-    }
-
-    const pEl = document.getElementById('res-pendencias');
-    pEl.innerHTML = '';
-
-    if (allBlocks.length > 0) {
-      pEl.innerHTML += `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase">Bloqueios (${allBlocks.length})</div>`;
-      allBlocks.slice(0,3).forEach(b => {
-        const d = document.createElement('div');
-        d.style.cssText = 'padding:10px 14px;background:var(--danger-dim);border:1px solid rgba(239,68,68,.15);border-radius:8px;margin-bottom:8px;font-size:13px;color:var(--text)';
-        d.innerHTML = `<span style="color:var(--danger)">●</span> ${b}`;
-        pEl.appendChild(d);
-      });
-    }
-
-    if (allAlerts.length > 0) {
-      const aTitle = document.createElement('div');
-      aTitle.style.cssText = 'font-size:12px;color:var(--muted);margin:12px 0 8px;letter-spacing:.04em;text-transform:uppercase';
-      aTitle.textContent = `Alertas (${allAlerts.length})`;
-      pEl.appendChild(aTitle);
-      allAlerts.slice(0,3).forEach(a => {
-        const d = document.createElement('div');
-        d.style.cssText = 'padding:10px 14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;margin-bottom:8px;font-size:13px;color:var(--text)';
-        d.innerHTML = `<span style="color:var(--warn)">⚠</span> ${a}`;
-        pEl.appendChild(d);
-      });
-    }
-
-    resultEl.classList.add('show');
-    fetchHealth();
-
-  } catch(err) {
-    document.getElementById('res-label').textContent = 'Erro: ' + err.message;
-    document.getElementById('res-label').style.color = 'var(--danger)';
-    document.getElementById('res-dot').className = 'pulse-dot off';
-    document.getElementById('res-checks').innerHTML = `<div style="font-size:13px;color:var(--muted)">${err.message}</div>`;
-    resultEl.classList.add('show');
-  }
-
-  btn.innerHTML = 'Executar nova validação →';
-  btn.disabled = false;
-}
-
-// ── TERMINAL ANIMATION ──
-(function animateTerminal() {
-  const body = document.getElementById('terminal-body');
-  const lines = body.querySelectorAll('.term-line');
-  let i = 0;
-  lines.forEach(l => l.style.opacity = '0');
-
-  function showLine() {
-    if (i < lines.length) {
-      lines[i].style.transition = 'opacity 0.3s';
-      lines[i].style.opacity = '1';
-      i++;
-      setTimeout(showLine, 350);
-    } else {
-      setTimeout(() => {
-        lines.forEach(l => l.style.opacity = '0');
-        i = 0;
-        setTimeout(showLine, 600);
-      }, 3000);
-    }
-  }
-  setTimeout(showLine, 1500);
-})();
 </script>
 </body>
 </html>
