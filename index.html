@@ -2820,54 +2820,89 @@ async function confirmedSend(){
     return;
   }
   const decidePayload = buildDecidePayload(d, opmeFinalSend);
-  console.info('[NEUROAUTH/decide] POST',NA_DECIDE_URL,decidePayload);
-  try{
-    const r=await fetch(NA_DECIDE_URL,{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':'Bearer '+jwt
-      },
-      body:JSON.stringify(decidePayload)
-    });
-    sp.classList.remove('on');btn.disabled=false;
-    const rBody = await r.json().catch(function(){return {};});
-    if(r.ok){
+  console.info('[NEUROAUTH/decide] POST', NA_DECIDE_URL, decidePayload);
+
+  // Função interna de envio — usada para retry
+  async function _doDecideFetch() {
+    const ctrl = new AbortController();
+    const fetchTimeout = setTimeout(function(){ ctrl.abort(); }, 18000);
+    try {
+      const r = await fetch(NA_DECIDE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
+        body: JSON.stringify(decidePayload),
+        signal: ctrl.signal
+      });
+      clearTimeout(fetchTimeout);
+      return r;
+    } catch(fetchErr) {
+      clearTimeout(fetchTimeout);
+      throw fetchErr;
+    }
+  }
+
+  try {
+    var r;
+    try {
+      r = await _doDecideFetch();
+    } catch(netErr) {
+      // Erro de rede (Load failed, aborted, offline) — retry único após 3s
+      var isNetworkErr = netErr.name === 'TypeError' || netErr.name === 'AbortError';
+      if (isNetworkErr) {
+        console.warn('[NEUROAUTH/decide] falha de rede — tentando novamente em 3s:', netErr.message);
+        toast('Falha de conexão — tentando novamente...', 'er');
+        await new Promise(function(res){ setTimeout(res, 3000); });
+        try {
+          r = await _doDecideFetch();
+          console.info('[NEUROAUTH/decide] retry OK');
+        } catch(retryErr) {
+          // Retry também falhou
+          toast('Falha de conexão durante o envio. O caso não foi concluído. Verifique a internet e tente novamente.', 'er');
+          console.error('[NEUROAUTH/decide] retry falhou:', retryErr.message);
+          console.log('[NEUROAUTH]', 'send_error', {message: retryErr.message, type: 'network', retry: true});
+          return; // finally vai limpar estado
+        }
+      } else {
+        throw netErr; // erro não-rede: propagar normalmente
+      }
+    }
+
+    const rBody = await r.json().catch(function(){ return {}; });
+    if (r.ok) {
       closeModal('pvModal');
       const cls   = rBody.classification || '?';
-      const score = rBody.score!=null ? ' ? score '+rBody.score : '';
-      const risco = rBody.risco_glosa ? ' ? risco '+rBody.risco_glosa : '';
-      toast('? Motor: '+cls+score+risco,'ok');
-      console.info('[NEUROAUTH/decide] OK',{
-        classification:cls, score:rBody.score,
-        risco_glosa:rBody.risco_glosa,
-        decision_run_id:rBody.decision_run_id,
-        episode_id:rBody.episodio_id,
-        http_status:r.status
+      const score = rBody.score != null ? ' · score ' + rBody.score : '';
+      const risco = rBody.risco_glosa   ? ' · risco ' + rBody.risco_glosa : '';
+      toast('✅ Motor: ' + cls + score + risco, 'ok');
+      console.info('[NEUROAUTH/decide] OK', {
+        classification: cls, score: rBody.score,
+        risco_glosa: rBody.risco_glosa,
+        decision_run_id: rBody.decision_run_id,
+        episode_id: rBody.episodio_id,
+        http_status: r.status
       });
       (window.__NA_SECURE.draft = null);
       guiaRegistrada    = true;
       envioConfirmadoEm = new Date().toISOString();
       envioUserEmail    = naGetSessionField('email') || '';
       naUpdateAuditUI();
-      console.log('[NEUROAUTH]', 'send_ok',{decision_run_id:rBody.decision_run_id,episode_id:rBody.episodio_id});
-      // Make-proxy em background ? gera??o de docs (perif?rico, n?o bloqueia)
-      fetch(WH,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload)
-      }).then(function(wr){
-        console.info('[NEUROAUTH/make-proxy]',wr.status);
-      }).catch(function(we){
-        console.warn('[NEUROAUTH/make-proxy] falha:',we.message);
-      });
+      console.log('[NEUROAUTH]', 'send_ok', {decision_run_id: rBody.decision_run_id, episode_id: rBody.episodio_id});
+      // Make-proxy em background — geração de docs (não bloqueia)
+      fetch(WH, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
+        .then(function(wr){ console.info('[NEUROAUTH/make-proxy]', wr.status); })
+        .catch(function(we){ console.warn('[NEUROAUTH/make-proxy] falha:', we.message); });
     } else {
-      const errMsg = (rBody&&rBody.detail) || ('HTTP '+r.status);
-      throw new Error(errMsg);
+      // Erro HTTP explícito do backend — não é falha de rede
+      var errMsg = (rBody && rBody.detail) || ('HTTP ' + r.status);
+      toast('❌ Erro no servidor: ' + errMsg, 'er');
+      console.error('[NEUROAUTH/decide] HTTP erro', r.status, rBody);
+      console.log('[NEUROAUTH]', 'send_error', {message: errMsg, type: 'http', status: r.status});
     }
-  } catch(e){
-    sp.classList.remove('on');btn.disabled=false;
-    toast('? Erro: '+e.message,'er');
-    console.log('[NEUROAUTH]', 'send_error',{message:e.message});
-    console.error('[NEUROAUTH/decide] falha',e);
+  } catch(e) {
+    var msg = (e && e.message) || 'Erro desconhecido';
+    toast('❌ Erro ao enviar: ' + msg, 'er');
+    console.log('[NEUROAUTH]', 'send_error', {message: msg});
+    console.error('[NEUROAUTH/decide] falha', e);
   } finally {
     clearTimeout(_watchdog);
     window.__NA_SENDING__ = false;
