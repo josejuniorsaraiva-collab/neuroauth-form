@@ -833,7 +833,8 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 
 /* Ã¢ÂÂÃ¢ÂÂ CONFIG Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
 const NA_CLIENT_ID   = '118851719832-qaktum0kj1a6r2a2fp6c75hhag8p2tlf.apps.googleusercontent.com';       // Ã¢ÂÂ substituir pelo OAuth Client ID do Google Cloud Console
-const NA_PROFILE_WH  = 'https://neuroauth-auth.onrender.com/api/make-proxy'; // Ã¢ÂÂ URL do webhook NEUROAUTH_PROFILE_READER no Make.com
+const NA_PROFILE_WH  = 'https://neuroauth-auth.onrender.com/api/make-proxy';
+const NA_DECIDE_URL  = 'https://neuroauth-auth.onrender.com/decide'; // motor de decisão autenticado // Ã¢ÂÂ URL do webhook NEUROAUTH_PROFILE_READER no Make.com
 const NA_SESSION_TTL = 8 * 60 * 60 * 1000;           // 8 horas em ms
 
 /* Ã¢ÂÂÃ¢ÂÂ SESSION HELPER Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */
@@ -2622,6 +2623,65 @@ function trySubmit(){
   openPreview();
 }
 
+/* ──────────────────────────────────────────────────────────────────
+   NEUROAUTH /decide — integração com backend autenticado
+   Usa window.__NA_SECURE.jwt (Bearer token do /auth/google)
+   Não altera WH/Make.com — /decide é chamado em paralelo
+────────────────────────────────────────────────────────────────── */
+function buildDecidePayload(d, opmeItems){
+  return {
+    cid_principal:      d.cid_principal || '',
+    procedimento:       d.procedimento  || '',
+    convenio:           d.convenio      || '',
+    cod_cbhpm:          d.cod_cbhpm     || d.cod_tuss || '',
+    indicacao_clinica:  d.indicacao_clinica || '',
+    achados_resumo:     d.achados_resumo || d.achados_exame || '',
+    tto_conservador:    d.tto_conservador || '',
+    necessita_opme:     d.necessita_opme === 'Sim' ? 'Sim' : 'Não',
+    opme_items: (opmeItems || []).map(function(o){return {
+      descricao:  o.descricao || o.d || '',
+      qtd:        parseInt(o.qtd || o.q || 1, 10),
+      fabricante: o.fabricante || o.empresa || o.e || '',
+      codigo:     o.codigo || ''
+    };}).filter(function(o){ return o.descricao; }),
+    justificativas_opme: {},
+    crm:                d.crm || '',
+    cbo:                d.cbo || '',
+    medico_solicitante: d.medico_solicitante || naGetSessionField('medico_nome') || ''
+  };
+}
+
+async function callDecideBackend(d, opmeItems){
+  var jwt = window.__NA_SECURE && window.__NA_SECURE.jwt;
+  if(!jwt){
+    console.warn('[NEUROAUTH/decide] jwt ausente — /auth/google pode ter falhado');
+    return {ok:false, error:'Token de autenticação ausente. Sessão pode ter expirado.'};
+  }
+  var decidePayload = buildDecidePayload(d, opmeItems);
+  console.info('[NEUROAUTH/decide] POST', NA_DECIDE_URL, decidePayload);
+  try{
+    var res = await fetch(NA_DECIDE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': 'Bearer ' + jwt
+      },
+      body: JSON.stringify(decidePayload)
+    });
+    var body = await res.json().catch(function(){ return {}; });
+    if(res.ok){
+      console.info('[NEUROAUTH/decide] OK', res.status, body);
+      return {ok:true, status:res.status, data:body};
+    } else {
+      console.error('[NEUROAUTH/decide] HTTP', res.status, body);
+      return {ok:false, status:res.status, error:body.detail||'HTTP '+res.status};
+    }
+  }catch(e){
+    console.error('[NEUROAUTH/decide] falha de rede', e);
+    return {ok:false, error:'Falha de rede: '+e.message};
+  }
+}
+
 async function confirmedSend(){
   const sp=document.getElementById('sp');
   const btn=document.getElementById('confirmSendBtn');
@@ -2673,6 +2733,28 @@ async function confirmedSend(){
       envioConfirmadoEm = new Date().toISOString();
       envioUserEmail    = naGetSessionField('email') || '';
       naUpdateAuditUI();
+
+      // ── NEUROAUTH /decide ─────────────────────────────────────────────
+      toast('⚙️ Motor NEUROAUTH processando...', 'ok');
+      callDecideBackend(d, opmeFinalSend).then(function(dr){
+        if(dr.ok){
+          var cls   = (dr.data&&dr.data.classification)||'?';
+          var score = (dr.data&&dr.data.score!=null)?' · score '+dr.data.score:'';
+          var risco = (dr.data&&dr.data.risco_glosa)?' · risco '+dr.data.risco_glosa:'';
+          toast('✅ Motor: '+cls+score+risco,'ok');
+          console.info('[NEUROAUTH/decide]',{
+            classification:cls,
+            score:dr.data&&dr.data.score,
+            risco_glosa:dr.data&&dr.data.risco_glosa,
+            decision_run_id:dr.data&&dr.data.decision_run_id,
+            episode_id:dr.data&&dr.data.episodio_id
+          });
+        } else {
+          toast('⚠️ Motor: '+(dr.error||'erro'),'er');
+          console.error('[NEUROAUTH/decide] falha',dr);
+        }
+      });
+      // ── fim /decide ───────────────────────────────────────────────────
     } else {
       throw new Error('HTTP '+r.status);
     }
