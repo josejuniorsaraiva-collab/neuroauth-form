@@ -889,6 +889,13 @@ async function naHandleLogin(response){
     console.log('[NEUROAUTH] /auth/google →',authResp.status,authData);
     if(authData.access_token){
       window.__NA_SECURE.jwt = (authData.access_token);
+      // Persistir JWT em sessionStorage para sobreviver a recargas dentro da aba
+      try {
+        sessionStorage.setItem('na_jwt_tmp', JSON.stringify({
+          jwt: authData.access_token,
+          exp: Date.now() + (25 * 60 * 1000)  // 25 min TTL
+        }));
+      } catch(e) {}
       console.log('[NEUROAUTH] JWT backend armazenado');
     }
   }catch(authErr){
@@ -1117,6 +1124,19 @@ function naLogLGPD(email,perfil_tipo){
 
 /* ── CHECK SESSION (entry point) ────────────────────────────────── */
 function naCheckSession(){
+  // Restaurar JWT da sessionStorage se memória foi perdida (ex: recarga de página)
+  try {
+    const jwtTmp = sessionStorage.getItem('na_jwt_tmp');
+    if (jwtTmp) {
+      const parsed = JSON.parse(jwtTmp);
+      if (parsed.exp && Date.now() < parsed.exp && parsed.jwt) {
+        window.__NA_SECURE.jwt = parsed.jwt;
+        console.log('[NEUROAUTH] JWT restaurado de sessionStorage');
+      } else {
+        sessionStorage.removeItem('na_jwt_tmp');
+      }
+    }
+  } catch(e) {}
   try{
     const raw=window.__NA_SECURE.session;
     if(raw){
@@ -2726,9 +2746,11 @@ async function confirmedSend(){
   const jwt = window.__NA_SECURE && window.__NA_SECURE.jwt;
   if(!jwt){
     sp.classList.remove('on');btn.disabled=false;
-    toast('? Sess?o expirada. Fa?a login novamente.','er');
+    toast('Sessão expirada — faça login novamente.','er');
     naLog('send_no_jwt');
     clearTimeout(_watchdog);window.__NA_SENDING__=false;
+    // Forçar reautenticação silenciosa após 2s
+    setTimeout(function(){window.__NA_SECURE.session=null;naCheckSession();},2000);
     return;
   }
   const decidePayload = buildDecidePayload(d, opmeFinalSend);
