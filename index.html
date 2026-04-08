@@ -2736,9 +2736,23 @@ async function callDecideBackend(d, opmeItems){
 }
 
 async function confirmedSend(){
+  // Guard duplo envio
+  if(window.__NA_SENDING__) { console.warn('[NEUROAUTH] confirmedSend: duplo envio bloqueado'); return; }
+  window.__NA_SENDING__ = true;
+  console.info('[NEUROAUTH] confirmedSend: iniciando');
+
   const sp=document.getElementById('sp');
   const btn=document.getElementById('confirmSendBtn');
-  sp.classList.add('on');btn.disabled=true;
+  sp.classList.add('on'); if(btn) btn.disabled=true;
+
+  // Watchdog: reset automático em 20s se algo travar
+  var _watchdog = setTimeout(function(){
+    window.__NA_SENDING__ = false;
+    if(sp) sp.classList.remove('on');
+    if(btn) btn.disabled = false;
+    console.warn('[NEUROAUTH] confirmedSend: watchdog reset (20s timeout)');
+    toast('O envio demorou demais. Tente novamente.', 'er');
+  }, 20000);
   const d=collect();
   // Enriquecer com seleções do sidebar builder
   const selProcs=getSelectedProcs();
@@ -2786,9 +2800,7 @@ async function confirmedSend(){
     console.error('[NEUROAUTH/decide] JWT AUSENTE — diagnóstico:', _jwtDiag);
     naLog('send_no_jwt', _jwtDiag);
     toast('Sessão expirada — reconectando automaticamente...', 'er');
-    clearTimeout(_watchdog);window.__NA_SENDING__=false;
-    sp.classList.remove('on');if(btn)btn.disabled=false;
-    // Reautenticar silenciosamente após 1.5s
+    // Reautenticar silenciosamente após 1.5s (finally vai limpar estado)
     setTimeout(function(){ naClearJwt(); window.__NA_SECURE.session=null; naCheckSession(); }, 1500);
     return;
   }
@@ -2841,6 +2853,11 @@ async function confirmedSend(){
     toast('? Erro: '+e.message,'er');
     naLog('send_error',{message:e.message});
     console.error('[NEUROAUTH/decide] falha',e);
+  } finally {
+    clearTimeout(_watchdog);
+    window.__NA_SENDING__ = false;
+    if(sp) sp.classList.remove('on');
+    if(btn) btn.disabled = false;
   }
 }
 
