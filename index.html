@@ -2798,7 +2798,7 @@ async function confirmedSend(){
       stor: (function(){ try{ var r=sessionStorage.getItem('na_jwt_tmp'); return r?'presente':'ausente'; }catch(e){return 'erro';} })()
     };
     console.error('[NEUROAUTH/decide] JWT AUSENTE — diagnóstico:', _jwtDiag);
-    naLog('send_no_jwt', _jwtDiag);
+    console.log('[NEUROAUTH]', 'send_no_jwt', _jwtDiag);
     toast('Sessão expirada — reconectando automaticamente...', 'er');
     // Reautenticar silenciosamente após 1.5s (finally vai limpar estado)
     setTimeout(function(){ naClearJwt(); window.__NA_SECURE.session=null; naCheckSession(); }, 1500);
@@ -2835,7 +2835,7 @@ async function confirmedSend(){
       envioConfirmadoEm = new Date().toISOString();
       envioUserEmail    = naGetSessionField('email') || '';
       naUpdateAuditUI();
-      naLog('send_ok',{decision_run_id:rBody.decision_run_id,episode_id:rBody.episodio_id});
+      console.log('[NEUROAUTH]', 'send_ok',{decision_run_id:rBody.decision_run_id,episode_id:rBody.episodio_id});
       // Make-proxy em background ? gera??o de docs (perif?rico, n?o bloqueia)
       fetch(WH,{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify(payload)
@@ -2851,7 +2851,7 @@ async function confirmedSend(){
   } catch(e){
     sp.classList.remove('on');btn.disabled=false;
     toast('? Erro: '+e.message,'er');
-    naLog('send_error',{message:e.message});
+    console.log('[NEUROAUTH]', 'send_error',{message:e.message});
     console.error('[NEUROAUTH/decide] falha',e);
   } finally {
     clearTimeout(_watchdog);
