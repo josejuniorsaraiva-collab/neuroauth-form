@@ -1,12 +1,12 @@
 /* ============================================================
-   NEUROAUTH — Service Worker v2.5
+   NEUROAUTH — Service Worker v2.6
    Estratégia: Cache-first (app shell) + Network-first (fetch)
    Otimizado para ambiente hospitalar (internet instável)
    ============================================================ */
 
 'use strict';
 
-const APP_VERSION = 'neuroauth-v2.5';
+const APP_VERSION = 'neuroauth-v2.6';
 const CACHE_NAME  = APP_VERSION + '-cache';
 
 /* Recursos do app shell a pré-cachear no install */

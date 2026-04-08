@@ -899,16 +899,27 @@ function naInitGoogle(){
   if(typeof google==='undefined'||!google.accounts){
     setTimeout(naInitGoogle,300);return;
   }
+  // Guard: não re-inicializar se já foi feito (evita "called multiple times")
+  if(window.__NA_GOOGLE_INIT__){
+    console.info('[NEUROAUTH] naInitGoogle: já inicializado, pulando');
+    return;
+  }
+  window.__NA_GOOGLE_INIT__ = true;
   google.accounts.id.initialize({
     client_id:NA_CLIENT_ID,
     callback:naHandleLogin,
     auto_select:true,
     cancel_on_tap_outside:false
   });
-  google.accounts.id.renderButton(
-    document.getElementById('na-signin-btn'),
-    {theme:'outline',size:'large',text:'signin_with',locale:'pt-BR',width:280}
-  );
+  var signinBtn = document.getElementById('na-signin-btn');
+  if(signinBtn){
+    google.accounts.id.renderButton(
+      signinBtn,
+      {theme:'outline',size:'large',text:'signin_with',locale:'pt-BR',width:280}
+    );
+  } else {
+    console.warn('[NEUROAUTH] naInitGoogle: #na-signin-btn não encontrado');
+  }
   google.accounts.id.prompt();
 }
 
@@ -935,6 +946,7 @@ async function naHandleLogin(response){
     // AbortController com 15s timeout — evita "Load failed" no Safari/WebKit
     const _authCtrl = new AbortController();
     const _authTimeout = setTimeout(() => _authCtrl.abort(), 15000);
+    console.info('[NEUROAUTH] auth_google_request_start →', NA_AUTH_GOOGLE_URL);
     const authResp = await fetch(NA_AUTH_GOOGLE_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -943,10 +955,13 @@ async function naHandleLogin(response){
     });
     clearTimeout(_authTimeout);
     const authData = await authResp.json();
-    console.log('[NEUROAUTH] /auth/google →',authResp.status,authData);
+    console.log('[NEUROAUTH] auth_google_response_status:', authResp.status);
+    console.log('[NEUROAUTH] auth_google_response_body:', JSON.stringify(authData));
     if(authData.access_token){
       naStoreJwt(authData.access_token);
-      console.info('[NEUROAUTH] JWT obtido do backend, email:', authData.email);
+      console.info('[NEUROAUTH] jwt_store_success — email:', authData.email);
+    } else {
+      console.error('[NEUROAUTH] jwt_store_failure — sem access_token na resposta');
     }
   }catch(authErr){
     console.warn('[NEUROAUTH] /auth/google falhou (continuando):',authErr.name, authErr.message);
@@ -2801,7 +2816,7 @@ async function confirmedSend(){
     console.log('[NEUROAUTH]', 'send_no_jwt', _jwtDiag);
     toast('Sessão expirada — reconectando automaticamente...', 'er');
     // Reautenticar silenciosamente após 1.5s (finally vai limpar estado)
-    setTimeout(function(){ naClearJwt(); window.__NA_SECURE.session=null; naCheckSession(); }, 1500);
+    setTimeout(function(){ naClearJwt(); window.__NA_SECURE.session=null; window.__NA_GOOGLE_INIT__=false; naCheckSession(); }, 1500);
     return;
   }
   const decidePayload = buildDecidePayload(d, opmeFinalSend);
