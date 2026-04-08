@@ -834,7 +834,9 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 /* ── CONFIG ──────────────────────────────────────────────────────── */
 const NA_CLIENT_ID   = '118851719832-qaktum0kj1a6r2a2fp6c75hhag8p2tlf.apps.googleusercontent.com';       // ← substituir pelo OAuth Client ID do Google Cloud Console
 const NA_PROFILE_WH  = 'https://neuroauth-auth.onrender.com/api/make-proxy';
-const NA_DECIDE_URL  = 'https://neuroauth-auth.onrender.com/decide'; // motor de decis?o autenticado // ← URL do webhook NEUROAUTH_PROFILE_READER no Make.com
+const NA_BACKEND         = 'https://neuroauth-auth.onrender.com'; // backend FastAPI canônico
+const NA_AUTH_GOOGLE_URL = NA_BACKEND + '/auth/google';         // troca id_token por JWT
+const NA_DECIDE_URL      = NA_BACKEND + '/decide';              // motor de decisão autenticado
 const NA_SESSION_TTL = 8 * 60 * 60 * 1000;           // 8 horas em ms
 const NA_JWT_TTL_MS  = 25 * 60 * 1000;                // 25 min TTL do JWT
 
@@ -933,7 +935,7 @@ async function naHandleLogin(response){
     // AbortController com 15s timeout — evita "Load failed" no Safari/WebKit
     const _authCtrl = new AbortController();
     const _authTimeout = setTimeout(() => _authCtrl.abort(), 15000);
-    const authResp = await fetch(`${NA_FASTAPI_URL}/auth/google`,{
+    const authResp = await fetch(NA_AUTH_GOOGLE_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({id_token:response.credential}),
