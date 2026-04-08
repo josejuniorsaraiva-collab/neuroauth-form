@@ -2721,46 +2721,65 @@ async function confirmedSend(){
     neuroauth_version:'2.1.2',
     timestamp:new Date().toISOString()
   };
-  try{
-    const r=await fetch(WH,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  // ── SUBMIT PRINCIPAL: /decide (backend autenticado) ─────────────────
+  // Make-proxy chamado em background apenas para geração de documentos
+  const jwt = window.__NA_SECURE && window.__NA_SECURE.jwt;
+  if(!jwt){
     sp.classList.remove('on');btn.disabled=false;
+    toast('⛔ Sessão expirada. Faça login novamente.','er');
+    naLog('send_no_jwt');
+    clearTimeout(_watchdog);window.__NA_SENDING__=false;
+    return;
+  }
+  const decidePayload = buildDecidePayload(d, opmeFinalSend);
+  console.info('[NEUROAUTH/decide] POST',NA_DECIDE_URL,decidePayload);
+  try{
+    const r=await fetch(NA_DECIDE_URL,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+jwt
+      },
+      body:JSON.stringify(decidePayload)
+    });
+    sp.classList.remove('on');btn.disabled=false;
+    const rBody = await r.json().catch(function(){return {};});
     if(r.ok){
       closeModal('pvModal');
-      toast('Ã°ÂÂÂ Enviado! Documento sendo gerado no Make.comÃ¢ÂÂ¦','ok');
+      const cls   = rBody.classification || '?';
+      const score = rBody.score!=null ? ' · score '+rBody.score : '';
+      const risco = rBody.risco_glosa ? ' · risco '+rBody.risco_glosa : '';
+      toast('✅ Motor: '+cls+score+risco,'ok');
+      console.info('[NEUROAUTH/decide] OK',{
+        classification:cls, score:rBody.score,
+        risco_glosa:rBody.risco_glosa,
+        decision_run_id:rBody.decision_run_id,
+        episode_id:rBody.episodio_id,
+        http_status:r.status
+      });
       (window.__NA_SECURE.draft = null);
-      /* NEUROAUTH DRAFT CONTROL Ã¢ÂÂ marcar guia como oficialmente registrada */
       guiaRegistrada    = true;
       envioConfirmadoEm = new Date().toISOString();
       envioUserEmail    = naGetSessionField('email') || '';
       naUpdateAuditUI();
-
-      // ── NEUROAUTH /decide ─────────────────────────────────────────────
-      toast('⚙️ Motor NEUROAUTH processando...', 'ok');
-      callDecideBackend(d, opmeFinalSend).then(function(dr){
-        if(dr.ok){
-          var cls   = (dr.data&&dr.data.classification)||'?';
-          var score = (dr.data&&dr.data.score!=null)?' · score '+dr.data.score:'';
-          var risco = (dr.data&&dr.data.risco_glosa)?' · risco '+dr.data.risco_glosa:'';
-          toast('✅ Motor: '+cls+score+risco,'ok');
-          console.info('[NEUROAUTH/decide]',{
-            classification:cls,
-            score:dr.data&&dr.data.score,
-            risco_glosa:dr.data&&dr.data.risco_glosa,
-            decision_run_id:dr.data&&dr.data.decision_run_id,
-            episode_id:dr.data&&dr.data.episodio_id
-          });
-        } else {
-          toast('⚠️ Motor: '+(dr.error||'erro'),'er');
-          console.error('[NEUROAUTH/decide] falha',dr);
-        }
+      naLog('send_ok',{decision_run_id:rBody.decision_run_id,episode_id:rBody.episodio_id});
+      // Make-proxy em background — geração de docs (periférico, não bloqueia)
+      fetch(WH,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      }).then(function(wr){
+        console.info('[NEUROAUTH/make-proxy]',wr.status);
+      }).catch(function(we){
+        console.warn('[NEUROAUTH/make-proxy] falha:',we.message);
       });
-      // ── fim /decide ───────────────────────────────────────────────────
     } else {
-      throw new Error('HTTP '+r.status);
+      const errMsg = (rBody&&rBody.detail) || ('HTTP '+r.status);
+      throw new Error(errMsg);
     }
   } catch(e){
     sp.classList.remove('on');btn.disabled=false;
-    toast('Ã¢ÂÂ Erro: '+e.message,'er');
+    toast('❌ Erro: '+e.message,'er');
+    naLog('send_error',{message:e.message});
+    console.error('[NEUROAUTH/decide] falha',e);
   }
 }
 
