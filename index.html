@@ -922,27 +922,33 @@ async function naHandleLogin(response){
   const {email,name,picture}=payload;
 
   /* ── BACKEND AUTH: POST id_token → FastAPI /auth/google ──────── */
-  const NA_BACKEND = 'https://neuroauth-auth.onrender.com';
+  // Mostrar spinner ANTES do fetch (evita abort do WebKit por inatividade)
+  const sa=document.getElementById('screen-auth');
+  if(sa) sa.innerHTML=`<div class="na-loading">
+    <div class="na-spinner"></div>
+    <p style="color:#fff">Verificando acesso…</p>
+  </div>`;
+
   try{
-    const authResp = await fetch(`${NA_BACKEND}/auth/google`,{
+    // AbortController com 15s timeout — evita "Load failed" no Safari/WebKit
+    const _authCtrl = new AbortController();
+    const _authTimeout = setTimeout(() => _authCtrl.abort(), 15000);
+    const authResp = await fetch(`${NA_FASTAPI_URL}/auth/google`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id_token:response.credential})
+      body:JSON.stringify({id_token:response.credential}),
+      signal: _authCtrl.signal
     });
+    clearTimeout(_authTimeout);
     const authData = await authResp.json();
     console.log('[NEUROAUTH] /auth/google →',authResp.status,authData);
     if(authData.access_token){
       naStoreJwt(authData.access_token);
+      console.info('[NEUROAUTH] JWT obtido do backend, email:', authData.email);
     }
   }catch(authErr){
-    console.warn('[NEUROAUTH] /auth/google falhou (continuando):',authErr.message);
+    console.warn('[NEUROAUTH] /auth/google falhou (continuando):',authErr.name, authErr.message);
   }
-
-  const sa=document.getElementById('screen-auth');
-  if(sa) sa.innerHTML=`<div class="na-loading">
-    <div class="na-spinner"></div>
-    <p style="color:#fff">Carregando perfil de <strong>${name}</strong>…</p>
-  </div>`;
   try{
     const perfil=await naFetchPerfil(email);
     const sess={email,name,picture:picture||'',perfil,expires:Date.now()+NA_SESSION_TTL};
