@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEUROAUTH — Painel Operacional</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f7f4; --surface: #ffffff; --border: rgba(0,0,0,0.09);
+    --text: #1a1a18; --muted: #6b6b67; --hint: #a8a8a4;
+    --go: #27500A; --go-bg: #EAF3DE;
+    --res: #633806; --res-bg: #FAEEDA;
+    --no: #501313; --no-bg: #FCEBEB;
+    --radius: 10px; --radius-sm: 6px;
+  }
+  body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+         background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; }
+  .shell { max-width: 960px; margin: 0 auto; padding: 24px 20px; }
+
+  /* HEADER */
+  .header { display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+  .brand { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+  .brand span { font-weight: 400; color: var(--muted); }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; display: inline-block; }
+  .dot.ok { background: #639922; }
+  .dot.err { background: #E24B4A; }
+  .ts-label { font-size: 11px; color: var(--hint); }
+  .btn { font-size: 11px; padding: 5px 12px; border-radius: 20px;
+         border: 1px solid var(--border); background: var(--surface);
+         color: var(--muted); cursor: pointer; transition: background 0.15s; }
+  .btn:hover { background: #f0efe9; }
+
+  /* SESSÃO EXPIRADA */
+  .no-session { background: var(--surface); border: 1px solid var(--border);
+                border-radius: var(--radius); padding: 40px 24px;
+                text-align: center; margin: 40px auto; max-width: 480px; }
+  .no-session h2 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  .no-session p { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+  .no-session .btn-primary { display: inline-block; padding: 9px 20px; background: var(--text);
+    color: #fff; border-radius: var(--radius-sm); font-size: 13px;
+    text-decoration: none; border: none; cursor: pointer; }
+
+  /* ERRO BANNER */
+  .err-banner { background: #FCEBEB; border-radius: var(--radius-sm);
+                padding: 8px 14px; font-size: 12px; color: #A32D2D;
+                margin-bottom: 14px; border: 1px solid #F7C1C1; }
+
+  /* METRICS GRID */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .metric { background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px 16px; }
+  .metric-label { font-size: 10px; color: var(--hint); text-transform: uppercase;
+                  letter-spacing: 0.06em; margin-bottom: 4px; }
+  .metric-value { font-size: 24px; font-weight: 600; color: var(--text); line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--hint); margin-top: 4px; }
+  @media (max-width: 600px) { .metrics { grid-template-columns: 1fr 1fr; } }
+
+  /* CHARTS */
+  .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border);
+                border-radius: var(--radius); padding: 16px; }
+  .chart-title { font-size: 11px; color: var(--hint); text-transform: uppercase;
+                 letter-spacing: 0.06em; margin-bottom: 10px; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 5px;
+                 font-size: 11px; color: var(--muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  @media (max-width: 600px) { .chart-row { grid-template-columns: 1fr; } }
+
+  /* FILTER */
+  .filter-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .filter-btn { font-size: 11px; padding: 4px 12px; border-radius: 20px;
+                border: 1px solid var(--border); background: var(--surface);
+                color: var(--muted); cursor: pointer; transition: all 0.12s; }
+  .filter-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+  /* TABLE */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border);
+                border-radius: var(--radius); overflow: hidden; }
+  .t-head { display: grid; grid-template-columns: 2.2fr 1fr 100px 65px 80px;
+            gap: 8px; padding: 8px 16px; background: #f5f4f0;
+            border-bottom: 1px solid var(--border);
+            font-size: 10px; color: var(--hint); text-transform: uppercase; letter-spacing: 0.06em; }
+  .t-row { display: grid; grid-template-columns: 2.2fr 1fr 100px 65px 80px;
+           gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border);
+           align-items: center; transition: background 0.1s; }
+  .t-row:last-child { border-bottom: none; }
+  .t-row:hover { background: #faf9f6; }
+  .ep-id { font-family: 'SF Mono', Menlo, monospace; font-size: 10px; color: var(--hint); }
+  .ep-run { font-size: 11px; color: var(--text); }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500;
+           display: inline-block; white-space: nowrap; }
+  .badge-go  { background: var(--go-bg);  color: var(--go); }
+  .badge-res { background: var(--res-bg); color: var(--res); }
+  .badge-no  { background: var(--no-bg);  color: var(--no); }
+  .score-wrap { display: flex; align-items: center; gap: 6px; }
+  .score-num { font-size: 12px; font-weight: 500; min-width: 26px; }
+  .score-bar { flex: 1; height: 3px; background: #ebebeb; border-radius: 2px; }
+  .score-fill { height: 100%; border-radius: 2px; }
+  .risco { font-size: 11px; }
+  .risco-low  { color: var(--go); }
+  .risco-mod  { color: var(--res); }
+  .risco-high { color: #A32D2D; }
+  .ts-cell { font-size: 11px; color: var(--hint); }
+  .empty { padding: 24px; text-align: center; color: var(--hint); font-size: 12px; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ddd;
+             border-top-color: #888; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 700px) {
+    .t-head, .t-row { grid-template-columns: 1fr 80px 80px; }
+    .t-head > *:nth-child(3), .t-row > *:nth-child(3),
+    .t-head > *:nth-child(5), .t-row > *:nth-child(5) { display: none; }
+  }
+
+  /* MODOS */
+  #view-loading, #view-nosession, #view-dashboard { display: none; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="header">
+    <div class="brand">NEUROAUTH <span>/ Painel Operacional</span></div>
+    <div class="header-right">
+      <span class="dot" id="sdot"></span>
+      <span class="ts-label" id="ts-label">—</span>
+      <button class="btn" onclick="refresh()">↻ Atualizar</button>
+    </div>
+  </div>
+
+  <div id="err-area"></div>
+
+  <!-- LOADING -->
+  <div id="view-loading" style="text-align:center;padding:48px;">
+    <span class="spinner"></span>
+    <p style="margin-top:12px;color:var(--hint);font-size:12px;">Carregando dados...</p>
+  </div>
+
+  <!-- SEM SESSÃO -->
+  <div id="view-nosession">
+    <div class="no-session">
+      <h2>Sessão não encontrada</h2>
+      <p>O painel deve ser aberto a partir do NEUROAUTH enquanto você estiver autenticado.</p>
+      <a href="https://neuroauth.com.br" class="btn-primary">Abrir NEUROAUTH →</a>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="view-dashboard">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Total</div><div class="metric-value" id="m-total">—</div><div class="metric-sub">episódios</div></div>
+      <div class="metric"><div class="metric-label">Taxa GO</div><div class="metric-value" id="m-go-pct">—</div><div class="metric-sub" id="m-go-sub">—</div></div>
+      <div class="metric"><div class="metric-label">No-go</div><div class="metric-value" id="m-nogo">—</div><div class="metric-sub">casos bloqueados</div></div>
+      <div class="metric"><div class="metric-label">Risco alto</div><div class="metric-value" id="m-risco">—</div><div class="metric-sub">atenção redobrada</div></div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-title">Distribuição por classificação</div>
+        <div class="legend" id="legend-cls"></div>
+        <div style="position:relative;height:120px;"><canvas id="chart-cls"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Score — últimos casos</div>
+        <div style="position:relative;height:150px;"><canvas id="chart-score"></canvas></div>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="filterBy('all',this)">Todos</button>
+      <button class="filter-btn" onclick="filterBy('GO',this)">GO</button>
+      <button class="filter-btn" onclick="filterBy('GO_COM_RESSALVAS',this)">Ressalvas</button>
+      <button class="filter-btn" onclick="filterBy('NO_GO',this)">No-go</button>
+    </div>
+
+    <div class="table-wrap">
+      <div class="t-head">
+        <span>Episódio / Run</span>
+        <span>Classificação</span>
+        <span>Score</span>
+        <span>Risco</span>
+        <span>Data</span>
+      </div>
+      <div id="table-body"></div>
+    </div>
+  </div>
+
+</div>
+<script>
+var API   = 'https://neuroauth-auth.onrender.com/metrics';
+var jwt   = null;
+var data  = null;
+var filter = 'all';
+var clsChart = null, scoreChart = null;
+var refreshInterval = null;
+
+function scoreColor(s) {
+  return s >= 75 ? '#3B6D11' : s >= 50 ? '#854F0B' : '#A32D2D';
+}
+
+function badge(cls) {
+  if (cls === 'GO') return '<span class="badge badge-go">GO</span>';
+  if (cls === 'GO_COM_RESSALVAS') return '<span class="badge badge-res">Ressalva</span>';
+  return '<span class="badge badge-no">No-go</span>';
+}
+
+function riscoEl(r) {
+  var cls = r === 'baixo' ? 'risco-low' : r === 'moderado' ? 'risco-mod' : 'risco-high';
+  return '<span class="risco ' + cls + '">' + r + '</span>';
+}
+
+function fmt(ts) {
+  if (!ts) return '—';
+  try {
+    var d = new Date(ts);
+    return d.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) + ' ' +
+           d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+  } catch(e) { return ts.slice(0,10); }
+}
+
+function show(id) {
+  ['view-loading','view-nosession','view-dashboard'].forEach(function(v) {
+    document.getElementById(v).style.display = v === id ? 'block' : 'none';
+  });
+}
+
+function setStatus(ok, label) {
+  document.getElementById('sdot').className = 'dot ' + (ok ? 'ok' : 'err');
+  document.getElementById('ts-label').textContent = label;
+}
+
+function getJwt() {
+  // 1. Memória da sessão atual
+  if (jwt) return jwt;
+
+  // 2. sessionStorage da mesma origem (painel aberto da mesma aba)
+  try {
+    var raw = sessionStorage.getItem('na_jwt_tmp');
+    if (raw) {
+      var p = JSON.parse(raw);
+      if (p && p.exp > Date.now() && p.jwt) return p.jwt;
+    }
+  } catch(e) {}
+
+  // 3. window.opener (painel aberto como nova aba a partir do NEUROAUTH)
+  try {
+    if (window.opener && window.opener.__NA_SECURE && window.opener.__NA_SECURE.jwt) {
+      return window.opener.__NA_SECURE.jwt;
+    }
+    if (window.opener) {
+      var raw2 = window.opener.sessionStorage.getItem('na_jwt_tmp');
+      if (raw2) {
+        var p2 = JSON.parse(raw2);
+        if (p2 && p2.exp > Date.now() && p2.jwt) return p2.jwt;
+      }
+    }
+  } catch(e) {}
+
+  return null;
+}
+
+async function refresh() {
+  var token = getJwt();
+  if (!token) { show('view-nosession'); setStatus(false, 'sem sessão'); return; }
+
+  show('view-loading');
+  document.getElementById('err-area').innerHTML = '';
+
+  try {
+    var res = await fetch(API + '?limit=20', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      jwt = null;
+      show('view-nosession');
+      setStatus(false, 'sessão expirada');
+      return;
+    }
+
+    var d = await res.json();
+    data = d;
+    renderDashboard(d);
+    show('view-dashboard');
+    setStatus(true, 'atualizado ' + fmt(d.generated_at));
+
+    if (d.recent_errors && d.recent_errors.length > 0) {
+      document.getElementById('err-area').innerHTML =
+        '<div class="err-banner">⚠ ' + d.recent_errors[0].error + '</div>';
+    }
+  } catch(e) {
+    show('view-dashboard');
+    setStatus(false, 'erro de conexão');
+    document.getElementById('err-area').innerHTML =
+      '<div class="err-banner">Falha ao conectar com o backend: ' + e.message +
+      ' — dados anteriores exibidos</div>';
+  }
+}
+
+function renderDashboard(d) {
+  var s = d.summary;
+  var totalGo = s.go + s.go_com_ressalvas;
+  var pct = s.total > 0 ? Math.round(totalGo / s.total * 100) : 0;
+
+  document.getElementById('m-total').textContent = s.total;
+  document.getElementById('m-go-pct').textContent = pct + '%';
+  document.getElementById('m-go-sub').textContent = s.go + ' direto · ' + s.go_com_ressalvas + ' ressalva';
+  document.getElementById('m-nogo').textContent = s.no_go;
+  document.getElementById('m-risco').textContent = s.risco_alto + s.risco_critico;
+
+  document.getElementById('legend-cls').innerHTML =
+    '<span class="legend-item"><span class="legend-dot" style="background:#3B6D11"></span>GO (' + s.go + ')</span>' +
+    '<span class="legend-item"><span class="legend-dot" style="background:#854F0B"></span>Ressalva (' + s.go_com_ressalvas + ')</span>' +
+    '<span class="legend-item"><span class="legend-dot" style="background:#A32D2D"></span>No-go (' + s.no_go + ')</span>';
+
+  buildCharts(d);
+  renderTable(d.recent_cases || []);
+}
+
+function buildCharts(d) {
+  var s = d.summary;
+  if (clsChart) clsChart.destroy();
+  if (scoreChart) scoreChart.destroy();
+
+  clsChart = new Chart(document.getElementById('chart-cls'), {
+    type: 'doughnut',
+    data: { labels: ['GO','Ressalva','No-go'],
+      datasets: [{ data: [s.go, s.go_com_ressalvas, s.no_go],
+        backgroundColor: ['#3B6D11','#854F0B','#A32D2D'], borderWidth: 0 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '68%',
+      plugins: { legend: { display: false } } }
+  });
+
+  var scores = (d.recent_scores || []).slice(0, 15).reverse();
+  if (scores.length > 0) {
+    scoreChart = new Chart(document.getElementById('chart-score'), {
+      type: 'bar',
+      data: {
+        labels: scores.map(function(_, i) { return i + 1; }),
+        datasets: [{ data: scores.map(function(s) { return s.score; }),
+          backgroundColor: scores.map(function(s) { return scoreColor(s.score); }),
+          borderRadius: 4, borderWidth: 0 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { min: 0, max: 100, grid: { color: 'rgba(0,0,0,0.04)' },
+               ticks: { font: { size: 10 }, color: '#aaa' } },
+          x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#aaa' } }
+        }
+      }
+    });
+  }
+}
+
+function renderTable(cases) {
+  var filtered = filter === 'all' ? cases : cases.filter(function(c) {
+    return c.classification === filter;
+  });
+  if (!filtered.length) {
+    document.getElementById('table-body').innerHTML = '<div class="empty">Nenhum episódio encontrado</div>';
+    return;
+  }
+  document.getElementById('table-body').innerHTML = filtered.map(function(c) {
+    var sc = c.score != null ? c.score : 0;
+    return '<div class="t-row">' +
+      '<div><div class="ep-run">' + c.episode_id + '</div><div class="ep-id">' + c.decision_run_id + '</div></div>' +
+      '<div>' + badge(c.classification) + '</div>' +
+      '<div class="score-wrap"><span class="score-num">' + (c.score != null ? c.score : '—') + '</span>' +
+      '<div class="score-bar"><div class="score-fill" style="width:' + sc + '%;background:' + scoreColor(sc) + ';"></div></div></div>' +
+      '<div>' + riscoEl(c.risk_level) + '</div>' +
+      '<div class="ts-cell">' + fmt(c.updated_at) + '</div></div>';
+  }).join('');
+}
+
+function filterBy(f, btn) {
+  filter = f;
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  if (data) renderTable(data.recent_cases || []);
+}
+
+function startAutoRefresh() {
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(function() {
+    if (getJwt()) refresh();
+  }, 60000);
+}
+
+// Boot
+refresh();
+startAutoRefresh();
+</script>
+</body>
+</html>
