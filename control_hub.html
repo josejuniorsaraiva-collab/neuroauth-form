@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NEUROAUTH — Control HUB</title>
+<meta name="theme-color" content="#0f1117"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #0f1117;
+  --surface:  #1a1d27;
+  --surface2: #22263a;
+  --border:   #2e3348;
+  --green:    #00d4aa;
+  --yellow:   #ffa502;
+  --red:      #ff4757;
+  --blue:     #5c8ee6;
+  --gray:     #8892a4;
+  --text:     #e8ecf4;
+  --text2:    #a8b3c8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh}
+a{color:var(--green);text-decoration:none}
+
+/* ─── LAYOUT ─── */
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#topbar{display:flex;align-items:center;gap:12px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+#topbar h1{font-size:15px;font-weight:700;color:var(--green);letter-spacing:.5px}
+#topbar .spacer{flex:1}
+#topbar .badge{font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text2)}
+#topbar .refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;transition:.2s}
+#topbar .refresh-btn:hover{color:var(--text);border-color:var(--green)}
+#spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#main{display:flex;flex:1;overflow:hidden}
+#sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:16px}
+#content{flex:1;overflow-y:auto;padding:16px}
+
+/* ─── ALERTS BANNER ─── */
+#alerts-bar{background:#ff4757;color:#fff;font-size:12px;padding:6px 16px;display:none;flex-shrink:0}
+
+/* ─── METRICS ─── */
+.metrics-title{font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray);letter-spacing:.8px;margin-bottom:12px}
+.metric-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px}
+.metric-card .val{font-size:22px;font-weight:700;color:var(--green)}
+.metric-card .lbl{font-size:11px;color:var(--text2);margin-top:3px}
+.gate-bar{margin:4px 0}
+.gate-bar .name{font-size:11px;color:var(--text2);margin-bottom:3px}
+.gate-bar .bar-wrap{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.gate-bar .bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.gate-bar .pct{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* ─── CHART ─── */
+#vol-chart{width:100%;height:70px;margin-top:4px}
+
+/* ─── TABS ─── */
+.tabs{display:flex;gap:4px;margin-bottom:14px}
+.tab-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:.2s}
+.tab-btn.active{background:var(--green);color:#000;border-color:var(--green)}
+.tab-btn:hover:not(.active){color:var(--text)}
+
+/* ─── FILTERS ─── */
+.filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filters select,.filters input{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;outline:none}
+.filters select:focus,.filters input:focus{border-color:var(--green)}
+
+/* ─── TABLE ─── */
+.table-wrap{border:1px solid var(--border);border-radius:8px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray);letter-spacing:.5px;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--border);transition:.15s;cursor:pointer}
+tbody tr:hover{background:var(--surface2)}
+tbody tr.expanded{background:var(--surface2)}
+tbody td{padding:9px 12px;font-size:12px;vertical-align:middle}
+.expand-row td{padding:0;background:var(--surface2)}
+.expand-inner{padding:14px 16px;border-top:1px solid var(--border)}
+
+/* ─── BADGES ─── */
+.badge-gate{display:inline-block;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600}
+.badge-GO{background:#00d4aa22;color:#00d4aa}
+.badge-GO_COM_RESSALVAS{background:#ffa50222;color:#ffa502}
+.badge-NO_GO,.badge-NO-GO{background:#ff475722;color:#ff4757}
+.badge-PRE_ANALISE,.badge-PENDENCIA_OBRIGATORIA{background:#5c8ee622;color:#5c8ee6}
+.badge-UNKNOWN,.badge-{background:#33333322;color:#888}
+.badge-hub{font-size:10px;border-radius:3px;padding:1px 5px;margin-left:4px}
+.badge-APROVADO{background:#00d4aa33;color:#00d4aa}
+.badge-SEGURADO{background:#ffa50233;color:#ffa502}
+.badge-REVISAO{background:#ff475733;color:#ff4757}
+
+/* ─── ACTION BUTTONS ─── */
+.action-btns{display:flex;gap:8px;margin-top:10px}
+.action-btn{border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:.2s}
+.action-btn.aprovar{background:#00d4aa22;color:#00d4aa;border:1px solid #00d4aa44}
+.action-btn.aprovar:hover{background:#00d4aa;color:#000}
+.action-btn.segurar{background:#ffa50222;color:#ffa502;border:1px solid #ffa50244}
+.action-btn.segurar:hover{background:#ffa502;color:#000}
+.action-btn.revisao{background:#ff475722;color:#ff4757;border:1px solid #ff475744}
+.action-btn.revisao:hover{background:#ff4757;color:#fff}
+
+/* ─── ALERT PULSE ─── */
+.pulse{animation:pulse 1.5s infinite}
+@keyframes pulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+
+/* ─── SKELETON ─── */
+.skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%);background-size:200%;animation:shimmer 1.5s infinite;border-radius:4px;height:12px;margin:4px 0}
+@keyframes shimmer{0%{background-position:200%}100%{background-position:-200%}}
+
+/* ─── LOGIN OVERLAY ─── */
+#login-overlay{position:fixed;inset:0;background:#0f1117f0;display:flex;align-items:center;justify-content:center;z-index:100}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;width:360px}
+.login-card h2{font-size:18px;font-weight:700;color:var(--green);margin-bottom:6px}
+.login-card p{font-size:13px;color:var(--text2);margin-bottom:20px}
+.login-card input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:10px 14px;font-size:13px;outline:none;margin-bottom:12px}
+.login-card input:focus{border-color:var(--green)}
+.login-card button{width:100%;background:var(--green);color:#000;border:none;border-radius:6px;padding:10px;font-size:14px;font-weight:700;cursor:pointer}
+.login-note{font-size:11px;color:var(--gray);margin-top:10px;text-align:center}
+
+/* ─── TOAST ─── */
+#toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;display:none;z-index:200;max-width:320px}
+#toast.error{border-color:var(--red);color:var(--red)}
+#toast.success{border-color:var(--green);color:var(--green)}
+
+/* ─── ANTI-GLOSA ─── */
+.risco-high{color:var(--red);font-weight:600}
+.risco-med{color:var(--yellow)}
+.risco-low{color:var(--green)}
+</style>
+</head>
+<body>
+
+<!-- Login overlay (shown if API key needed) -->
+<div id="login-overlay" style="display:none">
+  <div class="login-card">
+    <h2>🧠 NEUROAUTH HUB</h2>
+    <p>Insira a chave de API para acessar o Control HUB</p>
+    <input type="password" id="key-input" placeholder="NEUROAUTH_API_KEY" autocomplete="off"/>
+    <button onclick="doLogin()">Entrar</button>
+    <div class="login-note">Deixe em branco se o backend estiver em modo aberto</div>
+  </div>
+</div>
+
+<!-- Alerts bar -->
+<div id="alerts-bar">⚠️ <span id="alerts-msg"></span></div>
+
+<!-- App -->
+<div id="app">
+  <div id="topbar">
+    <h1>🧠 NEUROAUTH CONTROL HUB</h1>
+    <div id="spinner"></div>
+    <div class="spacer"></div>
+    <span class="badge" id="motor-badge">motor —</span>
+    <span class="badge" id="last-updated">—</span>
+    <button class="refresh-btn" onclick="refresh()">↺ Atualizar</button>
+    <a href="index.html" style="font-size:12px;color:var(--text2)">← Formulário</a>
+  </div>
+
+  <div id="main">
+    <!-- Sidebar: Métricas -->
+    <div id="sidebar">
+      <div class="metrics-title">Métricas</div>
+
+      <div class="metric-card">
+        <div class="val" id="m-total">—</div>
+        <div class="lbl">Total de runs</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="val" id="m-score">—</div>
+        <div class="lbl">Score médio</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="val" id="m-risco">—</div>
+        <div class="lbl">Risco glosa médio</div>
+      </div>
+
+      <div style="margin:14px 0 8px" class="metrics-title">Distribuição de Gates</div>
+      <div id="gate-dist"></div>
+
+      <div style="margin:14px 0 8px" class="metrics-title">Volume (7 dias)</div>
+      <canvas id="vol-chart"></canvas>
+    </div>
+
+    <!-- Content: Cases + Tabs -->
+    <div id="content">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('runs')">Decisões</button>
+        <button class="tab-btn" onclick="switchTab('episodes')">Episódios</button>
+        <button class="tab-btn" onclick="switchTab('antiglosa')">⚠️ Anti-Glosa</button>
+      </div>
+
+      <!-- Runs tab -->
+      <div id="tab-runs">
+        <div class="filters">
+          <select id="filter-gate" onchange="renderRuns()">
+            <option value="">Todos os gates</option>
+            <option value="GO">GO</option>
+            <option value="GO_COM_RESSALVAS">GO_COM_RESSALVAS</option>
+            <option value="NO_GO">NO_GO</option>
+            <option value="PRE_ANALISE">PRÉ_ANÁLISE</option>
+          </select>
+          <input id="filter-search" placeholder="Buscar run_id / episódio..." oninput="renderRuns()" style="width:220px"/>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Run ID</th>
+                <th>Episódio</th>
+                <th>Gate</th>
+                <th>Score</th>
+                <th>Risco Glosa</th>
+                <th>Motor</th>
+                <th>Data</th>
+                <th>Hub</th>
+              </tr>
+            </thead>
+            <tbody id="runs-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Episodes tab -->
+      <div id="tab-episodes" style="display:none">
+        <div class="filters">
+          <select id="filter-status" onchange="renderEpisodes()">
+            <option value="">Todos status</option>
+            <option value="GO">GO</option>
+            <option value="NO_GO">NO_GO</option>
+            <option value="PENDENCIA">PENDÊNCIA</option>
+          </select>
+          <input id="filter-convenio" placeholder="Convênio..." oninput="renderEpisodes()" style="width:180px"/>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Episódio</th>
+                <th>Paciente</th>
+                <th>Perfil</th>
+                <th>CID</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody id="ep-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Anti-Glosa tab -->
+      <div id="tab-antiglosa" style="display:none">
+        <p style="color:var(--text2);font-size:13px;margin-bottom:14px">Casos com risco de glosa acima de 45% — revisão recomendada antes do envio.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Run ID</th>
+                <th>Episódio</th>
+                <th>Gate</th>
+                <th>Risco Glosa</th>
+                <th>Alertas</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="ag-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const BASE = 'https://neuroauth-auth.onrender.com';
+const KEY_STORE = 'na_hub_key';
+let _apiKey = localStorage.getItem(KEY_STORE) || '';
+let _runs = [], _episodes = [];
+let _refreshTimer = null;
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+function getHeaders() {
+  const h = { 'Content-Type': 'application/json' };
+  if (_apiKey) h['X-Neuroauth-Key'] = _apiKey;
+  return h;
+}
+
+function doLogin() {
+  const val = document.getElementById('key-input').value.trim();
+  _apiKey = val;
+  if (val) localStorage.setItem(KEY_STORE, val);
+  document.getElementById('login-overlay').style.display = 'none';
+  refresh();
+}
+
+// ─── Fetch with retry ────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  setSpinner(true);
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(BASE + path, {
+        headers: getHeaders(),
+        signal: AbortSignal.timeout(20000),
+        ...opts,
+      });
+      setSpinner(false);
+      if (res.status === 401) {
+        document.getElementById('login-overlay').style.display = 'flex';
+        throw new Error('401 Unauthorized');
+      }
+      if (res.status === 503 && attempt < 2) {
+        showToast('Aguardando backend...', 'normal');
+        await sleep(3000);
+        continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 2) await sleep(2000);
+    }
+  }
+  setSpinner(false);
+  throw lastErr;
+}
+
+// ─── Refresh ─────────────────────────────────────────────────────────────────
+async function refresh() {
+  try {
+    const [metricsRes, runsRes, epsRes] = await Promise.all([
+      apiFetch('/hub/metrics'),
+      apiFetch('/hub/decision_runs?limit=100'),
+      apiFetch('/hub/episodes?limit=100'),
+    ]);
+
+    if (!metricsRes.ok || !runsRes.ok || !epsRes.ok) {
+      showToast('Erro ao carregar dados', 'error');
+      return;
+    }
+
+    const metrics  = await metricsRes.json();
+    const runsData = await runsRes.json();
+    const epsData  = await epsRes.json();
+
+    _runs     = runsData.items || [];
+    _episodes = epsData.items  || [];
+
+    renderMetrics(metrics);
+    renderRuns();
+    renderEpisodes();
+    renderAntiGlosa();
+    checkAlerts();
+
+    document.getElementById('last-updated').textContent = 'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
+    document.getElementById('motor-badge').textContent  = 'motor ' + (metrics.motor_version || '?');
+  } catch (e) {
+    showToast('Falha na conexão: ' + e.message, 'error');
+  }
+}
+
+// ─── Auto-poll 30s ───────────────────────────────────────────────────────────
+function startPolling() {
+  if (_refreshTimer) clearInterval(_refreshTimer);
+  _refreshTimer = setInterval(refresh, 30000);
+}
+
+// ─── Metrics ─────────────────────────────────────────────────────────────────
+function renderMetrics(m) {
+  document.getElementById('m-total').textContent = m.total_runs ?? '—';
+  document.getElementById('m-score').textContent = m.avg_score != null ? (m.avg_score * 100).toFixed(1) + '%' : '—';
+  document.getElementById('m-risco').textContent = m.avg_risco_glosa != null ? m.avg_risco_glosa.toFixed(0) + '%' : '—';
+
+  // Gate distribution bars
+  const dist   = m.gate_distribution || {};
+  const total  = Object.values(dist).reduce((a, b) => a + b, 0) || 1;
+  const colors = { GO: '#00d4aa', GO_COM_RESSALVAS: '#ffa502', NO_GO: '#ff4757', PRE_ANALISE: '#5c8ee6', PENDENCIA_OBRIGATORIA: '#5c8ee6' };
+  const el = document.getElementById('gate-dist');
+  el.innerHTML = Object.entries(dist).sort((a,b)=>b[1]-a[1]).map(([gate, cnt]) => {
+    const pct = ((cnt / total) * 100).toFixed(0);
+    return `<div class="gate-bar">
+      <div class="name">${gate.replace(/_/g,' ')}</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${colors[gate]||'#888'}"></div></div>
+      <div class="pct">${cnt} (${pct}%)</div>
+    </div>`;
+  }).join('');
+
+  // Volume chart
+  drawVolumeChart(m.volume_by_day || []);
+}
+
+function drawVolumeChart(data) {
+  const canvas = document.getElementById('vol-chart');
+  const ctx    = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = 70;
+  if (!data.length) return;
+  const max = Math.max(...data.map(d => d.count), 1);
+  const w = canvas.width / data.length;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  data.forEach((d, i) => {
+    const barH = (d.count / max) * 55;
+    ctx.fillStyle = '#00d4aa55';
+    ctx.fillRect(i * w + 2, canvas.height - barH - 12, w - 4, barH);
+    ctx.fillStyle = '#8892a4';
+    ctx.font = '9px Inter';
+    ctx.fillText(d.date.slice(5), i * w + 2, canvas.height - 2);
+    if (d.count > 0) {
+      ctx.fillStyle = '#00d4aa';
+      ctx.fillText(d.count, i * w + w / 2 - 4, canvas.height - barH - 15);
+    }
+  });
+}
+
+// ─── Runs ─────────────────────────────────────────────────────────────────────
+function renderRuns() {
+  const gateF   = document.getElementById('filter-gate')?.value   || '';
+  const searchF = (document.getElementById('filter-search')?.value || '').toLowerCase();
+  const tbody   = document.getElementById('runs-tbody');
+  if (!tbody) return;
+
+  let rows = _runs.filter(r => {
+    if (gateF && !r.gate.includes(gateF)) return false;
+    if (searchF && !r.decision_run_id.toLowerCase().includes(searchF) && !r.episodio_id.toLowerCase().includes(searchF)) return false;
+    return true;
+  });
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:24px">Nenhum resultado</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const gateClass = 'badge-gate badge-' + r.gate.replace(/ /g,'_');
+    const score     = r.score != null ? (r.score * 100).toFixed(0) + '%' : '—';
+    const risco     = r.risco_glosa;
+    const riscoClass = risco >= 60 ? 'risco-high pulse' : risco >= 30 ? 'risco-med' : 'risco-low';
+    const hubBadge  = r.hub_action ? `<span class="badge-hub badge-${r.hub_action.split(' ')[0]}">${r.hub_action.split(' ')[0]}</span>` : '';
+    const date      = r.created_at ? new Date(r.created_at).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+
+    return `<tr onclick="toggleRun(this, '${r.decision_run_id}')" data-run-id="${r.decision_run_id}">
+      <td style="font-family:monospace;font-size:11px">${r.decision_run_id.slice(0,16)}</td>
+      <td style="font-size:11px">${r.episodio_id}</td>
+      <td><span class="${gateClass}">${r.gate.replace(/_/g,' ')}</span></td>
+      <td>${score}</td>
+      <td class="${riscoClass}">${risco}%</td>
+      <td style="color:var(--gray);font-size:11px">${r.motor_version || '—'}</td>
+      <td style="color:var(--text2);font-size:11px">${date}</td>
+      <td>${hubBadge}</td>
+    </tr>
+    <tr class="expand-row" id="expand-${r.decision_run_id}" style="display:none">
+      <td colspan="8">
+        <div class="expand-inner">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div><strong>Alertas (${r.alertas?.length||0}):</strong><br/><span style="font-size:11px;color:var(--text2)">${(r.alertas||[]).map(a=>typeof a==='string'?a:JSON.stringify(a)).join(', ')||'Nenhum'}</span></div>
+            <div><strong>Bloqueios (${r.bloqueios?.length||0}):</strong><br/><span style="font-size:11px;color:var(--text2)">${(r.bloqueios||[]).map(b=>typeof b==='string'?b:JSON.stringify(b)).join(', ')||'Nenhum'}</span></div>
+          </div>
+          <div class="action-btns">
+            <button class="action-btn aprovar" onclick="sendAction('${r.decision_run_id}','APROVADO',event)">✓ APROVAR</button>
+            <button class="action-btn segurar" onclick="sendAction('${r.decision_run_id}','SEGURADO',event)">⏸ SEGURAR</button>
+            <button class="action-btn revisao" onclick="sendAction('${r.decision_run_id}','REVISAO',event)">🔄 REVISÃO</button>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleRun(row, runId) {
+  const expand = document.getElementById('expand-' + runId);
+  if (!expand) return;
+  const visible = expand.style.display !== 'none';
+  // Fechar todos
+  document.querySelectorAll('.expand-row').forEach(e => e.style.display = 'none');
+  document.querySelectorAll('tbody tr[data-run-id]').forEach(r => r.classList.remove('expanded'));
+  if (!visible) {
+    expand.style.display = '';
+    row.classList.add('expanded');
+  }
+}
+
+// ─── Episodes ────────────────────────────────────────────────────────────────
+function renderEpisodes() {
+  const statusF  = document.getElementById('filter-status')?.value   || '';
+  const convF    = (document.getElementById('filter-convenio')?.value || '').toLowerCase();
+  const tbody    = document.getElementById('ep-tbody');
+  if (!tbody) return;
+
+  let rows = _episodes.filter(e => {
+    if (statusF && !e.decision_status.includes(statusF)) return false;
+    if (convF && !e.convenio_id.toLowerCase().includes(convF)) return false;
+    return true;
+  });
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:24px">Nenhum resultado</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(e => {
+    const gateClass = 'badge-gate badge-' + (e.decision_status||'').replace(/ /g,'_');
+    const score     = e.score_confianca != null ? (e.score_confianca * 100).toFixed(0) + '%' : '—';
+    const date      = e.created_at ? new Date(e.created_at).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    return `<tr>
+      <td style="font-size:11px;font-family:monospace">${e.episodio_id}</td>
+      <td>${e.paciente||'—'}</td>
+      <td style="font-size:11px">${e.profile_id||'—'}</td>
+      <td style="font-size:11px">${e.cid_principal||'—'}</td>
+      <td><span class="${gateClass}">${(e.decision_status||'—').replace(/_/g,' ')}</span></td>
+      <td>${score}</td>
+      <td style="font-size:11px;color:var(--text2)">${date}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── Anti-Glosa ──────────────────────────────────────────────────────────────
+function renderAntiGlosa() {
+  const high = _runs.filter(r => r.risco_glosa >= 45).sort((a,b) => b.risco_glosa - a.risco_glosa);
+  const tbody = document.getElementById('ag-tbody');
+  if (!tbody) return;
+
+  if (high.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--green);padding:24px">✓ Nenhum caso de alto risco</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = high.map(r => {
+    const gateClass = 'badge-gate badge-' + r.gate.replace(/ /g,'_');
+    const riscoClass = r.risco_glosa >= 70 ? 'risco-high pulse' : 'risco-med';
+    return `<tr>
+      <td style="font-size:11px;font-family:monospace">${r.decision_run_id.slice(0,16)}</td>
+      <td style="font-size:11px">${r.episodio_id}</td>
+      <td><span class="${gateClass}">${r.gate.replace(/_/g,' ')}</span></td>
+      <td class="${riscoClass}" style="font-weight:700">${r.risco_glosa}%</td>
+      <td style="font-size:11px;color:var(--text2)">${r.alertas?.length||0} alertas</td>
+      <td>
+        <button class="action-btn revisao" style="font-size:11px;padding:4px 10px" onclick="sendAction('${r.decision_run_id}','REVISAO',event)">Revisar</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── PATCH action ─────────────────────────────────────────────────────────────
+async function sendAction(runId, action, e) {
+  if (e) { e.stopPropagation(); }
+  try {
+    const res = await apiFetch(`/hub/runs/${runId}/action`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action }),
+    });
+    if (res.ok) {
+      showToast(`${action} registrado para ${runId.slice(0,12)}`, 'success');
+      // Update local state
+      const r = _runs.find(r => r.decision_run_id === runId);
+      if (r) r.hub_action = action;
+      renderRuns();
+      renderAntiGlosa();
+    } else {
+      const err = await res.json();
+      showToast('Erro: ' + (err.error || res.status), 'error');
+    }
+  } catch (ex) {
+    showToast('Falha na ação: ' + ex.message, 'error');
+  }
+}
+
+// ─── Alerts ───────────────────────────────────────────────────────────────────
+function checkAlerts() {
+  const noGoUnreviewed = _runs.filter(r => r.gate === 'NO_GO' && !r.hub_action);
+  const bar = document.getElementById('alerts-bar');
+  if (noGoUnreviewed.length > 0) {
+    bar.style.display = 'block';
+    document.getElementById('alerts-msg').textContent = `${noGoUnreviewed.length} caso(s) NO_GO sem revisão — ação necessária`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).style.display = '';
+  event.target.classList.add('active');
+}
+
+// ─── Utils ───────────────────────────────────────────────────────────────────
+function setSpinner(on) {
+  document.getElementById('spinner').style.display = on ? 'block' : 'none';
+}
+function showToast(msg, type = 'normal') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3500);
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+(async function init() {
+  // Check if backend is open (no key required) by pinging health
+  try {
+    const probe = await fetch(BASE + '/health', { signal: AbortSignal.timeout(5000) });
+    if (probe.ok) {
+      // Backend reachable — try without key first
+      const test = await fetch(BASE + '/hub/metrics', {
+        headers: _apiKey ? { 'X-Neuroauth-Key': _apiKey } : {},
+        signal: AbortSignal.timeout(5000),
+      });
+      if (test.status === 401) {
+        document.getElementById('login-overlay').style.display = 'flex';
+        return;
+      }
+    }
+  } catch (_) {
+    // backend cold start — proceed anyway
+  }
+
+  await refresh();
+  startPolling();
+})();
+</script>
+</body>
+</html>
