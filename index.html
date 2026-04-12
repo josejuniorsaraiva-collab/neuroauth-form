@@ -22,8 +22,8 @@
 
 <!-- Performance hints -->
 <meta name="description" content="Solicitação de autorização cirúrgica neurocirúrgica — NEUROAUTH"/>
-    <!-- REMOVED: webhook link tags (security hardening) -->
-
+<link rel="dns-prefetch" href="https://hook.us2.make.com"/>
+<link rel="preconnect" href="https://hook.us2.make.com"/>
 <style>
 :root{
   --b1:#1a3f6f;--b2:#1f4e79;--b3:#2d6fad;--bp:#e8f0f9;
@@ -284,17 +284,17 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 .pv-main{position:relative}
 /* Watermark na janela de impressão */
 .na-print-wm{
-  position:fixed;top:0;left:0;width:100vw;height:100vh;
-  display:flex;align-items:center;justify-content:center;
-  pointer-events:none;z-index:9999;
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;z-index:9999;overflow:hidden;
 }
 .na-print-wm::after{
   content:'RASCUNHO\ANÃO REGISTRADO';
   white-space:pre;
-  font-size:96px;font-weight:900;
-  color:rgba(220,38,38,.13);
-  transform:rotate(-35deg);
-  text-align:center;line-height:1.05;
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) rotate(-30deg);
+  font-size:80px;font-weight:900;
+  color:rgba(220,38,38,.10);
+  text-align:center;line-height:1.1;width:120%;
   letter-spacing:3px;font-family:Arial,sans-serif;text-transform:uppercase;
 }
 .na-print-header{
@@ -444,9 +444,13 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
     <div class="step-sep"></div>
     <div class="step" onclick="goTab(2)"><div class="step-n"><span>3</span></div><div class="step-lbl">🔬 Procedimento</div></div>
     <div class="step-sep"></div>
-    <div class="step" onclick="goTab(3)"><div class="step-n"><span>4</span></div><div class="step-lbl">👤 Opme</div></div>
+    <div class="step" onclick="goTab(3)"><div class="step-n"><span>4</span></div><div class="step-lbl">📋 Clínica</div></div>
     <div class="step-sep"></div>
-    <div class="step" onclick="goTab(4)"><div class="step-n"><span>5</span></div><div class="step-lbl">💡 Revisao</div></div>
+    <div class="step" onclick="goTab(4)" id="step-guia"><div class="step-n"><span>5</span></div><div class="step-lbl" id="step-guia-lbl">🏥 Internação</div></div>
+    <div class="step-sep"></div>
+    <div class="step" onclick="goTab(5)"><div class="step-n"><span>6</span></div><div class="step-lbl">🔩 OPME</div></div>
+    <div class="step-sep"></div>
+    <div class="step" onclick="goTab(6)"><div class="step-n"><span>7</span></div><div class="step-lbl">✅ Revisar</div></div>
   </div>
 </div>
 
@@ -498,6 +502,12 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
         <div class="ppage" id="pv-opme"><div id="opme-render"></div></div>
         <div class="ppage" id="pv-dados"><pre id="dados-render" style="font-size:11px;background:#f8f8f8;padding:14px;border-radius:8px;overflow-x:auto;white-space:pre-wrap"></pre></div>
       </div>
+    </div>
+    <!-- COMPLIANCE PANEL — injetado pelo naRunCompliance() -->
+    <div id="na-compliance-panel" style="display:none;margin:0 18px 10px;border-radius:8px;overflow:hidden;font-size:12px;border:1px solid var(--s2)">
+      <div id="na-compliance-header" style="padding:8px 12px;font-weight:700;display:flex;align-items:center;gap:8px"></div>
+      <div id="na-compliance-blocks" style="display:none;padding:8px 12px;background:#fff5f5;border-top:1px solid #fecaca"></div>
+      <div id="na-compliance-warnings" style="display:none;padding:8px 12px;background:#fffbeb;border-top:1px solid #fde68a"></div>
     </div>
     <div class="mo-ft">
       <button class="btn btn-sec" onclick="closeModal('pvModal')">Fechar</button>
@@ -593,11 +603,13 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
           <option value="E">Eletivo</option>
           <option value="U">Urgência</option>
           <option value="X">Emergência</option></select></div>
-      <div class="field"><label>Tipo de guia</label>
-        <select id="tipo_guia">
+      <div class="field full"><label>Tipo de guia <span class="req">*</span></label>
+        <select id="tipo_guia" required onchange="naToggleTipoGuia()">
           <option value="">Selecionar</option>
-          <option value="SADT">SADT</option><option value="Internação">Internação</option>
-          <option value="SADT + OPME">SADT + OPME</option></select></div>
+          <option value="Internação">🏥 Guia de Internação Hospitalar</option>
+          <option value="SADT">📋 SADT (procedimento ambulatorial)</option>
+          <option value="SADT + OPME">📋 SADT + OPME</option></select>
+        <span class="hint">Cirurgia hospitalar → Internação. Procedimento ambulatorial → SADT.</span></div>
       <div class="field"><label>Hospital / Clínica <span class="req">*</span></label>
         <select id="hospital" required>
           <option value="">Selecionar</option>
@@ -747,8 +759,71 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 </div>
 </div>
 
-<!-- TAB 4 OPME -->
+<!-- TAB 4 — GUIA PRINCIPAL (Internação ou SADT) -->
 <div class="tab-page" id="p4">
+
+<!-- BLOCO INTERNAÇÃO -->
+<div class="card" id="card-internacao">
+  <div class="card-hd"><div class="card-ico">🏥</div><div class="card-ttl">Guia de Internação Hospitalar</div></div>
+  <div class="card-body">
+    <div class="grid g2">
+      <div class="field"><label>Caráter da internação <span class="req">*</span></label>
+        <select id="carater_internacao" onchange="syncCarater()">
+          <option value="">Selecionar</option>
+          <option value="E">Eletiva</option>
+          <option value="U">Urgência</option>
+          <option value="X">Emergência</option></select></div>
+      <div class="field"><label>Regime</label>
+        <select id="regime_internacao" onchange="syncRegime()">
+          <option value="Hospitalar">Hospitalar</option>
+          <option value="Hospital-dia">Hospital-dia</option>
+          <option value="Domiciliar">Domiciliar</option></select></div>
+      <div class="field"><label>Diárias previstas</label>
+        <input id="diarias_previstas" type="number" min="1" max="30" placeholder="Ex: 2"/></div>
+      <div class="field"><label>Código TUSS principal <span class="auto">auto</span></label>
+        <input id="tuss_internacao" type="text" class="af" placeholder="Ex: 30715014"
+          oninput="document.getElementById('cod_tuss').value=this.value"/></div>
+      <div class="field full"><label>Descrição do ato cirúrgico <span class="req">*</span></label>
+        <textarea id="descricao_cirurgica" rows="3"
+          placeholder="Artrodese cervical anterior (ACDF) C5-C6, via anterior, com cage intersomático e placa de titânio…"></textarea></div>
+      <div class="field full"><label>Procedimentos secundários / auxiliares</label>
+        <textarea id="procs_secundarios" rows="2"
+          placeholder="Ex: Neuroanestesia, monitorização neurofisiológica intraoperatória…"></textarea></div>
+    </div>
+    <div class="info" style="margin-top:10px">
+      💡 <strong>Internação:</strong> OPME obrigatória para procedimentos cirúrgicos com implante. Preencha a aba OPME na próxima etapa.
+    </div>
+  </div>
+</div>
+
+<!-- BLOCO SADT (procedimento ambulatorial) -->
+<div class="card" id="card-sadt" style="display:none">
+  <div class="card-hd"><div class="card-ico">📋</div><div class="card-ttl">SADT — Procedimento Ambulatorial</div></div>
+  <div class="card-body">
+    <div class="grid g2">
+      <div class="field"><label>Código TUSS / CBHPM</label>
+        <input id="cod_tuss_sadt" type="text" placeholder="Ex: 30715014"
+          oninput="document.getElementById('cod_tuss').value=this.value"/></div>
+      <div class="field"><label>Quantidade</label>
+        <input id="qtd_sadt" type="number" min="1" value="1" placeholder="1"/></div>
+      <div class="field full"><label>Indicação clínica (campo 23 SADT) <span class="req">*</span></label>
+        <textarea id="indicacao_sadt" rows="4"
+          placeholder="Texto que vai direto para o campo 23 da guia SADT…"
+          oninput="document.getElementById('indicacao_clinica').value=this.value"></textarea></div>
+      <div class="field full"><label>Exames / SADT solicitados</label>
+        <textarea id="exames_sadt" rows="2"
+          placeholder="Hemograma, coagulograma, ECG, RX tórax PA…"></textarea></div>
+    </div>
+    <div class="info" style="margin-top:10px">
+      💡 <strong>SADT:</strong> Use para procedimentos ambulatoriais sem internação.
+    </div>
+  </div>
+</div>
+
+</div><!-- /p4 -->
+
+<!-- TAB 5 OPME -->
+<div class="tab-page" id="p5">
 <div class="card">
   <div class="card-hd"><div class="card-ico">🔩</div><div class="card-ttl">OPME e Materiais Especiais</div></div>
   <div class="card-body">
@@ -789,12 +864,12 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 </div>
 </div>
 
-<!-- TAB 5 REVISAR -->
-<div class="tab-page" id="p5">
+<!-- TAB 6 REVISAR -->
+<div class="tab-page" id="p6">
 <div class="card">
-  <div class="card-hd"><div class="card-ico">✉️</div><div class="card-ttl">Revisar e Enviar</div></div>
+  <div class="card-hd"><div class="card-ico">✅</div><div class="card-ttl">Revisar e Enviar</div></div>
   <div class="card-body">
-    <div class="info">Clique em <strong>Pré-visualizar Guias</strong> para ver as guias SADT e OPME preenchidas com os dados do formulário. Após revisar, confirme o envio para o Make.com.</div>
+    <div class="info">Revise antes de enviar. Guia: <strong id="tipo-guia-label">Internação Hospitalar</strong>.</div>
     <div id="mini-rev"></div>
     <div id="val-errs"></div>
   </div>
@@ -819,10 +894,6 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 </div>
 
 <script>
-    // === NEUROAUTH SECURE MEMORY STORE (hardened) ===
-    // JWT and session data NEVER touch browser storage
-    window.__NA_SECURE = { jwt: null, session: null, lgpd_log: null, draft: null };
-    // === END SECURE STORE ===
 /* ──────────────────────────────────────────────
    CONFIG
 ────────────────────────────────────────────── */
@@ -833,60 +904,13 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 
 /* ── CONFIG ──────────────────────────────────────────────────────── */
 const NA_CLIENT_ID   = '118851719832-qaktum0kj1a6r2a2fp6c75hhag8p2tlf.apps.googleusercontent.com';       // ← substituir pelo OAuth Client ID do Google Cloud Console
-const NA_PROFILE_WH  = 'https://neuroauth-auth.onrender.com/api/make-proxy';
-const NA_BACKEND         = 'https://neuroauth-auth.onrender.com'; // backend FastAPI canônico
-const NA_AUTH_GOOGLE_URL = NA_BACKEND + '/auth/google';         // troca id_token por JWT
-const NA_DECIDE_URL      = NA_BACKEND + '/decide';              // motor de decisão autenticado
+const NA_PROFILE_WH  = 'https://hook.us2.make.com/jmi4qs7isybo84qml0od5j3e8cl02y3s'; // ← URL do webhook NEUROAUTH_PROFILE_READER no Make.com
 const NA_SESSION_TTL = 8 * 60 * 60 * 1000;           // 8 horas em ms
-const NA_JWT_TTL_MS  = 25 * 60 * 1000;                // 25 min TTL do JWT
-
-/* ── JWT STORE — fonte única de leitura/escrita do token ────────
-   Toda leitura de JWT deve usar naGetJwt().
-   Nunca ler window.__NA_SECURE.jwt diretamente.
-──────────────────────────────────────────────────────────────── */
-function naStoreJwt(token) {
-  window.__NA_SECURE.jwt = token;
-  try {
-    sessionStorage.setItem('na_jwt_tmp', JSON.stringify({
-      jwt: token, exp: Date.now() + NA_JWT_TTL_MS
-    }));
-    console.info('[NEUROAUTH] naStoreJwt: JWT salvo (mem + sessionStorage)');
-  } catch(e) {
-    console.warn('[NEUROAUTH] naStoreJwt: só memória (sessionStorage indisponível)');
-  }
-}
-
-function naGetJwt() {
-  // Prioridade 1: memória
-  if (window.__NA_SECURE && window.__NA_SECURE.jwt) return window.__NA_SECURE.jwt;
-  // Prioridade 2: sessionStorage (sobrevive recarga da aba)
-  try {
-    var raw = sessionStorage.getItem('na_jwt_tmp');
-    if (raw) {
-      var p = JSON.parse(raw);
-      if (p.exp && Date.now() < p.exp && p.jwt) {
-        window.__NA_SECURE.jwt = p.jwt;
-        console.info('[NEUROAUTH] naGetJwt: JWT restaurado de sessionStorage');
-        return p.jwt;
-      }
-      sessionStorage.removeItem('na_jwt_tmp');
-      console.warn('[NEUROAUTH] naGetJwt: JWT expirado — removido');
-    }
-  } catch(e) {}
-  console.warn('[NEUROAUTH] naGetJwt: JWT AUSENTE');
-  return null;
-}
-
-function naClearJwt() {
-  if (window.__NA_SECURE) window.__NA_SECURE.jwt = null;
-  try { sessionStorage.removeItem('na_jwt_tmp'); } catch(e) {}
-  console.info('[NEUROAUTH] naClearJwt: JWT removido');
-}
 
 /* ── SESSION HELPER ─────────────────────────────────────────────── */
 function naGetSessionField(field){
   try{
-    const sess=JSON.parse(window.__NA_SECURE.session||'{}');
+    const sess=JSON.parse(sessionStorage.getItem('na_session')||'{}');
     if(field==='email')return sess.email||'';
     if(field==='name')return sess.name||'';
     const perfil=sess.perfil||{};
@@ -899,27 +923,16 @@ function naInitGoogle(){
   if(typeof google==='undefined'||!google.accounts){
     setTimeout(naInitGoogle,300);return;
   }
-  // Guard: não re-inicializar se já foi feito (evita "called multiple times")
-  if(window.__NA_GOOGLE_INIT__){
-    console.info('[NEUROAUTH] naInitGoogle: já inicializado, pulando');
-    return;
-  }
-  window.__NA_GOOGLE_INIT__ = true;
   google.accounts.id.initialize({
     client_id:NA_CLIENT_ID,
     callback:naHandleLogin,
     auto_select:true,
     cancel_on_tap_outside:false
   });
-  var signinBtn = document.getElementById('na-signin-btn');
-  if(signinBtn){
-    google.accounts.id.renderButton(
-      signinBtn,
-      {theme:'outline',size:'large',text:'signin_with',locale:'pt-BR',width:280}
-    );
-  } else {
-    console.warn('[NEUROAUTH] naInitGoogle: #na-signin-btn não encontrado');
-  }
+  google.accounts.id.renderButton(
+    document.getElementById('na-signin-btn'),
+    {theme:'outline',size:'large',text:'signin_with',locale:'pt-BR',width:280}
+  );
   google.accounts.id.prompt();
 }
 
@@ -933,43 +946,15 @@ async function naHandleLogin(response){
     console.error('[NEUROAUTH] JWT parse error',e);return;
   }
   const {email,name,picture}=payload;
-
-  /* ── BACKEND AUTH: POST id_token → FastAPI /auth/google ──────── */
-  // Mostrar spinner ANTES do fetch (evita abort do WebKit por inatividade)
   const sa=document.getElementById('screen-auth');
   if(sa) sa.innerHTML=`<div class="na-loading">
     <div class="na-spinner"></div>
-    <p style="color:#fff">Verificando acesso…</p>
+    <p style="color:#fff">Carregando perfil de <strong>${name}</strong>…</p>
   </div>`;
-
-  try{
-    // AbortController com 15s timeout — evita "Load failed" no Safari/WebKit
-    const _authCtrl = new AbortController();
-    const _authTimeout = setTimeout(() => _authCtrl.abort(), 15000);
-    console.info('[NEUROAUTH] auth_google_request_start →', NA_AUTH_GOOGLE_URL);
-    const authResp = await fetch(NA_AUTH_GOOGLE_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id_token:response.credential}),
-      signal: _authCtrl.signal
-    });
-    clearTimeout(_authTimeout);
-    const authData = await authResp.json();
-    console.log('[NEUROAUTH] auth_google_response_status:', authResp.status);
-    console.log('[NEUROAUTH] auth_google_response_body:', JSON.stringify(authData));
-    if(authData.access_token){
-      naStoreJwt(authData.access_token);
-      console.info('[NEUROAUTH] jwt_store_success — email:', authData.email);
-    } else {
-      console.error('[NEUROAUTH] jwt_store_failure — sem access_token na resposta');
-    }
-  }catch(authErr){
-    console.warn('[NEUROAUTH] /auth/google falhou (continuando):',authErr.name, authErr.message);
-  }
   try{
     const perfil=await naFetchPerfil(email);
     const sess={email,name,picture:picture||'',perfil,expires:Date.now()+NA_SESSION_TTL};
-    window.__NA_SECURE.session = (JSON.stringify(sess));
+    sessionStorage.setItem('na_session',JSON.stringify(sess));
     naRenderPresala(perfil,sess);
   }catch(err){
     if(sa) sa.innerHTML=`<div class="na-loading">
@@ -983,6 +968,85 @@ async function naHandleLogin(response){
 
 /* ── PROFILE FETCH (Make.com webhook) ───────────────────────────── */
 async function naFetchPerfil(email){
+  const _emailNorm = (email||'').trim().toLowerCase();
+  console.log('[NEUROAUTH] naFetchPerfil chamado com email:', _emailNorm);
+
+  // ─────────────────────────────────────────────────────────────────
+  // CAMADA 1 — DEV BYPASS (founder, acesso irrestrito)
+  // Remover apenas quando Make.com estiver estável e testado
+  // ─────────────────────────────────────────────────────────────────
+  const DEV_BYPASS_USERS = ['josejuniorsaraiva@gmail.com'];
+  if(DEV_BYPASS_USERS.indexOf(_emailNorm) !== -1){
+    console.log('[NEUROAUTH] ✅ CAMADA 1 — DEV BYPASS acionado para:', _emailNorm);
+    return {
+      user_email:            _emailNorm,
+      email:                 _emailNorm,
+      ativo:                 true,
+      plano:                 'dev',
+      role:                  'founder',
+      medico_nome:           'Jose Jr (Dev)',
+      perfil_tipo:           'cirurgiao',
+      crm:                   'DEV-000',
+      cbo:                   '225135',
+      hospital_padrao:       'Hospital Dev',
+      convenios_habilitados: 'Unimed',
+      bypass:                true
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // CAMADA 2 — LOCAL ALPHA WHITELIST (médicos autorizados — offline-first)
+  // Funciona independente do Make.com — fallback garantido para o alpha
+  //
+  // Para adicionar um médico:
+  //   1. Adicione a entrada no objeto abaixo (email em lowercase)
+  //   2. Preencha os campos reais do médico
+  //   3. Faça push no GitHub — entra em produção imediatamente
+  // ─────────────────────────────────────────────────────────────────
+  const LOCAL_ALPHA_WHITELIST = {
+    // 'medico1@gmail.com': {
+    //   medico_nome:           'Dr. Nome Completo',
+    //   perfil_tipo:           'cirurgiao',
+    //   crm:                   'SP-00000',
+    //   cbo:                   '225135',
+    //   hospital_padrao:       'Hospital X',
+    //   convenios_habilitados: 'Unimed'
+    // },
+    // 'medico2@hospital.com.br': {
+    //   medico_nome:           'Dr. Segundo Médico',
+    //   perfil_tipo:           'cirurgiao',
+    //   crm:                   'RJ-00000',
+    //   cbo:                   '225135',
+    //   hospital_padrao:       'Hospital Y',
+    //   convenios_habilitados: 'Bradesco,Unimed'
+    // }
+  };
+
+  if(LOCAL_ALPHA_WHITELIST.hasOwnProperty(_emailNorm)){
+    const _perfil = LOCAL_ALPHA_WHITELIST[_emailNorm];
+    console.log('[NEUROAUTH] ✅ CAMADA 2 — ALPHA WHITELIST liberou:', _emailNorm);
+    return Object.assign({
+      user_email: _emailNorm,
+      email:      _emailNorm,
+      ativo:      true,
+      plano:      'alpha',
+      role:       'medico',
+      bypass:     false
+    }, _perfil);
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // CAMADA 3 — EMAIL NÃO AUTORIZADO (antes de tentar Make.com)
+  // Bloqueia cedo com mensagem amigável — evita erro técnico cru
+  // Comente este bloco quando Make.com estiver ativo e com whitelist remota
+  // ─────────────────────────────────────────────────────────────────
+  // NOTA: enquanto Make.com estiver com webhook inativo (HTTP 410),
+  // todo email fora das camadas 1 e 2 cai aqui com mensagem amigável.
+  // Remova este bloco quando o webhook estiver estável.
+  throw new Error('Seu acesso ainda não foi liberado para esta fase inicial do NEUROAUTH. Se necessário, solicite liberação ao administrador.');
+  // fim CAMADA 3
+  /* eslint-disable no-unreachable */
+
   /* PRODUÇÃO — sem fallback para perfil fake. Toda falha bloqueia acesso. */
   if(!NA_PROFILE_WH||NA_PROFILE_WH==='SEU_MAKE_PROFILE_WEBHOOK_URL'){
     throw new Error('Sistema não configurado. Contate o administrador do NEUROAUTH.');
@@ -1114,18 +1178,41 @@ function naEnterForm(){
   const perfil=window._naSelectedProfile||{};
   const sess=window._naSess||{};
   if(perfil._selectedTipo)perfil.perfil_tipo=perfil._selectedTipo;
-  // Persist updated profile tipo in session
   try{
-    const raw=window.__NA_SECURE.session;
-    if(raw){const s=JSON.parse(raw);s.perfil=perfil;window.__NA_SECURE.session = (JSON.stringify(s));}
+    const raw=sessionStorage.getItem('na_session');
+    if(raw){const s=JSON.parse(raw);s.perfil=perfil;sessionStorage.setItem('na_session',JSON.stringify(s));}
   }catch(e){}
   naPreencherFormulario(perfil);
   naUpdateTopbar(sess,perfil);
   naLogLGPD(sess.email,perfil.perfil_tipo);
-  // Init app (moved from DOMContentLoaded)
   restoreDraft();
   if(!document.querySelectorAll('[id^="or"]').length)addOpme();
   goTab(0);
+  // Attach live invalidation: qualquer mudança de campo invalida cache de compliance
+  naAttachLiveValidation();
+}
+
+function naAttachLiveValidation() {
+  if (window.__NA_VALIDATION_ATTACHED__) return; // guard: evita acúmulo de listeners em sessão longa
+  var form = document.getElementById('nf');
+  if (!form) return;
+  // change → invalida imediatamente (commit semântico: blur, select, checkbox)
+  var immediate = function() {
+    if(window.__NA_STATE__) window.__NA_STATE__.dirty = true;
+    window.__NA_LAST_COMPLIANCE__ = null;
+  };
+  // input → debounced 450ms (evita invalidação em cada keystroke)
+  var _debTimer;
+  var debounced = function() {
+    clearTimeout(_debTimer);
+    _debTimer = setTimeout(immediate, 450);
+  };
+  form.querySelectorAll('input, select, textarea').forEach(function(el) {
+    el.addEventListener('change', immediate);
+    el.addEventListener('input',  debounced);
+  });
+  window.__NA_VALIDATION_ATTACHED__ = true;
+  naLog('live_validation_attached');
 }
 
 /* ── AUTO-FILL FORM ─────────────────────────────────────────────── */
@@ -1159,9 +1246,8 @@ function naUpdateTopbar(sess,perfil){
 
 /* ── LOGOUT ─────────────────────────────────────────────────────── */
 function naLogout(){
-  naClearJwt();
-  (window.__NA_SECURE.session = null);
-  (window.__NA_SECURE.lgpd_log = null);
+  sessionStorage.removeItem('na_session');
+  sessionStorage.removeItem('na_lgpd_log');
   try{
     if(typeof google!=='undefined'&&google.accounts)
       google.accounts.id.disableAutoSelect();
@@ -1172,7 +1258,7 @@ function naLogout(){
 /* ── LGPD CONSENT LOG ───────────────────────────────────────────── */
 function naLogLGPD(email,perfil_tipo){
   try{
-    window.__NA_SECURE.lgpd_log = (JSON.stringify({
+    sessionStorage.setItem('na_lgpd_log',JSON.stringify({
       event:'LGPD_CONSENT',
       email:email||'',
       perfil_tipo:perfil_tipo||'',
@@ -1184,9 +1270,8 @@ function naLogLGPD(email,perfil_tipo){
 
 /* ── CHECK SESSION (entry point) ────────────────────────────────── */
 function naCheckSession(){
-  // JWT restaurado automaticamente via naGetJwt() quando necessário
   try{
-    const raw=window.__NA_SECURE.session;
+    const raw=sessionStorage.getItem('na_session');
     if(raw){
       const sess=JSON.parse(raw);
       if(sess.expires&&Date.now()<sess.expires){
@@ -1201,7 +1286,7 @@ function naCheckSession(){
   naInitGoogle();
 }
 
-const WH = "https://neuroauth-auth.onrender.com/api/make-proxy";
+const WH = "https://hook.us2.make.com/yerhrppm26aylw9jj2efmapq6ny8jlif";
 
 /* ══ NEUROAUTH DRAFT CONTROL — estado global ══════════════════ */
 let guiaRegistrada   = false;
@@ -1441,7 +1526,7 @@ const SURGICAL_PROFILES = {
 ────────────────────────────────────────────── */
 let cur=0;
 function goTab(n){
-  if(n<0||n>5)return;
+  if(n<0||n>6)return;
   document.querySelectorAll('.tab-page').forEach((p,i)=>p.classList.toggle('active',i===n));
   document.querySelectorAll('.step').forEach((s,i)=>{
     s.classList.remove('active','done');
@@ -1451,12 +1536,52 @@ function goTab(n){
   cur=n;
   document.getElementById('btnPrev').disabled=n===0;
   document.getElementById('btnPrev').style.opacity=n===0?'.4':'1';
-  document.getElementById('btnNext').style.display=n===5?'none':'';
-  if(n===5)buildMiniRev();
+  document.getElementById('btnNext').style.display=n===6?'none':'';
+  if(n===6)buildMiniRev();
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function nextTab(){goTab(cur+1)}
 function prevTab(){goTab(cur-1)}
+
+/* ── naToggleTipoGuia — controla bloco internação vs SADT ── */
+function naToggleTipoGuia() {
+  const tipo = (document.getElementById('tipo_guia')?.value || '').toLowerCase();
+  const isInt  = tipo.includes('internação') || tipo.includes('internacao');
+  const isSADT = tipo.includes('sadt');
+
+  const cInt  = document.getElementById('card-internacao');
+  const cSADT = document.getElementById('card-sadt');
+  if (cInt)  cInt.style.display  = isInt  ? 'block' : 'none';
+  if (cSADT) cSADT.style.display = isSADT ? 'block' : 'none';
+
+  const stepLbl = document.getElementById('step-guia-lbl');
+  if (stepLbl) stepLbl.textContent = isInt ? '🏥 Internação' : '📋 SADT';
+
+  const tgl = document.getElementById('tipo-guia-label');
+  if (tgl) tgl.textContent = isInt ? 'Internação Hospitalar' : 'SADT';
+
+  if (isInt) {
+    const opme = document.getElementById('necessita_opme');
+    if (opme && opme.value === '') { opme.value = 'Sim'; toggleOpme(); }
+  }
+
+  if (window.__NA_STATE__) window.__NA_STATE__.dirty = true;
+  naLog('tipo_guia_toggle', { tipo });
+}
+
+function syncCarater() {
+  const v = document.getElementById('carater_internacao')?.value;
+  if (v) { const el = document.getElementById('carater'); if (el) el.value = v; }
+}
+
+function syncRegime() {
+  const v = document.getElementById('regime_internacao')?.value;
+  if (!v) return;
+  const el = document.getElementById('regime');
+  if (!el) return;
+  const map = { 'Hospitalar':'Internação curta (2–3 dias)', 'Hospital-dia':'Internação 1 dia', 'Domiciliar':'Ambulatorial' };
+  el.value = map[v] || v;
+}
 
 /* ──────────────────────────────────────────────
    AUTO-FILL FROM PROCEDURE
@@ -1578,6 +1703,20 @@ function collect(){
     carater:caratText[g('carater')]||g('carater'),
     carater_cod:g('carater'),
     tipo_guia:g('tipo_guia'),
+    internacao: (g('tipo_guia')||'').toLowerCase().includes('internação') ? {
+      carater:    g('carater_internacao'),
+      regime:     g('regime_internacao'),
+      diarias:    g('diarias_previstas'),
+      tuss:       g('tuss_internacao'),
+      descricao:  g('descricao_cirurgica'),
+      procs_sec:  g('procs_secundarios'),
+    } : null,
+    sadt_dados: (g('tipo_guia')||'').toLowerCase().includes('sadt') ? {
+      tuss:       g('cod_tuss_sadt'),
+      qtd:        g('qtd_sadt'),
+      indicacao:  g('indicacao_sadt'),
+      exames:     g('exames_sadt'),
+    } : null,
     hospital:g('hospital'),
     regime:g('regime'),
     obs_convenio:g('obs_convenio'),
@@ -2251,13 +2390,11 @@ function renderOPME(d){
 ────────────────────────────────────────────── */
 function openPreview(){
   const d=collect();
-  // Renderiza SADT com placeholder vazio (sidebar ainda não está montada)
   document.getElementById('sadt-render').innerHTML=renderSADT(d,[]);
-  // Monta sidebar com perfil + itens de formulário
   populateSidebar(d);
-  // updateGuiaFromSidebar faz render definitivo de SADT+OPME com dados reais da sidebar
   updateGuiaFromSidebar();
   naUpdateAuditUI();
+  naRunCompliance(d); // ← compliance engine
   openModal('pvModal');
 }
 
@@ -2571,6 +2708,9 @@ function getSelectedOpmesFull(){
 }
 
 function updateGuiaFromSidebar(){
+  // SSoT: sidebar mudou → estado desatualizado
+  if(window.__NA_STATE__) window.__NA_STATE__.dirty = true;
+  window.__NA_LAST_COMPLIANCE__ = null;
   const d=collect();
   const selOpmes=getSelectedOpmesFull();
   const selProcs=getSelectedProcs();
@@ -2603,7 +2743,7 @@ function updateGuiaFromSidebar(){
     opmes_selecionados:selOpmes,
     procedimentos_formatados,
     opmes_formatadas,
-    neuroauth_version:'2.1.2'
+    neuroauth_version:__NA_VERSION__
   },null,2);
 }
 
@@ -2665,9 +2805,9 @@ function printGuia(which){
       @media print{
         body{margin:6mm}
         .guia-wrap{page-break-inside:avoid;margin-bottom:0}
-        @page{margin:10mm;size:A4}
-        .na-print-wm{position:fixed;top:0;left:0;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9999}
-        .na-print-wm::after{content:'RASCUNHO\\ANÃO REGISTRADO';white-space:pre;font-size:96px;font-weight:900;color:rgba(220,38,38,.13);transform:rotate(-35deg);text-align:center;line-height:1.05;letter-spacing:3px;font-family:Arial,sans-serif;text-transform:uppercase}
+        @page{margin:15mm;size:A4 portrait}
+        .na-print-wm{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;overflow:hidden}
+        .na-print-wm::after{content:'RASCUNHO\\ANÃO REGISTRADO';white-space:pre;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:80px;font-weight:900;color:rgba(220,38,38,.10);text-align:center;line-height:1.1;width:120%;letter-spacing:3px;font-family:Arial,sans-serif;text-transform:uppercase}
         .na-print-header{display:block;font-size:10px;font-weight:700;padding:5px 10px;margin-bottom:8px;text-align:center}
         .na-print-header.draft{background:#fef3c7;color:#92400e;border-bottom:2px solid #f59e0b}
         .na-print-header.oficial{background:#e6f5ed;color:#14532d;border-bottom:2px solid #1e7a4a}
@@ -2685,90 +2825,44 @@ function trySubmit(){
   const errs=validate();
   if(errs.length){
     toast(`⚠️ ${errs.length} campo(s) obrigatório(s) pendente(s)`,'er');
-    goTab(5);
+    goTab(6);
     return;
   }
   openPreview();
 }
 
-/* ??????????????????????????????????????????????????????????????????
-   NEUROAUTH /decide ? integra??o com backend autenticado
-   Usa window.__NA_SECURE.jwt (Bearer token do /auth/google)
-   N?o altera WH/Make.com ? /decide ? chamado em paralelo
-?????????????????????????????????????????????????????????????????? */
-function buildDecidePayload(d, opmeItems){
-  return {
-    cid_principal:      d.cid_principal || '',
-    procedimento:       d.procedimento  || '',
-    convenio:           d.convenio      || '',
-    cod_cbhpm:          d.cod_cbhpm     || d.cod_tuss || '',
-    indicacao_clinica:  d.indicacao_clinica || '',
-    achados_resumo:     d.achados_resumo || d.achados_exame || '',
-    tto_conservador:    d.tto_conservador || '',
-    necessita_opme:     d.necessita_opme === 'Sim' ? 'Sim' : 'N?o',
-    opme_items: (opmeItems || []).map(function(o){return {
-      descricao:  o.descricao || o.d || '',
-      qtd:        parseInt(o.qtd || o.q || 1, 10),
-      fabricante: o.fabricante || o.empresa || o.e || '',
-      codigo:     o.codigo || ''
-    };}).filter(function(o){ return o.descricao; }),
-    justificativas_opme: {},
-    crm:                d.crm || '',
-    cbo:                d.cbo || '',
-    medico_solicitante: d.medico_solicitante || naGetSessionField('medico_nome') || ''
-  };
-}
-
-async function callDecideBackend(d, opmeItems){
-  var jwt = naGetJwt(); // fonte única
-  if(!jwt){
-    console.warn('[NEUROAUTH/decide] jwt ausente ? /auth/google pode ter falhado');
-    return {ok:false, error:'Token de autentica??o ausente. Sess?o pode ter expirado.'};
-  }
-  var decidePayload = buildDecidePayload(d, opmeItems);
-  console.info('[NEUROAUTH/decide] POST', NA_DECIDE_URL, decidePayload);
-  try{
-    var res = await fetch(NA_DECIDE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': 'Bearer ' + jwt
-      },
-      body: JSON.stringify(decidePayload)
-    });
-    var body = await res.json().catch(function(){ return {}; });
-    if(res.ok){
-      console.info('[NEUROAUTH/decide] OK', res.status, body);
-      return {ok:true, status:res.status, data:body};
-    } else {
-      console.error('[NEUROAUTH/decide] HTTP', res.status, body);
-      return {ok:false, status:res.status, error:body.detail||'HTTP '+res.status};
-    }
-  }catch(e){
-    console.error('[NEUROAUTH/decide] falha de rede', e);
-    return {ok:false, error:'Falha de rede: '+e.message};
-  }
-}
-
 async function confirmedSend(){
-  // Guard duplo envio
-  if(window.__NA_SENDING__) { console.warn('[NEUROAUTH] confirmedSend: duplo envio bloqueado'); return; }
-  window.__NA_SENDING__ = true;
-  console.info('[NEUROAUTH] confirmedSend: iniciando');
+  // Proteção contra duplo envio
+  if(window.__NA_SENDING__) return;
 
   const sp=document.getElementById('sp');
   const btn=document.getElementById('confirmSendBtn');
-  sp.classList.add('on'); if(btn) btn.disabled=true;
 
-  // Watchdog: reset automático em 20s se algo travar
-  var _watchdog = setTimeout(function(){
-    window.__NA_SENDING__ = false;
-    if(sp) sp.classList.remove('on');
-    if(btn) btn.disabled = false;
-    console.warn('[NEUROAUTH] confirmedSend: watchdog reset (20s timeout)');
-    toast('O envio demorou demais. Tente novamente.', 'er');
-  }, 20000);
+  // SSoT: collect exatamente UMA vez — mesma base para compliance gate e payload final
   const d=collect();
+
+  // Compliance gate — usa __NA_STATE__ se fresco (dirty=false), senão revalida agora
+  var _cv;
+  if(window.__NA_STATE__ && !window.__NA_STATE__.dirty && window.__NA_STATE__.compliance){
+    _cv = window.__NA_STATE__.compliance;
+  } else {
+    _cv = naRunCompliance(d); // popula __NA_STATE__ com payload atual
+  }
+  if(_cv && !_cv.can_print){
+    toast('⛔ Envio bloqueado — corrija os campos obrigatórios antes de enviar.','er');
+    naLog('send_blocked', {blocks:_cv.blocks.length});
+    return;
+  }
+
+  window.__NA_SENDING__ = true;
+  var _watchdog = setTimeout(function() {
+    window.__NA_SENDING__ = false;
+    sp.classList.remove('on'); if(btn){btn.disabled=false;}
+    naLog('send_watchdog_reset');
+    toast('⏱ O envio demorou mais que o esperado. Tente novamente.','er');
+  }, 15000);
+  sp.classList.add('on');btn.disabled=true;
+  // d já foi coletado acima — sem segundo collect()
   // Enriquecer com seleções do sidebar builder
   const selProcs=getSelectedProcs();
   const selOpmes=getSelectedOpmesFull();
@@ -2800,114 +2894,34 @@ async function confirmedSend(){
     opme_1:opmeFinalSend[0]?.descricao||d.opme_1,
     opme_2:opmeFinalSend[1]?.descricao||d.opme_2,
     opme_3:opmeFinalSend[2]?.descricao||d.opme_3,
-    neuroauth_version:'2.1.2',
+    neuroauth_version:__NA_VERSION__,
     timestamp:new Date().toISOString()
   };
-  // ?? SUBMIT PRINCIPAL: /decide (backend autenticado) ?????????????????
-  // Make-proxy chamado em background apenas para gera??o de documentos
-  const jwt = naGetJwt(); // fonte única
-  if(!jwt){
+  try{
+    const r=await fetch(WH,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     sp.classList.remove('on');btn.disabled=false;
-    var _jwtDiag = {
-      mem:  !!(window.__NA_SECURE && window.__NA_SECURE.jwt),
-      stor: (function(){ try{ var r=sessionStorage.getItem('na_jwt_tmp'); return r?'presente':'ausente'; }catch(e){return 'erro';} })()
-    };
-    console.error('[NEUROAUTH/decide] JWT AUSENTE — diagnóstico:', _jwtDiag);
-    console.log('[NEUROAUTH]', 'send_no_jwt', _jwtDiag);
-    toast('Sessão expirada — reconectando automaticamente...', 'er');
-    // Reautenticar silenciosamente após 1.5s (finally vai limpar estado)
-    setTimeout(function(){ naClearJwt(); window.__NA_SECURE.session=null; window.__NA_GOOGLE_INIT__=false; naCheckSession(); }, 1500);
-    return;
-  }
-  const decidePayload = buildDecidePayload(d, opmeFinalSend);
-  console.info('[NEUROAUTH/decide] POST', NA_DECIDE_URL, decidePayload);
-
-  // Função interna de envio — usada para retry
-  async function _doDecideFetch() {
-    const ctrl = new AbortController();
-    const fetchTimeout = setTimeout(function(){ ctrl.abort(); }, 18000);
-    try {
-      const r = await fetch(NA_DECIDE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
-        body: JSON.stringify(decidePayload),
-        signal: ctrl.signal
-      });
-      clearTimeout(fetchTimeout);
-      return r;
-    } catch(fetchErr) {
-      clearTimeout(fetchTimeout);
-      throw fetchErr;
-    }
-  }
-
-  try {
-    var r;
-    try {
-      r = await _doDecideFetch();
-    } catch(netErr) {
-      // Erro de rede (Load failed, aborted, offline) — retry único após 3s
-      var isNetworkErr = netErr.name === 'TypeError' || netErr.name === 'AbortError';
-      if (isNetworkErr) {
-        console.warn('[NEUROAUTH/decide] falha de rede — tentando novamente em 3s:', netErr.message);
-        toast('Falha de conexão — tentando novamente...', 'er');
-        await new Promise(function(res){ setTimeout(res, 3000); });
-        try {
-          r = await _doDecideFetch();
-          console.info('[NEUROAUTH/decide] retry OK');
-        } catch(retryErr) {
-          // Retry também falhou
-          toast('Falha de conexão durante o envio. O caso não foi concluído. Verifique a internet e tente novamente.', 'er');
-          console.error('[NEUROAUTH/decide] retry falhou:', retryErr.message);
-          console.log('[NEUROAUTH]', 'send_error', {message: retryErr.message, type: 'network', retry: true});
-          return; // finally vai limpar estado
-        }
-      } else {
-        throw netErr; // erro não-rede: propagar normalmente
-      }
-    }
-
-    const rBody = await r.json().catch(function(){ return {}; });
-    if (r.ok) {
+    if(r.ok){
       closeModal('pvModal');
-      const cls   = rBody.classification || '?';
-      const score = rBody.score != null ? ' · score ' + rBody.score : '';
-      const risco = rBody.risco_glosa   ? ' · risco ' + rBody.risco_glosa : '';
-      toast('✅ Motor: ' + cls + score + risco, 'ok');
-      console.info('[NEUROAUTH/decide] OK', {
-        classification: cls, score: rBody.score,
-        risco_glosa: rBody.risco_glosa,
-        decision_run_id: rBody.decision_run_id,
-        episode_id: rBody.episodio_id,
-        http_status: r.status
-      });
-      (window.__NA_SECURE.draft = null);
+      toast('🎉 Enviado! Documento sendo gerado no Make.com…','ok');
+      localStorage.removeItem('neuroauth_draft');
       guiaRegistrada    = true;
       envioConfirmadoEm = new Date().toISOString();
       envioUserEmail    = naGetSessionField('email') || '';
+      // Limpar SSoT após envio confirmado — próxima guia começa fresh
+      window.__NA_STATE__ = {payload: null, compliance: null, ts: null, dirty: true};
+      window.__NA_LAST_COMPLIANCE__ = null;
       naUpdateAuditUI();
-      console.log('[NEUROAUTH]', 'send_ok', {decision_run_id: rBody.decision_run_id, episode_id: rBody.episodio_id});
-      // Make-proxy em background — geração de docs (não bloqueia)
-      fetch(WH, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
-        .then(function(wr){ console.info('[NEUROAUTH/make-proxy]', wr.status); })
-        .catch(function(we){ console.warn('[NEUROAUTH/make-proxy] falha:', we.message); });
+      naLog('send_ok', {ts: envioConfirmadoEm});
     } else {
-      // Erro HTTP explícito do backend — não é falha de rede
-      var errMsg = (rBody && rBody.detail) || ('HTTP ' + r.status);
-      toast('❌ Erro no servidor: ' + errMsg, 'er');
-      console.error('[NEUROAUTH/decide] HTTP erro', r.status, rBody);
-      console.log('[NEUROAUTH]', 'send_error', {message: errMsg, type: 'http', status: r.status});
+      throw new Error('HTTP '+r.status);
     }
-  } catch(e) {
-    var msg = (e && e.message) || 'Erro desconhecido';
-    toast('❌ Erro ao enviar: ' + msg, 'er');
-    console.log('[NEUROAUTH]', 'send_error', {message: msg});
-    console.error('[NEUROAUTH/decide] falha', e);
+  } catch(e){
+    sp.classList.remove('on');btn.disabled=false;
+    toast('❌ Erro: '+e.message,'er');
+    naLog('send_error', {message: e.message});
   } finally {
     clearTimeout(_watchdog);
     window.__NA_SENDING__ = false;
-    if(sp) sp.classList.remove('on');
-    if(btn) btn.disabled = false;
   }
 }
 
@@ -2937,12 +2951,12 @@ async function testWebhook(){
    DRAFT
 ────────────────────────────────────────────── */
 function saveDraft(){
-  try{window.__NA_SECURE.draft = (JSON.stringify(collect()));toast('💾 Rascunho salvo');}catch(e){}
+  try{localStorage.setItem('neuroauth_draft',JSON.stringify(collect()));toast('💾 Rascunho salvo');}catch(e){}
 }
 
 function restoreDraft(){
   try{
-    const raw=window.__NA_SECURE.draft;if(!raw)return;
+    const raw=localStorage.getItem('neuroauth_draft');if(!raw)return;
     const d=JSON.parse(raw);
     const flds=['nome_paciente','data_nascimento','sexo','cpf','telefone','email','cns','comorbidades',
       'convenio','numero_carteira','validade_carteira','carater','tipo_guia','hospital','regime','obs_convenio',
@@ -2969,7 +2983,7 @@ function doReset(){
   sv('medico_solicitante','Dr. José Correia Jr.');
   sv('cbo','225118');
   closeModal('rstModal');
-  (window.__NA_SECURE.draft = null);
+  localStorage.removeItem('neuroauth_draft');
   goTab(0);
   toast('Formulário limpo.','wa');
 }
@@ -3124,6 +3138,262 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
 })();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     NEUROAUTH COMPLIANCE ENGINE v1.0.1 — embutido
+     Motor de Conformidade TISS + Anti-Glosa em 3 Camadas
+     Não editar aqui — fonte canônica: neuroauth_compliance_engine.js
+     ═══════════════════════════════════════════════════════════════════════ -->
+<script>
+(function(root,factory){
+  'use strict';
+  if(typeof module!=='undefined'&&module.exports){module.exports=factory();}
+  else{root.NEUROAUTH_COMPLIANCE=factory();}
+}(typeof window!=='undefined'?window:this,function(){
+  'use strict';
+  var VERSION='1.0.1';
+  var TISS_REQUIRED={
+    source_type:'ans_oficial',
+    source_reference:'Padrão TISS ANS — RN 501/2022',
+    confidence_level:'alta',
+    sadt:['codigo_ans','numero_carteira','nome_paciente','medico_solicitante','crm','cbo','carater_cod','data_solicitacao','indicacao_clinica','procedimento','cod_cbhpm'],
+    opme:['codigo_ans','numero_carteira','nome_paciente','medico_solicitante','crm','cbo','procedimento','justificativa_opme','opme_items'],
+    recommended_fields:['cns','validade_carteira','cid_principal','hospital']
+  };
+  function _isOpmeAtivo(val){
+    if(val===true)return true;
+    if(!val)return false;
+    var s=String(val).trim().toLowerCase();
+    return s==='sim'||s==='true'||s==='1'||s==='yes';
+  }
+  function _dedupe(arr){
+    var seen={};
+    return(arr||[]).filter(function(item){if(seen[item])return false;seen[item]=true;return true;});
+  }
+  var ANTI_GLOSA=[
+    {id:'cid_obrigatorio',label:'CID principal preenchido',description:'Ausência de CID é a causa mais comum de glosa administrativa.',severity:'alto',fields:['cid_principal'],
+      check:function(d){return!!(d.cid_principal&&d.cid_principal.trim().length>=3);}},
+    {id:'indicacao_minima',label:'Indicação clínica ≥ 40 caracteres',description:'Campo 23 superficial é glosado por falta de justificativa.',severity:'alto',fields:['indicacao_clinica'],
+      check:function(d){return!!(d.indicacao_clinica&&d.indicacao_clinica.trim().length>=40);}},
+    {id:'opme_com_justificativa',label:'OPME acompanhada de justificativa',description:'OPME sem justificativa clínica é glosa certa.',severity:'critico',fields:['justificativa_opme','necessita_opme'],
+      check:function(d){if(!_isOpmeAtivo(d.necessita_opme))return true;return!!(d.justificativa_opme&&d.justificativa_opme.trim().length>=30);}},
+    {id:'tto_conservador_documentado',label:'Tratamento conservador documentado (eletivos)',description:'Para eletivos: ausência de conservador é argumento de negativa.',severity:'medio',fields:['tto_conservador','carater_cod'],
+      check:function(d){if(d.carater_cod!=='E')return true;return!!(d.tto_conservador&&d.tto_conservador!=='');}},
+    {id:'achados_exame_presentes',label:'Achados de imagem documentados',description:'Achados RM/TC fundamentam indicação cirúrgica.',severity:'alto',fields:['achados_resumo','achados_exame'],
+      check:function(d){return!!(d.achados_resumo&&d.achados_resumo.trim().length>10)||!!(d.achados_exame&&d.achados_exame.trim().length>10);}},
+    {id:'opme_descricao_completa',label:'Itens OPME com descrição e quantidade',description:'Item OPME sem descrição ou qtd é glosado na fatura.',severity:'critico',fields:['opme_items'],
+      check:function(d){if(!d.opme_items||d.opme_items.length===0)return true;return d.opme_items.every(function(item){return item&&item.descricao&&item.descricao.trim().length>3&&Number(item.qtd)>0;});}},
+    {id:'medico_dados_completos',label:'Médico com CRM e CBO',description:'Guia sem CRM ou CBO é rejeitada por auditoria eletrônica.',severity:'critico',fields:['medico_solicitante','crm','cbo'],
+      check:function(d){return!!(d.medico_solicitante&&d.crm&&d.cbo);}}
+  ];
+  var CONVENIO_RULES={
+    default_tiss:{id:'default_tiss',nome:'Padrão TISS ANS',source_type:'ans_oficial',source_reference:'RN 501/2022',confidence_level:'alta',
+      required_fields:TISS_REQUIRED.sadt,recommended_fields:TISS_REQUIRED.recommended_fields,
+      validation_messages:{codigo_ans:'Registro ANS obrigatório (campo 1)',numero_carteira:'Nº carteira obrigatório (campo 8)',nome_paciente:'Nome beneficiário obrigatório (campo 10)',medico_solicitante:'Nome médico obrigatório (campo 15)',crm:'CRM obrigatório (campo 17)',cbo:'CBO obrigatório (campo 19)',indicacao_clinica:'Indicação clínica obrigatória (campo 23)',procedimento:'Procedimento obrigatório (campo 26)'}},
+    unimed:{id:'unimed',nome:'Unimed',source_type:'regra_interna',source_reference:'Manual oficial pendente',confidence_level:'baixa',required_fields:[],recommended_fields:['justificativa_opme','achados_resumo','cid_principal','tto_conservador'],validation_messages:{justificativa_opme:'Recomendado anti-glosa: justificativa OPME detalhada',achados_resumo:'Recomendado anti-glosa: achados de imagem'}},
+    bradesco:{id:'bradesco',nome:'Bradesco Saúde',source_type:'regra_interna',source_reference:'Manual oficial pendente',confidence_level:'baixa',required_fields:[],recommended_fields:['cid_principal','justificativa_opme'],validation_messages:{}},
+    hapvida:{id:'hapvida',nome:'Hapvida',source_type:'regra_interna',source_reference:'Manual oficial pendente',confidence_level:'baixa',required_fields:[],recommended_fields:['cid_principal','justificativa_opme'],validation_messages:{}},
+    particular:{id:'particular',nome:'Particular',source_type:'regra_interna',source_reference:'Sem operadora',confidence_level:'alta',required_fields:[],recommended_fields:[],validation_messages:{}}
+  };
+  function validateBeforePrint(payload,operatorId){
+    var result={can_print:true,blocks:[],warnings:[]};
+    if(!payload){result.can_print=false;result.blocks.push({field:'payload',message:'Dados não encontrados.',layer:1});return result;}
+    var opId=(operatorId||'default_tiss').toLowerCase().replace(/\s+/g,'_');
+    var rules=CONVENIO_RULES[opId]||CONVENIO_RULES['default_tiss'];
+    var tissRequired=TISS_REQUIRED.sadt.slice();
+    if(_isOpmeAtivo(payload.necessita_opme)){
+      TISS_REQUIRED.opme.forEach(function(f){if(tissRequired.indexOf(f)===-1)tissRequired.push(f);});
+    }
+    tissRequired.forEach(function(field){
+      var val=payload[field];
+      var missing=!val||(typeof val==='string'&&val.trim()==='');
+      if(field==='opme_items'){missing=!val||!Array.isArray(val)||val.length===0||!val.some(function(item){return item&&item.descricao&&item.descricao.trim().length>0&&Number(item.qtd)>0;});}
+      if(missing){result.can_print=false;var msg=(CONVENIO_RULES['default_tiss'].validation_messages||{})[field]||('Campo obrigatório TISS: '+field);result.blocks.push({field:field,message:msg,layer:1,source:'ANS/TISS RN 501/2022'});}
+    });
+    if(rules.source_type!=='regra_interna'&&rules.confidence_level==='alta'){
+      (rules.required_fields||[]).forEach(function(field){var val=payload[field];if(!val||(typeof val==='string'&&val.trim()==='')){result.can_print=false;result.blocks.push({field:field,message:(rules.validation_messages||{})[field]||('Obrigatório pela operadora: '+field),layer:3,source:rules.source_reference});}});
+    }
+    ANTI_GLOSA.forEach(function(rule){try{if(!rule.check(payload)){result.warnings.push({id:rule.id,fields:rule.fields,message:rule.label,detail:rule.description,severity:rule.severity,layer:2});}}catch(e){}});
+    var warnIds=result.warnings.map(function(w){return w.id;});
+    var warnFields=result.warnings.reduce(function(acc,w){(w.fields||[]).forEach(function(f){acc[f]=true;});return acc;},{});
+    (rules.recommended_fields||[]).forEach(function(field){
+      if(warnFields[field])return;
+      var val=payload[field];var empty=!val||(typeof val==='string'&&val.trim()==='');
+      if(empty){var id='op_rec_'+field;if(warnIds.indexOf(id)!==-1)return;result.warnings.push({id:id,fields:[field],message:(rules.validation_messages||{})[field]||('Recomendado '+rules.nome+': '+field),severity:'baixo',layer:3,source:rules.source_reference});}
+    });
+    return result;
+  }
+  function adjustUIForOperator(operatorId){
+    var opId=(operatorId||'').toLowerCase().replace(/\s+/g,'_');
+    var rules=CONVENIO_RULES[opId]||null;
+    var base=CONVENIO_RULES['default_tiss'];
+    return{
+      operator_id:opId,operator_name:rules?rules.nome:operatorId,
+      highlight_required:_dedupe((rules&&rules.source_type!=='regra_interna')?base.required_fields.concat(rules.required_fields||[]):base.required_fields),
+      highlight_recommended:_dedupe((rules?rules.recommended_fields:[]).concat(base.recommended_fields)),
+      field_hints:rules?(rules.validation_messages||{}):base.validation_messages,
+      disclaimer:(rules&&rules.source_type==='regra_interna')?'Regras '+rules.nome+' sem fonte oficial — exibindo recomendações anti-glosa.':null
+    };
+  }
+  return{VERSION:VERSION,validateBeforePrint:validateBeforePrint,adjustUIForOperator:adjustUIForOperator,CONVENIO_RULES:CONVENIO_RULES,_helpers:{isOpmeAtivo:_isOpmeAtivo,dedupe:_dedupe}};
+}));
+
+/* ── __NA_STATE__ — SSoT central: payload validado + resultado compliance + flag dirty ── */
+window.__NA_STATE__ = window.__NA_STATE__ || {
+  payload:    null,   // último payload safe (naSafePayload) que passou pela compliance
+  compliance: null,   // último resultado validateBeforePrint
+  ts:         null,   // ISO timestamp da última validação
+  dirty:      true    // true = cache inválido, revalidar antes de enviar
+};
+
+/* ── naLog — log silencioso estruturado de produção ── */
+var __NA_VERSION__ = '3.0.0'; // versão canônica — única fonte de verdade para UI, payload e logs
+function naLog(event, data) {
+  try {
+    console.debug('[NA]', Object.assign({ event: event, ts: new Date().toISOString(), v: __NA_VERSION__ }, data || {}));
+  } catch(e) {}
+}
+
+/* ── naSafePayload — failsafe deep: garante campos mínimos + normaliza opme_items ── */
+function naSafePayload(p) {
+  var safe = Object.assign({
+    cid_principal:    '',
+    indicacao_clinica:'',
+    crm:              '',
+    cbo:              '',
+    necessita_opme:   'Não',
+    opme_items:       []
+  }, p || {});
+  // Deep-safe opme_items: normaliza qtd (string→number), descricao (campos alternativos), filtra vazios
+  if (Array.isArray(safe.opme_items)) {
+    safe.opme_items = safe.opme_items
+      .map(function(item) {
+        return {
+          descricao:   String(item.descricao  || item.nome      || '').trim(),
+          qtd:         Number(item.qtd        || item.quantidade || 1) || 1,
+          fabricante:  String(item.fabricante || item.empresa   || '').trim(),
+          codigo:      String(item.codigo     || '').trim(),
+          anvisa:      String(item.anvisa     || '').trim(),
+          af:          String(item.af         || '').trim()
+        };
+      })
+      .filter(function(item) { return item.descricao.length > 0; });
+  }
+  return safe;
+}
+
+/* ── naRunCompliance — integração com painel visual do modal ── */
+function naRunCompliance(payload) {
+  if(typeof NEUROAUTH_COMPLIANCE==='undefined') return;
+  var safe    = naSafePayload(payload);
+  var convenio = (safe.convenio||'').toLowerCase().replace(/\s+/g,'_');
+  var result = NEUROAUTH_COMPLIANCE.validateBeforePrint(safe, convenio);
+  // SSoT: atualiza estado central
+  window.__NA_STATE__ = {payload: safe, compliance: result, ts: new Date().toISOString(), dirty: false};
+  window.__NA_LAST_COMPLIANCE__ = result; // alias backwards-compat
+
+  var panel   = document.getElementById('na-compliance-panel');
+  var header  = document.getElementById('na-compliance-header');
+  var blocksEl = document.getElementById('na-compliance-blocks');
+  var warnsEl  = document.getElementById('na-compliance-warnings');
+  var sendBtn  = document.getElementById('confirmSendBtn');
+  if(!panel) return;
+
+  // Blocks
+  if(result.blocks.length > 0) {
+    blocksEl.innerHTML = '<strong style="color:#dc2626">⛔ Bloqueios TISS (impedem envio):</strong><ul style="margin:4px 0 0 16px">'
+      + result.blocks.map(function(b){ return '<li>'+b.message+'</li>'; }).join('') + '</ul>';
+    blocksEl.style.display = 'block';
+  } else {
+    blocksEl.style.display = 'none';
+  }
+
+  // Warnings
+  var criticals = result.warnings.filter(function(w){ return w.severity==='critico'||w.severity==='alto'; });
+  if(criticals.length > 0) {
+    warnsEl.innerHTML = '<strong style="color:#92400e">⚠️ Alertas anti-glosa ('+criticals.length+'):</strong><ul style="margin:4px 0 0 16px">'
+      + criticals.map(function(w){ return '<li>'+w.message+'</li>'; }).join('') + '</ul>';
+    warnsEl.style.display = 'block';
+  } else {
+    warnsEl.style.display = 'none';
+  }
+
+  // Header + cor do painel
+  if(!result.can_print) {
+    panel.style.borderColor = '#fca5a5';
+    header.style.background = '#fef2f2';
+    header.innerHTML = '<span style="color:#dc2626">⛔</span> <span style="color:#dc2626">'+result.blocks.length+' bloqueio'+(result.blocks.length>1?'s':'')+' — envio desabilitado</span>';
+    if(sendBtn){ sendBtn.disabled=true; sendBtn.style.opacity='0.5'; }
+  } else if(criticals.length > 0) {
+    panel.style.borderColor = '#fde68a';
+    header.style.background = '#fffbeb';
+    header.innerHTML = '<span>⚠️</span> <span style="color:#92400e">'+criticals.length+' alerta'+(criticals.length>1?'s':'')+' anti-glosa — revise antes de imprimir</span>';
+    if(sendBtn){ sendBtn.disabled=false; sendBtn.style.opacity=''; }
+  } else {
+    panel.style.borderColor = '#bbf7d0';
+    header.style.background = '#f0fdf4';
+    header.innerHTML = '<span>✅</span> <span style="color:#15803d">Campos TISS OK — pronto para envio</span>';
+    if(sendBtn){ sendBtn.disabled=false; sendBtn.style.opacity=''; }
+  }
+
+  panel.style.display = 'block';
+
+  naLog('compliance_run', {can_print:result.can_print, blocks:result.blocks.length, warnings:result.warnings.length, operador:convenio});
+  return result;
+}
+
+/* ── naBuildPrintData — estrutura limpa para PDF determinístico (fase futura) ──
+ *  Pure function: sem side-effects, sem DOM, sem exceções propagadas.
+ *  Entrada: payload bruto (ou nulo).  Saída: objeto estável para renderização.
+ * ─────────────────────────────────────────────────────────────────────────── */
+function naBuildPrintData(payload) {
+  try {
+    var s = naSafePayload(payload);
+    return {
+      v:          __NA_VERSION__,
+      ts:         new Date().toISOString(),
+      paciente: {
+        nome:         s.nome_paciente      || '',
+        carteirinha:  s.numero_carteira    || '',
+        convenio:     s.convenio           || '',
+        plano:        s.plano              || '',
+        data_nasc:    s.data_nascimento    || ''
+      },
+      medico: {
+        nome:         s.medico_solicitante || '',
+        crm:          s.crm               || '',
+        cbo:          s.cbo               || '',
+        telefone:     s.tel_medico        || '',
+        hospital:     s.hospital          || ''
+      },
+      clinico: {
+        indicacao:    s.indicacao_clinica  || '',
+        cid:          s.cid_principal      || '',
+        carater:      s.carater_cod        || '',
+        data_sol:     s.data_solicitacao   || '',
+        deficit_neuro: s.deficit_neuro    || '',
+        tto_conservador: s.tto_conservador || ''
+      },
+      procedimento: {
+        descricao:    s.procedimento      || '',
+        codigo:       s.cod_cbhpm         || ''
+      },
+      opme: {
+        necessita:    s.necessita_opme !== 'Não',
+        items:        Array.isArray(s.opme_items) ? s.opme_items : []
+      },
+      meta: {
+        codigo_ans:   s.codigo_ans        || '',
+        numero_guia:  s.numero_guia       || '',
+        tipo_guia:    s.tipo_guia         || 'SADT'
+      }
+    };
+  } catch(e) {
+    naLog('build_print_data_error', {message: e.message});
+    return null;
+  }
+}
 </script>
 
 </body>
