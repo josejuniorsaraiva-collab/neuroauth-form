@@ -22,8 +22,7 @@
 
 <!-- Performance hints -->
 <meta name="description" content="Solicitação de autorização cirúrgica neurocirúrgica — NEUROAUTH"/>
-<link rel="dns-prefetch" href="https://hook.us2.make.com"/>
-<link rel="preconnect" href="https://hook.us2.make.com"/>
+<!-- Make.com removido do frontend — relay via backend autenticado -->
 <style>
 :root{
   --b1:#1a3f6f;--b2:#1f4e79;--b3:#2d6fad;--bp:#e8f0f9;
@@ -904,7 +903,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 
 /* ── CONFIG ──────────────────────────────────────────────────────── */
 const NA_CLIENT_ID   = '118851719832-qaktum0kj1a6r2a2fp6c75hhag8p2tlf.apps.googleusercontent.com';       // ← substituir pelo OAuth Client ID do Google Cloud Console
-const NA_PROFILE_WH  = 'https://hook.us2.make.com/jmi4qs7isybo84qml0od5j3e8cl02y3s'; // ← URL do webhook NEUROAUTH_PROFILE_READER no Make.com
+// NA_PROFILE_WH removido — perfil agora via /relay/profile no backend
 const NA_SESSION_TTL = 8 * 60 * 60 * 1000;           // 8 horas em ms
 
 /* ── SESSION HELPER ─────────────────────────────────────────────── */
@@ -1048,12 +1047,17 @@ async function naFetchPerfil(email){
   /* eslint-disable no-unreachable */
 
   /* PRODUÇÃO — sem fallback para perfil fake. Toda falha bloqueia acesso. */
-  if(!NA_PROFILE_WH||NA_PROFILE_WH==='SEU_MAKE_PROFILE_WEBHOOK_URL'){
+  if(!NA_BACKEND_URL){
     throw new Error('Sistema não configurado. Contate o administrador do NEUROAUTH.');
   }
   let resp;
   try{
-    resp=await fetch(`${NA_PROFILE_WH}?email=${encodeURIComponent(email)}`,{cache:'no-store'});
+    // Gate C: perfil via backend autenticado
+    const _jwt_pfetch = naGetSessionField('_jwt') || '';
+    resp=await fetch(NA_BACKEND_URL+'/relay/profile?email='+encodeURIComponent(email),{
+      cache:'no-store',
+      headers:{'Authorization':'Bearer '+_jwt_pfetch}
+    });
   }catch(netErr){
     throw new Error('Falha de rede ao verificar perfil. Verifique sua conexão e tente novamente.');
   }
@@ -1082,12 +1086,17 @@ async function naFetchPerfil(email){
 
 /* ── PROCEDURE PROFILE FETCH (Make.com NEUROAUTH_PROFILE_READER) ─ */
 async function fetchProfile(procedimento){
-  if(!NA_PROFILE_WH||NA_PROFILE_WH==='SEU_MAKE_PROFILE_WEBHOOK_URL'){
-    console.warn('[NEUROAUTH] NA_PROFILE_WH não configurado');
+  if(!NA_BACKEND_URL){
+    console.warn('[NEUROAUTH] NA_BACKEND_URL não configurado');
     return {found:false,procedimento,codigo:'',porte:'',convenio:'',opme:[]};
   }
   try{
-    const resp=await fetch(`${NA_PROFILE_WH}?procedimento=${encodeURIComponent(procedimento)}`,{cache:'no-store'});
+    // Gate C: procedimento profile via backend
+    const _jwt_proc = naGetSessionField('_jwt') || '';
+    const resp=await fetch(NA_BACKEND_URL+'/relay/profile?procedimento='+encodeURIComponent(procedimento),{
+      cache:'no-store',
+      headers:{'Authorization':'Bearer '+_jwt_proc}
+    });
     if(!resp.ok) return {found:false,procedimento,codigo:'',porte:'',convenio:'',opme:[]};
     const data=await resp.json();
     return {
@@ -1286,7 +1295,9 @@ function naCheckSession(){
   naInitGoogle();
 }
 
-const WH = "https://hook.us2.make.com/yerhrppm26aylw9jj2efmapq6ny8jlif";
+// Gate C: URLs do Make.com removidas do frontend
+// Chamadas passam pelo backend autenticado (/relay/notify e /relay/profile)
+// A URL real do webhook fica em variável de ambiente no Render (MAKE_WEBHOOK_URL)
 
 /* ══ NEUROAUTH DRAFT CONTROL — estado global ══════════════════ */
 let guiaRegistrada   = false;
@@ -2898,11 +2909,17 @@ async function confirmedSend(){
     timestamp:new Date().toISOString()
   };
   try{
-    const r=await fetch(WH,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    // Gate C: envia para backend autenticado — Make.com chamado internamente pelo Render
+    const _jwt = naGetSessionField('_jwt') || '';
+    const r=await fetch(NA_BACKEND_URL + '/relay/notify',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_jwt},
+      body:JSON.stringify(payload)
+    });
     sp.classList.remove('on');btn.disabled=false;
     if(r.ok){
       closeModal('pvModal');
-      toast('🎉 Enviado! Documento sendo gerado no Make.com…','ok');
+      toast('🎉 Enviado! Motor de decisão executado.','ok');
       localStorage.removeItem('neuroauth_draft');
       guiaRegistrada    = true;
       envioConfirmadoEm = new Date().toISOString();
@@ -2933,17 +2950,17 @@ async function testWebhook(){
   const lbl=document.getElementById('wh-lbl');
   lbl.textContent='Testando…';
   try{
-    const r=await fetch(WH,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({_test:true,ts:new Date().toISOString()})});
+    // Gate C: testa backend Render, não Make.com diretamente
+    const r=await fetch(NA_BACKEND_URL+'/health',{method:'GET'});
     if(r.ok||r.status===200){
-      dot.className='dot ok';lbl.textContent='Webhook ativo';
-      toast('✅ Webhook respondeu OK','ok');
+      dot.className='dot ok';lbl.textContent='Backend ativo';
+      toast('✅ Backend Render respondeu OK','ok');
     } else {
       throw new Error('HTTP '+r.status);
     }
   } catch(e){
-    dot.className='dot';lbl.textContent='Webhook — erro';
-    toast('⚠️ Webhook: '+e.message,'er');
+    dot.className='dot';lbl.textContent='Backend — erro';
+    toast('⚠️ Backend: '+e.message,'er');
   }
 }
 
