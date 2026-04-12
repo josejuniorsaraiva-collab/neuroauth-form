@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#0f1117"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root {
   --bg:       #0f1117;
@@ -132,14 +133,13 @@ tbody td{padding:9px 12px;font-size:12px;vertical-align:middle}
 </head>
 <body>
 
-<!-- Login overlay (shown if API key needed) -->
+<!-- Login overlay — Google Sign-In → Bearer JWT -->
 <div id="login-overlay" style="display:none">
   <div class="login-card">
     <h2>🧠 NEUROAUTH HUB</h2>
-    <p>Insira a chave de API para acessar o Control HUB</p>
-    <input type="password" id="key-input" placeholder="NEUROAUTH_API_KEY" autocomplete="off"/>
-    <button onclick="doLogin()">Entrar</button>
-    <div class="login-note">Deixe em branco se o backend estiver em modo aberto</div>
+    <p>Sessão não autenticada para acesso ao hub.<br>Faça login com sua conta Google autorizada.</p>
+    <div id="na-hub-signin-btn" style="margin:16px auto 0;display:flex;justify-content:center"></div>
+    <div class="login-note">Acesso restrito a emails autorizados pelo NEUROAUTH</div>
   </div>
 </div>
 
@@ -280,24 +280,62 @@ tbody td{padding:9px 12px;font-size:12px;vertical-align:middle}
 
 <script>
 const BASE = 'https://neuroauth-auth.onrender.com';
-const KEY_STORE = 'na_hub_key';
-let _apiKey = localStorage.getItem(KEY_STORE) || '';
+const NA_CLIENT_ID = '118851719832-qaktum0kj1a6r2a2fp6c75hhag8p2tlf.apps.googleusercontent.com';
+const JWT_STORE    = 'na_hub_jwt';
+let _jwt = localStorage.getItem(JWT_STORE) || '';
 let _runs = [], _episodes = [];
 let _refreshTimer = null;
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 function getHeaders() {
   const h = { 'Content-Type': 'application/json' };
-  if (_apiKey) h['X-Neuroauth-Key'] = _apiKey;
+  if (_jwt) h['Authorization'] = 'Bearer ' + _jwt;
   return h;
 }
 
-function doLogin() {
-  const val = document.getElementById('key-input').value.trim();
-  _apiKey = val;
-  if (val) localStorage.setItem(KEY_STORE, val);
+function _showLoginOverlay() {
+  document.getElementById('login-overlay').style.display = 'flex';
+}
+
+function _hideLoginOverlay() {
   document.getElementById('login-overlay').style.display = 'none';
-  refresh();
+}
+
+// ─── Google Sign-In init ─────────────────────────────────────────────────────
+function naHubInitGoogle() {
+  if (!window.google || !window.google.accounts) { setTimeout(naHubInitGoogle, 300); return; }
+  google.accounts.id.initialize({
+    client_id: NA_CLIENT_ID,
+    callback: naHubHandleLogin,
+    auto_select: true,
+    cancel_on_tap_outside: false
+  });
+  const btn = document.getElementById('na-hub-signin-btn');
+  if (btn) {
+    google.accounts.id.renderButton(btn, { theme:'outline', size:'large', text:'signin_with', locale:'pt-BR', width:280 });
+  }
+  if (!_jwt) google.accounts.id.prompt();
+}
+
+async function naHubHandleLogin(response) {
+  try {
+    const authResp = await fetch(BASE + '/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_token: response.credential })
+    });
+    const authData = await authResp.json();
+    if (authData.access_token) {
+      _jwt = authData.access_token;
+      localStorage.setItem(JWT_STORE, _jwt);
+      _hideLoginOverlay();
+      refresh();
+    } else {
+      showToast('Acesso não autorizado para este email', 'error');
+    }
+  } catch(e) {
+    showToast('Erro no login Google: ' + e.message, 'error');
+  }
 }
 
 // ─── Fetch with retry ────────────────────────────────────────────────────────
@@ -313,7 +351,9 @@ async function apiFetch(path, opts = {}) {
       });
       setSpinner(false);
       if (res.status === 401) {
-        document.getElementById('login-overlay').style.display = 'flex';
+        _jwt = '';
+        localStorage.removeItem(JWT_STORE);
+        _showLoginOverlay();
         throw new Error('401 Unauthorized');
       }
       if (res.status === 503 && attempt < 2) {
@@ -605,22 +645,29 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 (async function init() {
-  // Check if backend is open (no key required) by pinging health
+  // Inicializa Google Sign-In
+  naHubInitGoogle();
+
+  if (!_jwt) {
+    // Sem token salvo — mostra overlay de login imediatamente
+    _showLoginOverlay();
+    return;
+  }
+
+  // Tem token — testa se ainda é válido
   try {
-    const probe = await fetch(BASE + '/health', { signal: AbortSignal.timeout(5000) });
-    if (probe.ok) {
-      // Backend reachable — try without key first
-      const test = await fetch(BASE + '/hub/metrics', {
-        headers: _apiKey ? { 'X-Neuroauth-Key': _apiKey } : {},
-        signal: AbortSignal.timeout(5000),
-      });
-      if (test.status === 401) {
-        document.getElementById('login-overlay').style.display = 'flex';
-        return;
-      }
+    const probe = await fetch(BASE + '/hub/metrics', {
+      headers: getHeaders(),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (probe.status === 401) {
+      _jwt = '';
+      localStorage.removeItem(JWT_STORE);
+      _showLoginOverlay();
+      return;
     }
   } catch (_) {
-    // backend cold start — proceed anyway
+    // backend cold start — tenta refresh mesmo assim
   }
 
   await refresh();
