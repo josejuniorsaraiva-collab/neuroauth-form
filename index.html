@@ -1255,8 +1255,10 @@ function naUpdateTopbar(sess,perfil){
 
 /* ── LOGOUT ─────────────────────────────────────────────────────── */
 function naLogout(){
+  clearCaseData('logout');
   sessionStorage.removeItem('na_session');
   sessionStorage.removeItem('na_lgpd_log');
+  sessionStorage.removeItem('neuroauth_draft');
   try{
     if(typeof google!=='undefined'&&google.accounts)
       google.accounts.id.disableAutoSelect();
@@ -2920,7 +2922,7 @@ async function confirmedSend(){
     if(r.ok){
       closeModal('pvModal');
       toast('🎉 Enviado! Motor de decisão executado.','ok');
-      localStorage.removeItem('neuroauth_draft');
+      clearCaseData('submit_success');
       guiaRegistrada    = true;
       envioConfirmadoEm = new Date().toISOString();
       envioUserEmail    = naGetSessionField('email') || '';
@@ -2968,12 +2970,13 @@ async function testWebhook(){
    DRAFT
 ────────────────────────────────────────────── */
 function saveDraft(){
-  try{localStorage.setItem('neuroauth_draft',JSON.stringify(collect()));toast('💾 Rascunho salvo');}catch(e){}
+  // Gate B: rascunho em sessionStorage (volátil) — não persiste entre sessões
+  try{sessionStorage.setItem('neuroauth_draft',JSON.stringify(collect()));toast('💾 Rascunho salvo');}catch(e){}
 }
 
 function restoreDraft(){
   try{
-    const raw=localStorage.getItem('neuroauth_draft');if(!raw)return;
+    const raw=sessionStorage.getItem('neuroauth_draft')||localStorage.getItem('neuroauth_draft');if(!raw)return; localStorage.removeItem('neuroauth_draft'); // migrar legado
     const d=JSON.parse(raw);
     const flds=['nome_paciente','data_nascimento','sexo','cpf','telefone','email','cns','comorbidades',
       'convenio','numero_carteira','validade_carteira','carater','tipo_guia','hospital','regime','obs_convenio',
@@ -3000,7 +3003,7 @@ function doReset(){
   sv('medico_solicitante','Dr. José Correia Jr.');
   sv('cbo','225118');
   closeModal('rstModal');
-  localStorage.removeItem('neuroauth_draft');
+  clearCaseData('form_reset');
   goTab(0);
   toast('Formulário limpo.','wa');
 }
@@ -3271,6 +3274,34 @@ function naLog(event, data) {
     console.debug('[NA]', Object.assign({ event: event, ts: new Date().toISOString(), v: __NA_VERSION__ }, data || {}));
   } catch(e) {}
 }
+
+/* ── Gate B: clearCaseData — remove dados clínicos do localStorage ──
+ *  Chamado em: logout, envio confirmado, erro crítico, unload, timeout.
+ *  Preserva: JWT (na_session), preferências (FAV), consentimento LGPD.
+ * ─────────────────────────────────────────────────────────────────── */
+function clearCaseData(reason) {
+  try {
+    localStorage.removeItem('neuroauth_draft');
+    naLog('case_data_cleared', { reason: reason || 'unknown' });
+  } catch(e) {}
+}
+
+// Auto-limpeza por inatividade (20 min)
+var __NA_INACTIVITY_TIMER__;
+function naResetInactivityTimer() {
+  clearTimeout(__NA_INACTIVITY_TIMER__);
+  __NA_INACTIVITY_TIMER__ = setTimeout(function() {
+    clearCaseData('inactivity_timeout');
+  }, 20 * 60 * 1000);
+}
+['click','keydown','touchstart'].forEach(function(ev) {
+  document.addEventListener(ev, naResetInactivityTimer, { passive: true });
+});
+
+// Limpeza ao fechar/recarregar
+window.addEventListener('beforeunload', function() {
+  clearCaseData('page_unload');
+});
 
 /* ── naSafePayload — failsafe deep: garante campos mínimos + normaliza opme_items ── */
 function naSafePayload(p) {
