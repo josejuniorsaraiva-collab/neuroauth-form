@@ -414,7 +414,7 @@ function startPolling() {
 // ─── Metrics ─────────────────────────────────────────────────────────────────
 function renderMetrics(m) {
   document.getElementById('m-total').textContent = m.total_runs ?? '—';
-  document.getElementById('m-score').textContent = m.avg_score != null ? (m.avg_score * 100).toFixed(1) + '%' : '—';
+  document.getElementById('m-score').textContent = m.avg_score != null ? m.avg_score.toFixed(1) + '%' : '—';
   document.getElementById('m-risco').textContent = m.avg_risco_glosa != null ? m.avg_risco_glosa.toFixed(0) + '%' : '—';
 
   // Gate distribution bars
@@ -478,7 +478,7 @@ function renderRuns() {
 
   tbody.innerHTML = rows.map(r => {
     const gateClass = 'badge-gate badge-' + r.gate.replace(/ /g,'_');
-    const score     = r.score != null ? (r.score * 100).toFixed(0) + '%' : '—';
+    const score     = r.score != null ? r.score.toFixed(0) + '%' : '—';
     const risco     = r.risco_glosa;
     const riscoClass = risco >= 60 ? 'risco-high pulse' : risco >= 30 ? 'risco-med' : 'risco-low';
     const hubBadge  = r.hub_action ? `<span class="badge-hub badge-${r.hub_action.split(' ')[0]}">${r.hub_action.split(' ')[0]}</span>` : '';
@@ -545,7 +545,7 @@ function renderEpisodes() {
 
   tbody.innerHTML = rows.map(e => {
     const gateClass = 'badge-gate badge-' + (e.decision_status||'').replace(/ /g,'_');
-    const score     = e.score_confianca != null ? (e.score_confianca * 100).toFixed(0) + '%' : '—';
+    const score     = e.score_confianca != null ? e.score_confianca.toFixed(0) + '%' : '—';
     const date      = e.created_at ? new Date(e.created_at).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
     return `<tr>
       <td style="font-size:11px;font-family:monospace">${e.episodio_id}</td>
