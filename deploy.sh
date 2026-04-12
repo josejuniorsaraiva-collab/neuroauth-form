@@ -52,7 +52,7 @@ git add index.html
 [ -f deploy.sh ] && git add deploy.sh
 
 git commit -m "deploy: $(date '+%Y-%m-%d %H:%M')"
-git push origin main
+git pull --rebase origin main && git push origin main
 ok "Push concluído — GitHub Pages atualiza em ~60s"
 git log --oneline -1
 
