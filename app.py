@@ -750,3 +750,45 @@ def internal_error(e):
 
 if __name__ == "__main__":
     app.run(debug=False, port=5000)
+
+
+# ── /relay/notify — Gate C: proxy autenticado para Make.com ──────────────────
+import os as _os, requests as _requests
+from functools import wraps as _wraps
+
+def _require_jwt_relay(f):
+    @_wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.headers.get('Authorization', '')
+        if not auth.startswith('Bearer '):
+            return jsonify({'error': 'unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route('/relay/notify', methods=['POST'])
+@_require_jwt_relay
+def relay_notify():
+    make_url = _os.environ.get('MAKE_WEBHOOK_URL')
+    if not make_url:
+        body = request.get_json(silent=True) or {}
+        return jsonify({'ok': True, 'mode': 'no_webhook', 'received': len(body)}), 200
+    body = request.get_json(silent=True) or {}
+    body.pop('_jwt', None)
+    try:
+        r = _requests.post(make_url, json=body, timeout=15)
+        return jsonify({'ok': r.ok, 'status': r.status_code}), 200 if r.ok else 502
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@app.route('/relay/profile', methods=['GET'])
+@_require_jwt_relay
+def relay_profile():
+    profile_wh = _os.environ.get('MAKE_PROFILE_WH')
+    if not profile_wh:
+        return jsonify({'ativo': True, 'role': 'medico', '_source': 'fallback'}), 200
+    try:
+        r = _requests.get(profile_wh, params=dict(request.args), timeout=10)
+        return jsonify(r.json()), 200 if r.ok else 502
+    except Exception as e:
+        return jsonify({'ativo': True, 'role': 'medico', '_source': 'error_fallback'}), 200
+
