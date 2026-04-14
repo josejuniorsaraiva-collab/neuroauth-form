@@ -498,10 +498,10 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div class="pv-main">
         <div id="na-wm" class="na-wm"></div>
         <div class="ptabs" id="preview-tabs">
-          <div class="ptab" id="ptab-sadt" onclick="showPTab('pv-sadt',this)">Guia SADT</div>
-          <div class="ptab" id="ptab-internacao" style="display:none" onclick="showPTab('pv-internacao',this)">🏥 Internação</div>
-          <div class="ptab" onclick="showPTab('pv-opme',this)">Guia OPME</div>
-          <div class="ptab" onclick="showPTab('pv-dados',this)">Payload</div>
+          <div class="ptab" id="ptab-internacao" onclick="showPTab('pv-internacao',this)">🏥 Guia de Internação</div>
+          <div class="ptab" id="ptab-sadt" onclick="showPTab('pv-sadt',this)">📋 Guia SADT</div>
+          <div class="ptab" onclick="showPTab('pv-opme',this)">🔩 Guia OPME</div>
+          <div class="ptab" onclick="showPTab('pv-dados',this)">📦 Payload</div>
         </div>
         <div class="ppage" id="pv-sadt"><div id="sadt-render"></div></div>
         <div class="ppage" id="pv-internacao"><div id="internacao-render"></div></div>
@@ -1653,34 +1653,13 @@ function naToggleTipoGuia() {
   naLog('tipo_guia_toggle', { tipo });
 }
 
-/* ── naUpdatePreviewTabs — controla abas visíveis no modal de preview ──
- *  tipo_guia=SADT:      Guia SADT (ativa) | OPME | Payload
- *  tipo_guia=Internação: 🏥 Internação (ativa) | OPME | Payload
- * ─────────────────────────────────────────────────────────────────── */
+/* naUpdatePreviewTabs — agora inline em openPreview() */
 function naUpdatePreviewTabs(isInt, isSADT) {
-  const tabSADT  = document.getElementById('ptab-sadt');
-  const tabInt   = document.getElementById('ptab-internacao');
-  if (!tabSADT || !tabInt) return;
-
-  if (isInt) {
-    tabSADT.style.display = 'none';
-    tabInt.style.display  = '';
-    // Ativar aba internação se preview estiver aberto
-    const pvInt = document.getElementById('pv-internacao');
-    const pvSADT = document.getElementById('pv-sadt');
-    if (pvInt && pvSADT) {
-      pvSADT.classList.remove('active');
-      tabSADT.classList.remove('active');
-    }
-  } else {
-    tabSADT.style.display = '';
-    tabInt.style.display  = 'none';
-    // Garantir que aba SADT está ativa
-    const pvInt = document.getElementById('pv-internacao');
-    if (pvInt) pvInt.classList.remove('active');
-    const tabSADTEl = document.getElementById('ptab-sadt');
-    if (tabSADTEl) tabSADTEl.classList.add('active');
-  }
+  /* mantido para retrocompatibilidade com naToggleTipoGuia */
+  var tabSADT=document.getElementById('ptab-sadt');
+  var tabInt=document.getElementById('ptab-internacao');
+  if(tabSADT) tabSADT.style.display=isInt?'none':'';
+  if(tabInt) tabInt.style.display=isInt?'':'none';
 }
 
 function syncCarater() {
@@ -2870,26 +2849,37 @@ function openPreview(){
   const d=collect();
   const tipo=(d.tipo_guia||'').toLowerCase();
   const isInt=tipo.includes('internação')||tipo.includes('internacao')||tipo.includes('cirúrgico');
+  const isSADT=tipo.includes('sadt');
+  console.log('[NA] openPreview tipo='+tipo+' isInt='+isInt+' isSADT='+isSADT);
 
-  // Renderizar documento principal conforme tipo
+  // Renderizar TODOS os documentos
   document.getElementById('sadt-render').innerHTML=renderSADT(d,[]);
-  document.getElementById('internacao-render').innerHTML=isInt?renderInternacao(d):'';
+  document.getElementById('internacao-render').innerHTML=renderInternacao(d);
 
-  // Sincronizar abas do preview
-  naUpdatePreviewTabs(isInt, tipo.includes('sadt'));
+  // ── CONTROLE EXPLÍCITO DE ABAS ──
+  // Referências diretas
+  var tabInt=document.getElementById('ptab-internacao');
+  var tabSADT=document.getElementById('ptab-sadt');
+  var btnPrintInt=document.getElementById('btn-print-internacao');
+  var btnPrintSadt=document.getElementById('btn-print-sadt');
 
-  // Ativar aba correta automaticamente
-  const firstTab = isInt
-    ? document.getElementById('ptab-internacao')
-    : document.getElementById('ptab-sadt');
-  const firstPage = isInt ? 'pv-internacao' : 'pv-sadt';
-  if(firstTab) showPTab(firstPage, firstTab);
-
-  // Mostrar/esconder botões de impressão conforme tipo
-  const btnPrintInt = document.getElementById('btn-print-internacao');
-  const btnPrintSadt = document.getElementById('btn-print-sadt');
-  if(btnPrintInt) btnPrintInt.style.display = isInt ? '' : 'none';
-  if(btnPrintSadt) btnPrintSadt.style.display = isInt ? 'none' : '';
+  if(isInt){
+    // Internação ou Cirúrgico+OPME: mostrar aba Internação, esconder SADT
+    if(tabInt) tabInt.style.display='';
+    if(tabSADT) tabSADT.style.display='none';
+    if(btnPrintInt) btnPrintInt.style.display='';
+    if(btnPrintSadt) btnPrintSadt.style.display='none';
+    // Ativar aba Internação como primeira
+    if(tabInt) showPTab('pv-internacao',tabInt);
+  } else {
+    // SADT: mostrar aba SADT, esconder Internação
+    if(tabInt) tabInt.style.display='none';
+    if(tabSADT) tabSADT.style.display='';
+    if(btnPrintInt) btnPrintInt.style.display='none';
+    if(btnPrintSadt) btnPrintSadt.style.display='';
+    // Ativar aba SADT como primeira
+    if(tabSADT) showPTab('pv-sadt',tabSADT);
+  }
 
   // Payload: documentos_gerados
   d.documentos_gerados = isInt
