@@ -1,678 +1,838 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NEUROAUTH — Control HUB</title>
-<meta name="theme-color" content="#0f1117"/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1117">
+<title>🧠 NEUROAUTH CONTROL HUB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
-:root {
-  --bg:       #0f1117;
-  --surface:  #1a1d27;
-  --surface2: #22263a;
-  --border:   #2e3348;
-  --green:    #00d4aa;
-  --yellow:   #ffa502;
-  --red:      #ff4757;
-  --blue:     #5c8ee6;
-  --gray:     #8892a4;
-  --text:     #e8ecf4;
-  --text2:    #a8b3c8;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh}
-a{color:var(--green);text-decoration:none}
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0f1117;--card:#1a1d27;--card2:#20243a;
+    --green:#00d4aa;--red:#ff4757;--yellow:#ffa502;--blue:#3742fa;
+    --gray:#6b7280;--light:#e5e7eb;--border:#2d3148;
+    --green-dim:rgba(0,212,170,.12);--red-dim:rgba(255,71,87,.12);--yellow-dim:rgba(255,165,2,.12);
+  }
+  html,body{height:100%;background:var(--bg);color:var(--light);font-family:'Inter',sans-serif;font-size:14px}
 
-/* ─── LAYOUT ─── */
-#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-#topbar{display:flex;align-items:center;gap:12px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-#topbar h1{font-size:15px;font-weight:700;color:var(--green);letter-spacing:.5px}
-#topbar .spacer{flex:1}
-#topbar .badge{font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--text2)}
-#topbar .refresh-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;transition:.2s}
-#topbar .refresh-btn:hover{color:var(--text);border-color:var(--green)}
-#spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;display:none}
-@keyframes spin{to{transform:rotate(360deg)}}
+  /* ── Header ── */
+  .header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+  .header-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:var(--green)}
+  .header-logo span{font-size:22px}
+  .header-right{display:flex;align-items:center;gap:12px}
+  .user-badge{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 8px;font-size:12px;color:var(--gray)}
+  .user-badge i{width:14px;height:14px}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;font-weight:500;transition:.15s}
+  .btn-primary{background:var(--green);color:#0f1117}
+  .btn-primary:hover{filter:brightness(1.1)}
+  .btn-ghost{background:transparent;color:var(--gray);border:1px solid var(--border)}
+  .btn-ghost:hover{background:var(--card2);color:var(--light)}
+  .btn-sm{padding:4px 10px;font-size:12px}
+  .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;display:none}
+  .spinner.active{display:inline-block}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
-#main{display:flex;flex:1;overflow:hidden}
-#sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:16px}
-#content{flex:1;overflow-y:auto;padding:16px}
+  /* ── Alert Banner ── */
+  .alert-banner{display:none;align-items:center;gap:10px;padding:10px 24px;background:var(--red-dim);border-bottom:1px solid var(--red);color:var(--red);font-size:13px;font-weight:500}
+  .alert-banner.visible{display:flex}
+  .alert-dot{width:8px;height:8px;background:var(--red);border-radius:50%;animation:pulse 1.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ─── ALERTS BANNER ─── */
-#alerts-bar{background:#ff4757;color:#fff;font-size:12px;padding:6px 16px;display:none;flex-shrink:0}
+  /* ── Layout ── */
+  .layout{display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 57px);overflow:hidden}
+  .sidebar{overflow-y:auto;padding:20px 16px;border-right:1px solid var(--border);background:var(--card)}
+  .main{overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:20px}
 
-/* ─── METRICS ─── */
-.metrics-title{font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray);letter-spacing:.8px;margin-bottom:12px}
-.metric-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px}
-.metric-card .val{font-size:22px;font-weight:700;color:var(--green)}
-.metric-card .lbl{font-size:11px;color:var(--text2);margin-top:3px}
-.gate-bar{margin:4px 0}
-.gate-bar .name{font-size:11px;color:var(--text2);margin-bottom:3px}
-.gate-bar .bar-wrap{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
-.gate-bar .bar-fill{height:100%;border-radius:3px;transition:width .4s}
-.gate-bar .pct{font-size:11px;color:var(--text2);margin-top:2px}
+  /* ── Cards ── */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+  .card-title{font-size:11px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;display:flex;align-items:center;gap:6px}
 
-/* ─── CHART ─── */
-#vol-chart{width:100%;height:70px;margin-top:4px}
+  /* ── Métricas ── */
+  .metric-big{font-size:32px;font-weight:800;color:var(--green);line-height:1}
+  .metric-label{font-size:11px;color:var(--gray);margin-top:4px}
+  .metric-row{display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
+  .metric-item{display:flex;justify-content:space-between;align-items:center}
+  .metric-item span:first-child{font-size:12px;color:var(--gray)}
+  .metric-item span:last-child{font-size:13px;font-weight:600;color:var(--light)}
 
-/* ─── TABS ─── */
-.tabs{display:flex;gap:4px;margin-bottom:14px}
-.tab-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:.2s}
-.tab-btn.active{background:var(--green);color:#000;border-color:var(--green)}
-.tab-btn:hover:not(.active){color:var(--text)}
+  /* ── Gate Bars ── */
+  .gate-bars{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .gate-bar-row{display:flex;flex-direction:column;gap:4px}
+  .gate-bar-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--gray)}
+  .gate-bar-track{height:6px;background:var(--card2);border-radius:3px;overflow:hidden}
+  .gate-bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+  .fill-go{background:var(--green)}
+  .fill-ressalvas{background:var(--yellow)}
+  .fill-nogo{background:var(--red)}
+  .fill-pre{background:var(--blue)}
 
-/* ─── FILTERS ─── */
-.filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.filters select,.filters input{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;outline:none}
-.filters select:focus,.filters input:focus{border-color:var(--green)}
+  /* ── Volume Chart ── */
+  canvas#volumeChart{width:100%!important;max-height:80px}
 
-/* ─── TABLE ─── */
-.table-wrap{border:1px solid var(--border);border-radius:8px;overflow:hidden}
-table{width:100%;border-collapse:collapse}
-thead th{background:var(--surface2);padding:8px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray);letter-spacing:.5px;border-bottom:1px solid var(--border)}
-tbody tr{border-bottom:1px solid var(--border);transition:.15s;cursor:pointer}
-tbody tr:hover{background:var(--surface2)}
-tbody tr.expanded{background:var(--surface2)}
-tbody td{padding:9px 12px;font-size:12px;vertical-align:middle}
-.expand-row td{padding:0;background:var(--surface2)}
-.expand-inner{padding:14px 16px;border-top:1px solid var(--border)}
+  /* ── Tabs ── */
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px}
+  .tab{padding:8px 14px;border-radius:8px 8px 0 0;cursor:pointer;font-size:13px;font-weight:500;color:var(--gray);background:transparent;border:none;transition:.15s;position:relative}
+  .tab.active{color:var(--green);background:var(--green-dim)}
+  .tab .tab-badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:4px;animation:pulse 1.5s ease-in-out infinite}
 
-/* ─── BADGES ─── */
-.badge-gate{display:inline-block;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600}
-.badge-GO{background:#00d4aa22;color:#00d4aa}
-.badge-GO_COM_RESSALVAS{background:#ffa50222;color:#ffa502}
-.badge-NO_GO,.badge-NO-GO{background:#ff475722;color:#ff4757}
-.badge-PRE_ANALISE,.badge-PENDENCIA_OBRIGATORIA{background:#5c8ee622;color:#5c8ee6}
-.badge-UNKNOWN,.badge-{background:#33333322;color:#888}
-.badge-hub{font-size:10px;border-radius:3px;padding:1px 5px;margin-left:4px}
-.badge-APROVADO{background:#00d4aa33;color:#00d4aa}
-.badge-SEGURADO{background:#ffa50233;color:#ffa502}
-.badge-REVISAO{background:#ff475733;color:#ff4757}
+  /* ── Filtros ── */
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .filter-input{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--light);font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:.15s}
+  .filter-input:focus{border-color:var(--green)}
+  .filter-input::placeholder{color:var(--gray)}
+  select.filter-input{cursor:pointer}
 
-/* ─── ACTION BUTTONS ─── */
-.action-btns{display:flex;gap:8px;margin-top:10px}
-.action-btn{border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:.2s}
-.action-btn.aprovar{background:#00d4aa22;color:#00d4aa;border:1px solid #00d4aa44}
-.action-btn.aprovar:hover{background:#00d4aa;color:#000}
-.action-btn.segurar{background:#ffa50222;color:#ffa502;border:1px solid #ffa50244}
-.action-btn.segurar:hover{background:#ffa502;color:#000}
-.action-btn.revisao{background:#ff475722;color:#ff4757;border:1px solid #ff475744}
-.action-btn.revisao:hover{background:#ff4757;color:#fff}
+  /* ── Table ── */
+  .table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse}
+  thead th{background:var(--card2);color:var(--gray);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+  tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:.15s}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover{background:rgba(255,255,255,.03)}
+  tbody tr.expanded{background:var(--card2)}
+  td{padding:10px 14px;font-size:13px;vertical-align:middle}
+  td .mono{font-family:monospace;font-size:12px;color:var(--gray)}
 
-/* ─── ALERT PULSE ─── */
-.pulse{animation:pulse 1.5s infinite}
-@keyframes pulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+  /* ── Gate Badge ── */
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;letter-spacing:.04em;white-space:nowrap}
+  .badge-go{background:var(--green-dim);color:var(--green)}
+  .badge-ressalvas{background:var(--yellow-dim);color:var(--yellow)}
+  .badge-nogo{background:var(--red-dim);color:var(--red)}
+  .badge-pre{background:rgba(55,66,250,.15);color:var(--blue)}
+  .badge-gray{background:rgba(107,114,128,.15);color:var(--gray)}
 
-/* ─── SKELETON ─── */
-.skeleton{background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%);background-size:200%;animation:shimmer 1.5s infinite;border-radius:4px;height:12px;margin:4px 0}
-@keyframes shimmer{0%{background-position:200%}100%{background-position:-200%}}
+  /* ── Expand Row ── */
+  .expand-row td{padding:0!important}
+  .expand-content{padding:16px 20px;background:var(--card2);display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;border-top:1px solid var(--border)}
+  .expand-info{flex:1;min-width:200px}
+  .expand-info h4{font-size:11px;font-weight:600;color:var(--gray);text-transform:uppercase;margin-bottom:8px}
+  .expand-info pre{font-size:11px;color:var(--light);white-space:pre-wrap;word-break:break-word;max-height:120px;overflow-y:auto;background:var(--bg);border-radius:6px;padding:8px;border:1px solid var(--border)}
+  .expand-actions{display:flex;flex-direction:column;gap:8px;min-width:180px}
+  .expand-actions h4{font-size:11px;font-weight:600;color:var(--gray);text-transform:uppercase;margin-bottom:2px}
+  .action-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .btn-approve{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+  .btn-approve:hover{background:var(--green);color:#0f1117}
+  .btn-hold{background:var(--yellow-dim);color:var(--yellow);border:1px solid var(--yellow)}
+  .btn-hold:hover{background:var(--yellow);color:#0f1117}
+  .btn-review{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+  .btn-review:hover{background:var(--red);color:#fff}
+  .nota-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--light);font-size:12px;font-family:'Inter',sans-serif;outline:none;resize:vertical;min-height:48px}
+  .nota-input:focus{border-color:var(--green)}
+  .action-status{font-size:11px;margin-top:6px;min-height:16px}
+  .action-status.ok{color:var(--green)}
+  .action-status.err{color:var(--red)}
 
-/* ─── LOGIN OVERLAY ─── */
-#login-overlay{position:fixed;inset:0;background:#0f1117f0;display:flex;align-items:center;justify-content:center;z-index:100}
-.login-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;width:360px}
-.login-card h2{font-size:18px;font-weight:700;color:var(--green);margin-bottom:6px}
-.login-card p{font-size:13px;color:var(--text2);margin-bottom:20px}
-.login-card input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:10px 14px;font-size:13px;outline:none;margin-bottom:12px}
-.login-card input:focus{border-color:var(--green)}
-.login-card button{width:100%;background:var(--green);color:#000;border:none;border-radius:6px;padding:10px;font-size:14px;font-weight:700;cursor:pointer}
-.login-note{font-size:11px;color:var(--gray);margin-top:10px;text-align:center}
+  /* ── Skeleton ── */
+  .skeleton-row td{padding:12px 14px}
+  .skel{height:14px;border-radius:4px;background:linear-gradient(90deg,var(--card2) 25%,var(--border) 50%,var(--card2) 75%);background-size:400% 100%;animation:shimmer 1.4s ease infinite}
+  @keyframes shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
 
-/* ─── TOAST ─── */
-#toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;display:none;z-index:200;max-width:320px}
-#toast.error{border-color:var(--red);color:var(--red)}
-#toast.success{border-color:var(--green);color:var(--green)}
+  /* ── Toast ── */
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;z-index:999;transform:translateY(60px);opacity:0;transition:.3s;max-width:320px}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.info{border-left:3px solid var(--green)}
+  .toast.warn{border-left:3px solid var(--yellow)}
+  .toast.err{border-left:3px solid var(--red)}
 
-/* ─── ANTI-GLOSA ─── */
-.risco-high{color:var(--red);font-weight:600}
-.risco-med{color:var(--yellow)}
-.risco-low{color:var(--green)}
+  /* ── Modal ── */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center}
+  .modal-overlay.visible{display:flex}
+  .modal{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:720px;width:90%;max-height:85vh;overflow-y:auto}
+  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .modal-header h3{font-size:16px;font-weight:700;color:var(--green)}
+  .modal-close{background:none;border:none;color:var(--gray);cursor:pointer;font-size:20px;line-height:1}
+  .modal-close:hover{color:var(--light)}
+  .modal pre{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;color:var(--light);white-space:pre-wrap;word-break:break-word;overflow-x:auto}
+
+  /* ── Back link ── */
+  .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--gray);font-size:13px;text-decoration:none;transition:.15s}
+  .back-link:hover{color:var(--light)}
+
+  /* ── Loading state ── */
+  .empty-state{text-align:center;padding:40px;color:var(--gray);font-size:13px}
+  .empty-state i{width:32px;height:32px;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto}
+
+  /* ── Responsive ── */
+  @media(max-width:900px){
+    .layout{grid-template-columns:1fr}
+    .sidebar{display:none}
+  }
 </style>
 </head>
 <body>
 
-<!-- Login overlay — Google Sign-In → Bearer JWT -->
-<div id="login-overlay" style="display:none">
-  <div class="login-card">
-    <h2>🧠 NEUROAUTH HUB</h2>
-    <p>Sessão não autenticada para acesso ao hub.<br>Faça login com sua conta Google autorizada.</p>
-    <div id="na-hub-signin-btn" style="margin:16px auto 0;display:flex;justify-content:center"></div>
-    <div class="login-note">Acesso restrito a emails autorizados pelo NEUROAUTH</div>
+<!-- ── Alert Banner ── -->
+<div class="alert-banner" id="alertBanner">
+  <span class="alert-dot"></span>
+  <span id="alertText">⚠ Casos NO_GO sem revisão detectados</span>
+  <span style="margin-left:auto;font-size:11px;color:var(--red)" id="alertCount"></span>
+</div>
+
+<!-- ── Header ── -->
+<header class="header">
+  <div class="header-logo">
+    <span>🧠</span>
+    NEUROAUTH CONTROL HUB
+    <span style="font-size:11px;color:var(--gray);font-weight:400;margin-left:4px">v1.0</span>
+  </div>
+  <div class="header-right">
+    <div class="spinner" id="globalSpinner"></div>
+    <div class="user-badge">
+      <i data-lucide="user-circle-2"></i>
+      <span id="userEmail">carregando...</span>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="refreshAll()" title="Atualizar dados">
+      <i data-lucide="refresh-cw" style="width:14px;height:14px"></i>
+      Atualizar
+    </button>
+    <button class="btn btn-ghost btn-sm" onclick="openAdminModal()" title="Admin">
+      <i data-lucide="wrench" style="width:14px;height:14px"></i>
+    </button>
+    <a href="index.html" class="back-link">
+      <i data-lucide="arrow-left" style="width:14px;height:14px"></i> Voltar ao NEUROAUTH
+    </a>
+  </div>
+</header>
+
+<!-- ── Main Layout ── -->
+<div class="layout">
+
+  <!-- ── Sidebar: Métricas ── -->
+  <aside class="sidebar">
+    <div class="card-title"><i data-lucide="bar-chart-2" style="width:14px;height:14px"></i> Métricas Gerais</div>
+
+    <div style="margin-bottom:18px">
+      <div class="metric-big" id="mTotal">—</div>
+      <div class="metric-label">decisões totais</div>
+    </div>
+
+    <div class="gate-bars" id="gateBars">
+      <div class="gate-bar-row">
+        <div class="gate-bar-labels"><span>GO</span><span id="pGo">—</span></div>
+        <div class="gate-bar-track"><div class="gate-bar-fill fill-go" id="barGo" style="width:0%"></div></div>
+      </div>
+      <div class="gate-bar-row">
+        <div class="gate-bar-labels"><span>RESSALVAS</span><span id="pRes">—</span></div>
+        <div class="gate-bar-track"><div class="gate-bar-fill fill-ressalvas" id="barRes" style="width:0%"></div></div>
+      </div>
+      <div class="gate-bar-row">
+        <div class="gate-bar-labels"><span>NO_GO</span><span id="pNo">—</span></div>
+        <div class="gate-bar-track"><div class="gate-bar-fill fill-nogo" id="barNo" style="width:0%"></div></div>
+      </div>
+      <div class="gate-bar-row">
+        <div class="gate-bar-labels"><span>PRÉ-ANÁLISE</span><span id="pPre">—</span></div>
+        <div class="gate-bar-track"><div class="gate-bar-fill fill-pre" id="barPre" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="metric-row">
+      <div class="metric-item">
+        <span>Score médio</span>
+        <span id="mAvgScore">—</span>
+      </div>
+      <div class="metric-item">
+        <span>Risco glosa médio</span>
+        <span id="mAvgRisco">—</span>
+      </div>
+      <div class="metric-item">
+        <span>Motor</span>
+        <span id="mMotor" style="color:var(--green)">—</span>
+      </div>
+    </div>
+
+    <div class="card-title" style="margin-top:8px"><i data-lucide="trending-up" style="width:14px;height:14px"></i> Volume / 7 dias</div>
+    <canvas id="volumeChart" height="70"></canvas>
+    <div style="margin-top:8px;font-size:10px;color:var(--gray);text-align:center" id="chartLabels"></div>
+
+    <div style="margin-top:16px;font-size:11px;color:var(--gray);padding-top:12px;border-top:1px solid var(--border)">
+      Auto-refresh a cada 30s
+      <span id="nextRefresh" style="color:var(--green)"></span>
+    </div>
+  </aside>
+
+  <!-- ── Main: Lista de Casos ── -->
+  <main class="main">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('runs',this)">
+        <i data-lucide="list" style="width:13px;height:13px;vertical-align:-2px"></i>
+        Decision Runs
+      </button>
+      <button class="tab" onclick="switchTab('episodes',this)">
+        <i data-lucide="clipboard" style="width:13px;height:13px;vertical-align:-2px"></i>
+        Episódios
+      </button>
+      <button class="tab" onclick="switchTab('risk',this)" id="tabRisk">
+        ⚠️ Alto Risco
+        <span class="tab-badge" id="riskBadge" style="display:none">0</span>
+      </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters" id="runsFilters">
+      <input class="filter-input" id="searchId" placeholder="🔍 Buscar por episode_id..." style="flex:1;min-width:180px" oninput="applyFilters()">
+      <select class="filter-input" id="filterGate" onchange="applyFilters()">
+        <option value="">Todos os gates</option>
+        <option value="GO">✅ GO</option>
+        <option value="GO_COM_RESSALVAS">⚠️ GO COM RESSALVAS</option>
+        <option value="NO_GO">🔴 NO_GO</option>
+        <option value="PRE_ANALISE">🔵 PRÉ-ANÁLISE</option>
+      </select>
+      <select class="filter-input" id="filterConvenio" onchange="applyFilters()">
+        <option value="">Todos convênios</option>
+      </select>
+    </div>
+
+    <!-- Tabela Decision Runs -->
+    <div id="tabRuns">
+      <div class="table-wrap">
+        <table id="runsTable">
+          <thead>
+            <tr>
+              <th>Run ID</th>
+              <th>Episódio</th>
+              <th>Gate</th>
+              <th>Score</th>
+              <th>Risco Glosa</th>
+              <th>Motor</th>
+              <th>Timestamp</th>
+              <th>Ação Hub</th>
+            </tr>
+          </thead>
+          <tbody id="runsTbody">
+            <!-- skeleton -->
+            <tr class="skeleton-row"><td><div class="skel" style="width:120px"></div></td><td><div class="skel" style="width:100px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:130px"></div></td><td><div class="skel" style="width:80px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:110px"></div></td><td><div class="skel" style="width:90px"></div></td><td><div class="skel" style="width:70px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:55px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:130px"></div></td><td><div class="skel" style="width:80px"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tabela Episódios (oculta inicialmente) -->
+    <div id="tabEpisodes" style="display:none">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Episódio ID</th>
+              <th>Paciente</th>
+              <th>CID</th>
+              <th>Procedimento</th>
+              <th>Convênio</th>
+              <th>Status</th>
+              <th>Criado em</th>
+            </tr>
+          </thead>
+          <tbody id="episodesTbody">
+            <tr class="skeleton-row"><td colspan="7"><div class="skel" style="width:100%;height:14px"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab Alto Risco (oculta) -->
+    <div id="tabRiskContent" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span class="alert-dot"></span>
+        <span style="color:var(--red);font-weight:600;font-size:14px">Casos com Risco Glosa &gt; 60%</span>
+        <span id="riskCount" style="color:var(--gray);font-size:12px"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Run ID</th>
+              <th>Episódio</th>
+              <th>Gate</th>
+              <th>Risco Glosa</th>
+              <th>Score</th>
+              <th>Motivo</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="riskTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Modal Admin ── -->
+<div class="modal-overlay" id="adminModal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🔧 Log Técnico — Payload Raw</h3>
+      <button class="modal-close" onclick="closeModalDirect()">&times;</button>
+    </div>
+    <div id="modalContent"><pre>Selecione um caso na tabela e clique em "Admin".</pre></div>
   </div>
 </div>
 
-<!-- Alerts bar -->
-<div id="alerts-bar">⚠️ <span id="alerts-msg"></span></div>
-
-<!-- App -->
-<div id="app">
-  <div id="topbar">
-    <h1>🧠 NEUROAUTH CONTROL HUB</h1>
-    <div id="spinner"></div>
-    <div class="spacer"></div>
-    <span class="badge" id="motor-badge">motor —</span>
-    <span class="badge" id="last-updated">—</span>
-    <button class="refresh-btn" onclick="refresh()">↺ Atualizar</button>
-    <a href="index.html" style="font-size:12px;color:var(--text2)">← Formulário</a>
-  </div>
-
-  <div id="main">
-    <!-- Sidebar: Métricas -->
-    <div id="sidebar">
-      <div class="metrics-title">Métricas</div>
-
-      <div class="metric-card">
-        <div class="val" id="m-total">—</div>
-        <div class="lbl">Total de runs</div>
-      </div>
-
-      <div class="metric-card">
-        <div class="val" id="m-score">—</div>
-        <div class="lbl">Score médio</div>
-      </div>
-
-      <div class="metric-card">
-        <div class="val" id="m-risco">—</div>
-        <div class="lbl">Risco glosa médio</div>
-      </div>
-
-      <div style="margin:14px 0 8px" class="metrics-title">Distribuição de Gates</div>
-      <div id="gate-dist"></div>
-
-      <div style="margin:14px 0 8px" class="metrics-title">Volume (7 dias)</div>
-      <canvas id="vol-chart"></canvas>
-    </div>
-
-    <!-- Content: Cases + Tabs -->
-    <div id="content">
-      <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('runs')">Decisões</button>
-        <button class="tab-btn" onclick="switchTab('episodes')">Episódios</button>
-        <button class="tab-btn" onclick="switchTab('antiglosa')">⚠️ Anti-Glosa</button>
-      </div>
-
-      <!-- Runs tab -->
-      <div id="tab-runs">
-        <div class="filters">
-          <select id="filter-gate" onchange="renderRuns()">
-            <option value="">Todos os gates</option>
-            <option value="GO">GO</option>
-            <option value="GO_COM_RESSALVAS">GO_COM_RESSALVAS</option>
-            <option value="NO_GO">NO_GO</option>
-            <option value="PRE_ANALISE">PRÉ_ANÁLISE</option>
-          </select>
-          <input id="filter-search" placeholder="Buscar run_id / episódio..." oninput="renderRuns()" style="width:220px"/>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Run ID</th>
-                <th>Episódio</th>
-                <th>Gate</th>
-                <th>Score</th>
-                <th>Risco Glosa</th>
-                <th>Motor</th>
-                <th>Data</th>
-                <th>Hub</th>
-              </tr>
-            </thead>
-            <tbody id="runs-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Episodes tab -->
-      <div id="tab-episodes" style="display:none">
-        <div class="filters">
-          <select id="filter-status" onchange="renderEpisodes()">
-            <option value="">Todos status</option>
-            <option value="GO">GO</option>
-            <option value="NO_GO">NO_GO</option>
-            <option value="PENDENCIA">PENDÊNCIA</option>
-          </select>
-          <input id="filter-convenio" placeholder="Convênio..." oninput="renderEpisodes()" style="width:180px"/>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Episódio</th>
-                <th>Paciente</th>
-                <th>Perfil</th>
-                <th>CID</th>
-                <th>Status</th>
-                <th>Score</th>
-                <th>Data</th>
-              </tr>
-            </thead>
-            <tbody id="ep-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Anti-Glosa tab -->
-      <div id="tab-antiglosa" style="display:none">
-        <p style="color:var(--text2);font-size:13px;margin-bottom:14px">Casos com risco de glosa acima de 45% — revisão recomendada antes do envio.</p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Run ID</th>
-                <th>Episódio</th>
-                <th>Gate</th>
-                <th>Risco Glosa</th>
-                <th>Alertas</th>
-                <th>Ação</th>
-              </tr>
-            </thead>
-            <tbody id="ag-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="toast"></div>
+<!-- ── Toast ── -->
+<div class="toast" id="toast"></div>
 
 <script>
+// ── Config ──────────────────────────────────────────────────────────────────
 const BASE = 'https://neuroauth-auth.onrender.com';
-const NA_CLIENT_ID = '118851719832-qaktum0kj1a6r2a2fp6c75hhag8p2tlf.apps.googleusercontent.com';
-const JWT_STORE    = 'na_hub_jwt';
-let _jwt = localStorage.getItem(JWT_STORE) || '';
-let _runs = [], _episodes = [];
-let _refreshTimer = null;
+const TOKEN_KEY = 'na_jwt';
+let token = localStorage.getItem(TOKEN_KEY);
+let allRuns = [];
+let allEpisodes = [];
+let currentRawRun = null;
+let refreshTimer = null;
+let countdown = 30;
 
-// ─── Auth ────────────────────────────────────────────────────────────────────
-function getHeaders() {
-  const h = { 'Content-Type': 'application/json' };
-  if (_jwt) h['Authorization'] = 'Bearer ' + _jwt;
-  return h;
+// ── Auth Check ──────────────────────────────────────────────────────────────
+if (!token) {
+  window.location.href = 'index.html?return=hub';
 }
 
-function _showLoginOverlay() {
-  document.getElementById('login-overlay').style.display = 'flex';
-}
-
-function _hideLoginOverlay() {
-  document.getElementById('login-overlay').style.display = 'none';
-}
-
-// ─── Google Sign-In init ─────────────────────────────────────────────────────
-function naHubInitGoogle() {
-  if (!window.google || !window.google.accounts) { setTimeout(naHubInitGoogle, 300); return; }
-  google.accounts.id.initialize({
-    client_id: NA_CLIENT_ID,
-    callback: naHubHandleLogin,
-    auto_select: true,
-    cancel_on_tap_outside: false
-  });
-  const btn = document.getElementById('na-hub-signin-btn');
-  if (btn) {
-    google.accounts.id.renderButton(btn, { theme:'outline', size:'large', text:'signin_with', locale:'pt-BR', width:280 });
-  }
-  if (!_jwt) google.accounts.id.prompt();
-}
-
-async function naHubHandleLogin(response) {
+// Extrair email do JWT
+function parseJwt(t) {
   try {
-    const authResp = await fetch(BASE + '/auth/google', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_token: response.credential })
-    });
-    const authData = await authResp.json();
-    if (authData.access_token) {
-      _jwt = authData.access_token;
-      localStorage.setItem(JWT_STORE, _jwt);
-      _hideLoginOverlay();
-      refresh();
-    } else {
-      showToast('Acesso não autorizado para este email', 'error');
-    }
-  } catch(e) {
-    showToast('Erro no login Google: ' + e.message, 'error');
-  }
+    const b = t.split('.')[1];
+    const pad = 4 - b.length % 4;
+    return JSON.parse(atob(b + '='.repeat(pad === 4 ? 0 : pad)));
+  } catch { return {}; }
+}
+const jwtPayload = parseJwt(token || '');
+document.getElementById('userEmail').textContent = jwtPayload.sub || jwtPayload.name || 'usuário';
+
+// ── Headers ─────────────────────────────────────────────────────────────────
+const headers = () => ({
+  'Authorization': `Bearer ${token}`,
+  'Content-Type': 'application/json'
+});
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', 3500);
 }
 
-// ─── Fetch with retry ────────────────────────────────────────────────────────
-async function apiFetch(path, opts = {}) {
-  setSpinner(true);
+// ── Spinner ──────────────────────────────────────────────────────────────────
+let spinnerCount = 0;
+function startSpin() { spinnerCount++; document.getElementById('globalSpinner').classList.add('active'); }
+function stopSpin()  { spinnerCount = Math.max(0, spinnerCount-1); if (!spinnerCount) document.getElementById('globalSpinner').classList.remove('active'); }
+
+// ── Fetch com retry ──────────────────────────────────────────────────────────
+async function apiFetch(url, opts={}, retries=3) {
   let lastErr;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let i = 0; i < retries; i++) {
     try {
-      const res = await fetch(BASE + path, {
-        headers: getHeaders(),
-        signal: AbortSignal.timeout(20000),
-        ...opts,
-      });
-      setSpinner(false);
-      if (res.status === 401) {
-        _jwt = '';
-        localStorage.removeItem(JWT_STORE);
-        _showLoginOverlay();
-        throw new Error('401 Unauthorized');
+      const resp = await fetch(url, { headers: headers(), ...opts });
+      if (resp.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = 'index.html?return=hub';
+        return null;
       }
-      if (res.status === 503 && attempt < 2) {
-        showToast('Aguardando backend...', 'normal');
-        await sleep(3000);
+      if (resp.status >= 500 && i < retries - 1) {
+        if (i === 0) showToast('Aguardando backend...', 'warn');
+        await new Promise(r => setTimeout(r, 3000));
         continue;
       }
-      return res;
-    } catch (e) {
+      return resp;
+    } catch(e) {
       lastErr = e;
-      if (attempt < 2) await sleep(2000);
+      if (i < retries - 1) await new Promise(r => setTimeout(r, 3000));
     }
   }
-  setSpinner(false);
   throw lastErr;
 }
 
-// ─── Refresh ─────────────────────────────────────────────────────────────────
-async function refresh() {
+// ── Gate Badge ───────────────────────────────────────────────────────────────
+function gateBadge(gate) {
+  const map = {
+    'GO': ['badge-go','✅ GO'],
+    'GO_COM_RESSALVAS': ['badge-ressalvas','⚠ RESSALVAS'],
+    'NO_GO': ['badge-nogo','🔴 NO_GO'],
+    'PRE_ANALISE': ['badge-pre','🔵 PRÉ-ANÁLISE'],
+  };
+  const [cls, label] = map[gate] || ['badge-gray', gate || '—'];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function actionBadge(action) {
+  if (!action) return '<span style="color:var(--gray);font-size:11px">—</span>';
+  const map = { 'APROVADO':'badge-go','SEGURADO':'badge-ressalvas','REVISAO':'badge-nogo' };
+  return `<span class="badge ${map[action]||'badge-gray'}">${action}</span>`;
+}
+
+function fmtTs(ts) {
+  if (!ts) return '—';
+  try { return new Date(ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+  catch { return ts.slice(0,16); }
+}
+
+function truncId(id, n=14) { return id ? id.slice(0,n)+'…' : '—'; }
+
+// ── Load Runs ────────────────────────────────────────────────────────────────
+async function loadRuns() {
+  startSpin();
   try {
-    const [metricsRes, runsRes, epsRes] = await Promise.all([
-      apiFetch('/hub/metrics'),
-      apiFetch('/hub/decision_runs?limit=100'),
-      apiFetch('/hub/episodes?limit=100'),
-    ]);
-
-    if (!metricsRes.ok || !runsRes.ok || !epsRes.ok) {
-      showToast('Erro ao carregar dados', 'error');
-      return;
-    }
-
-    const metrics  = await metricsRes.json();
-    const runsData = await runsRes.json();
-    const epsData  = await epsRes.json();
-
-    _runs     = runsData.items || [];
-    _episodes = epsData.items  || [];
-
-    renderMetrics(metrics);
-    renderRuns();
-    renderEpisodes();
-    renderAntiGlosa();
+    const resp = await apiFetch(`${BASE}/hub/decision_runs?limit=100`);
+    if (!resp) return;
+    if (!resp.ok) { showToast(`Erro ao carregar runs: ${resp.status}`, 'err'); return; }
+    allRuns = await resp.json();
+    populateConvenioFilter(allRuns);
+    applyFilters();
     checkAlerts();
-
-    document.getElementById('last-updated').textContent = 'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
-    document.getElementById('motor-badge').textContent  = 'motor ' + (metrics.motor_version || '?');
-  } catch (e) {
-    showToast('Falha na conexão: ' + e.message, 'error');
-  }
+    buildRiskTab();
+  } catch(e) {
+    showToast('Erro de conexão: ' + e.message, 'err');
+  } finally { stopSpin(); }
 }
 
-// ─── Auto-poll 30s ───────────────────────────────────────────────────────────
-function startPolling() {
-  if (_refreshTimer) clearInterval(_refreshTimer);
-  _refreshTimer = setInterval(refresh, 30000);
+// ── Load Episodes ────────────────────────────────────────────────────────────
+async function loadEpisodes() {
+  startSpin();
+  try {
+    const resp = await apiFetch(`${BASE}/hub/episodes?limit=100`);
+    if (!resp) return;
+    if (!resp.ok) return;
+    allEpisodes = await resp.json();
+    renderEpisodes(allEpisodes);
+  } catch(e) { showToast('Erro episódios: ' + e.message, 'err'); }
+  finally { stopSpin(); }
 }
 
-// ─── Metrics ─────────────────────────────────────────────────────────────────
-function renderMetrics(m) {
-  document.getElementById('m-total').textContent = m.total_runs ?? '—';
-  document.getElementById('m-score').textContent = m.avg_score != null ? m.avg_score.toFixed(1) + '%' : '—';
-  document.getElementById('m-risco').textContent = m.avg_risco_glosa != null ? m.avg_risco_glosa.toFixed(0) + '%' : '—';
+// ── Load Metrics ─────────────────────────────────────────────────────────────
+async function loadMetrics() {
+  try {
+    const resp = await apiFetch(`${BASE}/hub/metrics`);
+    if (!resp || !resp.ok) return;
+    const m = await resp.json();
+    document.getElementById('mTotal').textContent = m.total_runs ?? '—';
+    document.getElementById('mAvgScore').textContent = m.avg_score != null ? (m.avg_score * 100).toFixed(1) + '%' : '—';
+    document.getElementById('mAvgRisco').textContent = m.avg_risk_glosa != null ? m.avg_risk_glosa.toFixed(1) + '%' : '—';
+    document.getElementById('mMotor').textContent = m.motor_version || '—';
 
-  // Gate distribution bars
-  const dist   = m.gate_distribution || {};
-  const total  = Object.values(dist).reduce((a, b) => a + b, 0) || 1;
-  const colors = { GO: '#00d4aa', GO_COM_RESSALVAS: '#ffa502', NO_GO: '#ff4757', PRE_ANALISE: '#5c8ee6', PENDENCIA_OBRIGATORIA: '#5c8ee6' };
-  const el = document.getElementById('gate-dist');
-  el.innerHTML = Object.entries(dist).sort((a,b)=>b[1]-a[1]).map(([gate, cnt]) => {
-    const pct = ((cnt / total) * 100).toFixed(0);
-    return `<div class="gate-bar">
-      <div class="name">${gate.replace(/_/g,' ')}</div>
-      <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${colors[gate]||'#888'}"></div></div>
-      <div class="pct">${cnt} (${pct}%)</div>
-    </div>`;
-  }).join('');
+    // Gate bars
+    const dist = m.gate_distribution || {};
+    const total = m.total_runs || 1;
+    const gates = ['GO','GO_COM_RESSALVAS','NO_GO','PRE_ANALISE'];
+    const pct = g => Math.round((dist[g]||0) / total * 100);
+    document.getElementById('pGo').textContent = pct('GO') + '%';
+    document.getElementById('barGo').style.width = pct('GO') + '%';
+    document.getElementById('pRes').textContent = pct('GO_COM_RESSALVAS') + '%';
+    document.getElementById('barRes').style.width = pct('GO_COM_RESSALVAS') + '%';
+    document.getElementById('pNo').textContent = pct('NO_GO') + '%';
+    document.getElementById('barNo').style.width = pct('NO_GO') + '%';
+    document.getElementById('pPre').textContent = pct('PRE_ANALISE') + '%';
+    document.getElementById('barPre').style.width = pct('PRE_ANALISE') + '%';
 
-  // Volume chart
-  drawVolumeChart(m.volume_by_day || []);
+    // Volume chart
+    const days = m.volume_by_day || [];
+    drawVolumeChart(days);
+  } catch(e) { console.warn('metrics error', e); }
 }
 
-function drawVolumeChart(data) {
-  const canvas = document.getElementById('vol-chart');
-  const ctx    = canvas.getContext('2d');
-  canvas.width = canvas.offsetWidth;
-  canvas.height = 70;
-  if (!data.length) return;
-  const max = Math.max(...data.map(d => d.count), 1);
-  const w = canvas.width / data.length;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  data.forEach((d, i) => {
-    const barH = (d.count / max) * 55;
-    ctx.fillStyle = '#00d4aa55';
-    ctx.fillRect(i * w + 2, canvas.height - barH - 12, w - 4, barH);
-    ctx.fillStyle = '#8892a4';
-    ctx.font = '9px Inter';
-    ctx.fillText(d.date.slice(5), i * w + 2, canvas.height - 2);
-    if (d.count > 0) {
-      ctx.fillStyle = '#00d4aa';
-      ctx.fillText(d.count, i * w + w / 2 - 4, canvas.height - barH - 15);
-    }
+// ── Volume Chart (canvas manual) ─────────────────────────────────────────────
+function drawVolumeChart(days) {
+  const canvas = document.getElementById('volumeChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 240;
+  const H = 70;
+  canvas.width = W;
+  canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+
+  if (!days.length) return;
+  const counts = days.map(d => d.count);
+  const max = Math.max(...counts, 1);
+  const barW = Math.floor(W / days.length) - 4;
+  days.forEach((d, i) => {
+    const barH = Math.max(2, Math.round((d.count / max) * (H - 16)));
+    const x = i * (barW + 4) + 2;
+    const y = H - barH - 8;
+    ctx.fillStyle = '#00d4aa44';
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, 2);
+    ctx.fill();
+    ctx.fillStyle = '#00d4aa';
+    ctx.fillRect(x, y, barW, 2);
   });
+
+  // Linha de datas embaixo
+  document.getElementById('chartLabels').textContent = days.map(d => d.date.slice(5)).join('  ');
 }
 
-// ─── Runs ─────────────────────────────────────────────────────────────────────
-function renderRuns() {
-  const gateF   = document.getElementById('filter-gate')?.value   || '';
-  const searchF = (document.getElementById('filter-search')?.value || '').toLowerCase();
-  const tbody   = document.getElementById('runs-tbody');
-  if (!tbody) return;
+// ── Render Runs ──────────────────────────────────────────────────────────────
+function applyFilters() {
+  const search = document.getElementById('searchId').value.toLowerCase();
+  const gateF = document.getElementById('filterGate').value;
+  const convF = document.getElementById('filterConvenio').value;
 
-  let rows = _runs.filter(r => {
-    if (gateF && !r.gate.includes(gateF)) return false;
-    if (searchF && !r.decision_run_id.toLowerCase().includes(searchF) && !r.episodio_id.toLowerCase().includes(searchF)) return false;
+  let filtered = allRuns.filter(r => {
+    if (gateF && r.gate !== gateF) return false;
+    if (convF && (r.convenio||'') !== convF) return false;
+    if (search && !((r.episode_id||'').toLowerCase().includes(search) || (r.decision_run_id||'').toLowerCase().includes(search))) return false;
     return true;
   });
 
-  if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:24px">Nenhum resultado</td></tr>`;
+  renderRuns(filtered);
+}
+
+function renderRuns(runs) {
+  const tbody = document.getElementById('runsTbody');
+  if (!runs.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i data-lucide="inbox"></i>Nenhum resultado encontrado</div></td></tr>`;
+    lucide.createIcons();
     return;
   }
-
-  tbody.innerHTML = rows.map(r => {
-    const gateClass = 'badge-gate badge-' + r.gate.replace(/ /g,'_');
-    const score     = r.score != null ? r.score.toFixed(0) + '%' : '—';
-    const risco     = r.risco_glosa;
-    const riscoClass = risco >= 60 ? 'risco-high pulse' : risco >= 30 ? 'risco-med' : 'risco-low';
-    const hubBadge  = r.hub_action ? `<span class="badge-hub badge-${r.hub_action.split(' ')[0]}">${r.hub_action.split(' ')[0]}</span>` : '';
-    const date      = r.created_at ? new Date(r.created_at).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-
-    return `<tr onclick="toggleRun(this, '${r.decision_run_id}')" data-run-id="${r.decision_run_id}">
-      <td style="font-family:monospace;font-size:11px">${r.decision_run_id.slice(0,16)}</td>
-      <td style="font-size:11px">${r.episodio_id}</td>
-      <td><span class="${gateClass}">${r.gate.replace(/_/g,' ')}</span></td>
-      <td>${score}</td>
-      <td class="${riscoClass}">${risco}%</td>
-      <td style="color:var(--gray);font-size:11px">${r.motor_version || '—'}</td>
-      <td style="color:var(--text2);font-size:11px">${date}</td>
-      <td>${hubBadge}</td>
+  tbody.innerHTML = runs.map((r, idx) => `
+    <tr onclick="toggleExpand(${idx}, event)" data-idx="${idx}">
+      <td><span class="mono" title="${r.decision_run_id}">${truncId(r.decision_run_id)}</span></td>
+      <td><span class="mono" title="${r.episode_id}">${truncId(r.episode_id)}</span></td>
+      <td>${gateBadge(r.gate)}</td>
+      <td>${r.score_clinico != null ? (r.score_clinico * 100).toFixed(1) + '%' : '—'}</td>
+      <td style="color:${r.camada3_risco > 60 ? 'var(--red)' : 'var(--light)'}">${r.camada3_risco != null ? r.camada3_risco.toFixed(1) + '%' : '—'}</td>
+      <td style="color:var(--gray);font-size:12px">${r.versao_motor || '—'}</td>
+      <td style="color:var(--gray);font-size:12px">${fmtTs(r.timestamp)}</td>
+      <td>${actionBadge(r.hub_action)}</td>
     </tr>
-    <tr class="expand-row" id="expand-${r.decision_run_id}" style="display:none">
+    <tr class="expand-row" id="expand-${idx}" style="display:none">
       <td colspan="8">
-        <div class="expand-inner">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-            <div><strong>Alertas (${r.alertas?.length||0}):</strong><br/><span style="font-size:11px;color:var(--text2)">${(r.alertas||[]).map(a=>typeof a==='string'?a:JSON.stringify(a)).join(', ')||'Nenhum'}</span></div>
-            <div><strong>Bloqueios (${r.bloqueios?.length||0}):</strong><br/><span style="font-size:11px;color:var(--text2)">${(r.bloqueios||[]).map(b=>typeof b==='string'?b:JSON.stringify(b)).join(', ')||'Nenhum'}</span></div>
+        <div class="expand-content">
+          <div class="expand-info">
+            <h4>Gate Reason</h4>
+            <pre>${escHtml(r.gate_reason || 'Sem bloqueios registrados.')}</pre>
           </div>
-          <div class="action-btns">
-            <button class="action-btn aprovar" onclick="sendAction('${r.decision_run_id}','APROVADO',event)">✓ APROVAR</button>
-            <button class="action-btn segurar" onclick="sendAction('${r.decision_run_id}','SEGURADO',event)">⏸ SEGURAR</button>
-            <button class="action-btn revisao" onclick="sendAction('${r.decision_run_id}','REVISAO',event)">🔄 REVISÃO</button>
+          <div class="expand-info">
+            <h4>IDs</h4>
+            <pre>run_id: ${r.decision_run_id}\nepisode: ${r.episode_id}\nconvenio: ${r.convenio||'—'}\nmotor: ${r.versao_motor||'—'}</pre>
+          </div>
+          <div class="expand-actions">
+            <h4>Gate Humano</h4>
+            <textarea class="nota-input" id="nota-${idx}" placeholder="Nota opcional..."></textarea>
+            <div class="action-btns">
+              <button class="btn btn-sm btn-approve" onclick="doAction('${r.decision_run_id}',${idx},'APROVADO')">✅ Aprovar</button>
+              <button class="btn btn-sm btn-hold" onclick="doAction('${r.decision_run_id}',${idx},'SEGURADO')">⏸ Segurar</button>
+              <button class="btn btn-sm btn-review" onclick="doAction('${r.decision_run_id}',${idx},'REVISAO')">🔁 Revisão</button>
+            </div>
+            <div class="action-status" id="status-${idx}"></div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="openAdminWithRun(${idx})">🔧 Admin</button>
           </div>
         </div>
       </td>
-    </tr>`;
-  }).join('');
+    </tr>
+  `).join('');
+  lucide.createIcons();
 }
 
-function toggleRun(row, runId) {
-  const expand = document.getElementById('expand-' + runId);
-  if (!expand) return;
-  const visible = expand.style.display !== 'none';
+// ── Toggle expand ─────────────────────────────────────────────────────────────
+function toggleExpand(idx, e) {
+  if (e.target.closest('button')) return;
+  const row = document.getElementById(`expand-${idx}`);
+  const isOpen = row.style.display !== 'none';
   // Fechar todos
-  document.querySelectorAll('.expand-row').forEach(e => e.style.display = 'none');
-  document.querySelectorAll('tbody tr[data-run-id]').forEach(r => r.classList.remove('expanded'));
-  if (!visible) {
-    expand.style.display = '';
-    row.classList.add('expanded');
+  document.querySelectorAll('.expand-row').forEach(r => r.style.display = 'none');
+  document.querySelectorAll('tbody tr:not(.expand-row)').forEach(r => r.classList.remove('expanded'));
+  if (!isOpen) {
+    row.style.display = 'table-row';
+    row.previousElementSibling.classList.add('expanded');
+    currentRawRun = allRuns[idx];
   }
 }
 
-// ─── Episodes ────────────────────────────────────────────────────────────────
-function renderEpisodes() {
-  const statusF  = document.getElementById('filter-status')?.value   || '';
-  const convF    = (document.getElementById('filter-convenio')?.value || '').toLowerCase();
-  const tbody    = document.getElementById('ep-tbody');
-  if (!tbody) return;
+// ── Gate Humano Action ────────────────────────────────────────────────────────
+async function doAction(runId, idx, action) {
+  const nota = document.getElementById(`nota-${idx}`)?.value || '';
+  const statusEl = document.getElementById(`status-${idx}`);
+  statusEl.textContent = 'Enviando...';
+  statusEl.className = 'action-status';
 
-  let rows = _episodes.filter(e => {
-    if (statusF && !e.decision_status.includes(statusF)) return false;
-    if (convF && !e.convenio_id.toLowerCase().includes(convF)) return false;
-    return true;
-  });
-
-  if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:24px">Nenhum resultado</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = rows.map(e => {
-    const gateClass = 'badge-gate badge-' + (e.decision_status||'').replace(/ /g,'_');
-    const score     = e.score_confianca != null ? e.score_confianca.toFixed(0) + '%' : '—';
-    const date      = e.created_at ? new Date(e.created_at).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-    return `<tr>
-      <td style="font-size:11px;font-family:monospace">${e.episodio_id}</td>
-      <td>${e.paciente||'—'}</td>
-      <td style="font-size:11px">${e.profile_id||'—'}</td>
-      <td style="font-size:11px">${e.cid_principal||'—'}</td>
-      <td><span class="${gateClass}">${(e.decision_status||'—').replace(/_/g,' ')}</span></td>
-      <td>${score}</td>
-      <td style="font-size:11px;color:var(--text2)">${date}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ─── Anti-Glosa ──────────────────────────────────────────────────────────────
-function renderAntiGlosa() {
-  const high = _runs.filter(r => r.risco_glosa >= 45).sort((a,b) => b.risco_glosa - a.risco_glosa);
-  const tbody = document.getElementById('ag-tbody');
-  if (!tbody) return;
-
-  if (high.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--green);padding:24px">✓ Nenhum caso de alto risco</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = high.map(r => {
-    const gateClass = 'badge-gate badge-' + r.gate.replace(/ /g,'_');
-    const riscoClass = r.risco_glosa >= 70 ? 'risco-high pulse' : 'risco-med';
-    return `<tr>
-      <td style="font-size:11px;font-family:monospace">${r.decision_run_id.slice(0,16)}</td>
-      <td style="font-size:11px">${r.episodio_id}</td>
-      <td><span class="${gateClass}">${r.gate.replace(/_/g,' ')}</span></td>
-      <td class="${riscoClass}" style="font-weight:700">${r.risco_glosa}%</td>
-      <td style="font-size:11px;color:var(--text2)">${r.alertas?.length||0} alertas</td>
-      <td>
-        <button class="action-btn revisao" style="font-size:11px;padding:4px 10px" onclick="sendAction('${r.decision_run_id}','REVISAO',event)">Revisar</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-// ─── PATCH action ─────────────────────────────────────────────────────────────
-async function sendAction(runId, action, e) {
-  if (e) { e.stopPropagation(); }
   try {
-    const res = await apiFetch(`/hub/runs/${runId}/action`, {
+    const resp = await apiFetch(`${BASE}/hub/runs/${runId}/action`, {
       method: 'PATCH',
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ action, nota })
     });
-    if (res.ok) {
-      showToast(`${action} registrado para ${runId.slice(0,12)}`, 'success');
-      // Update local state
-      const r = _runs.find(r => r.decision_run_id === runId);
-      if (r) r.hub_action = action;
-      renderRuns();
-      renderAntiGlosa();
+    if (!resp) return;
+    const data = await resp.json();
+    if (resp.ok && data.ok) {
+      statusEl.textContent = `✅ ${action} gravado`;
+      statusEl.className = 'action-status ok';
+      showToast(`Ação ${action} gravada com sucesso`, 'info');
+      // Atualizar badge na linha
+      const run = allRuns.find(r => r.decision_run_id === runId);
+      if (run) run.hub_action = action;
+      // Re-render parcial
+      setTimeout(() => refreshAll(), 500);
     } else {
-      const err = await res.json();
-      showToast('Erro: ' + (err.error || res.status), 'error');
+      statusEl.textContent = `Erro: ${data.error || resp.status}`;
+      statusEl.className = 'action-status err';
     }
-  } catch (ex) {
-    showToast('Falha na ação: ' + ex.message, 'error');
+  } catch(e) {
+    statusEl.textContent = 'Erro de conexão';
+    statusEl.className = 'action-status err';
   }
 }
 
-// ─── Alerts ───────────────────────────────────────────────────────────────────
-function checkAlerts() {
-  const noGoUnreviewed = _runs.filter(r => r.gate === 'NO_GO' && !r.hub_action);
-  const bar = document.getElementById('alerts-bar');
-  if (noGoUnreviewed.length > 0) {
-    bar.style.display = 'block';
-    document.getElementById('alerts-msg').textContent = `${noGoUnreviewed.length} caso(s) NO_GO sem revisão — ação necessária`;
-  } else {
-    bar.style.display = 'none';
-  }
-}
-
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
-function switchTab(name) {
-  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).style.display = '';
-  event.target.classList.add('active');
-}
-
-// ─── Utils ───────────────────────────────────────────────────────────────────
-function setSpinner(on) {
-  document.getElementById('spinner').style.display = on ? 'block' : 'none';
-}
-function showToast(msg, type = 'normal') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = type;
-  t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 3500);
-}
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// ─── Init ────────────────────────────────────────────────────────────────────
-(async function init() {
-  // Inicializa Google Sign-In
-  naHubInitGoogle();
-
-  if (!_jwt) {
-    // Sem token salvo — mostra overlay de login imediatamente
-    _showLoginOverlay();
+// ── Render Episodes ───────────────────────────────────────────────────────────
+function renderEpisodes(eps) {
+  const tbody = document.getElementById('episodesTbody');
+  if (!eps.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">Sem episódios encontrados</div></td></tr>`;
     return;
   }
+  const statusColor = s => ({
+    'GO':'var(--green)','GO_COM_RESSALVAS':'var(--yellow)','NO_GO':'var(--red)'
+  }[s] || 'var(--gray)');
 
-  // Tem token — testa se ainda é válido
-  try {
-    const probe = await fetch(BASE + '/hub/metrics', {
-      headers: getHeaders(),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (probe.status === 401) {
-      _jwt = '';
-      localStorage.removeItem(JWT_STORE);
-      _showLoginOverlay();
-      return;
-    }
-  } catch (_) {
-    // backend cold start — tenta refresh mesmo assim
+  tbody.innerHTML = eps.map(ep => `
+    <tr>
+      <td><span class="mono">${truncId(ep.episode_id)}</span></td>
+      <td>${escHtml(ep.paciente_iniciais || '??')}</td>
+      <td style="font-family:monospace;font-size:12px">${ep.cid||'—'}</td>
+      <td style="font-size:12px;color:var(--gray)">${ep.procedimento||'—'}</td>
+      <td>${ep.convenio||'—'}</td>
+      <td><span style="color:${statusColor(ep.status)};font-weight:600;font-size:12px">${ep.status||'—'}</span></td>
+      <td style="color:var(--gray);font-size:12px">${fmtTs(ep.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Alerts ───────────────────────────────────────────────────────────────────
+function checkAlerts() {
+  const unreviewed = allRuns.filter(r => r.gate === 'NO_GO' && !r.hub_action);
+  const banner = document.getElementById('alertBanner');
+  if (unreviewed.length > 0) {
+    banner.classList.add('visible');
+    document.getElementById('alertText').textContent = `⚠ ${unreviewed.length} caso(s) NO_GO sem ação definida`;
+    document.getElementById('alertCount').textContent = `Ver aba Alto Risco`;
+  } else {
+    banner.classList.remove('visible');
   }
+}
 
-  await refresh();
-  startPolling();
-})();
+// ── Risk Tab ─────────────────────────────────────────────────────────────────
+function buildRiskTab() {
+  const highRisk = allRuns.filter(r => r.camada3_risco > 60);
+  const badge = document.getElementById('riskBadge');
+  badge.style.display = highRisk.length ? 'inline' : 'none';
+  badge.textContent = highRisk.length;
+  document.getElementById('riskCount').textContent = `${highRisk.length} caso(s)`;
+
+  const tbody = document.getElementById('riskTbody');
+  if (!highRisk.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">✅ Nenhum caso com risco &gt; 60%</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = highRisk.map((r, idx) => `
+    <tr>
+      <td><span class="mono">${truncId(r.decision_run_id)}</span></td>
+      <td><span class="mono">${truncId(r.episode_id)}</span></td>
+      <td>${gateBadge(r.gate)}</td>
+      <td style="color:var(--red);font-weight:700">${r.camada3_risco.toFixed(1)}%</td>
+      <td>${r.score_clinico != null ? (r.score_clinico*100).toFixed(1)+'%' : '—'}</td>
+      <td style="font-size:12px;color:var(--gray);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(r.gate_reason)}">${escHtml(r.gate_reason||'—')}</td>
+      <td>
+        <button class="btn btn-sm btn-review" onclick="doActionRisk('${r.decision_run_id}', 'risk-status-${idx}')">🔁 Revisão</button>
+        <span class="action-status" id="risk-status-${idx}" style="display:block;margin-top:4px"></span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function doActionRisk(runId, statusId) {
+  const statusEl = document.getElementById(statusId);
+  statusEl.textContent = 'Enviando...';
+  try {
+    const resp = await apiFetch(`${BASE}/hub/runs/${runId}/action`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'REVISAO', nota: 'Alto risco de glosa — revisão obrigatória' })
+    });
+    if (resp?.ok) { statusEl.textContent = '✅ Enviado'; statusEl.className='action-status ok'; }
+    else { statusEl.textContent = 'Erro'; statusEl.className='action-status err'; }
+  } catch { statusEl.textContent = 'Erro'; statusEl.className='action-status err'; }
+}
+
+// ── Convenio Filter ───────────────────────────────────────────────────────────
+function populateConvenioFilter(runs) {
+  const convs = [...new Set(runs.map(r => r.convenio).filter(Boolean))].sort();
+  const sel = document.getElementById('filterConvenio');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos convênios</option>' + convs.map(c => `<option value="${c}">${c}</option>`).join('');
+  sel.value = cur;
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tabRuns').style.display = 'none';
+  document.getElementById('tabEpisodes').style.display = 'none';
+  document.getElementById('tabRiskContent').style.display = 'none';
+  document.getElementById('runsFilters').style.display = 'none';
+
+  if (tab === 'runs') {
+    document.getElementById('tabRuns').style.display = 'block';
+    document.getElementById('runsFilters').style.display = 'flex';
+  } else if (tab === 'episodes') {
+    document.getElementById('tabEpisodes').style.display = 'block';
+    if (!allEpisodes.length) loadEpisodes();
+  } else if (tab === 'risk') {
+    document.getElementById('tabRiskContent').style.display = 'block';
+  }
+}
+
+// ── Admin Modal ───────────────────────────────────────────────────────────────
+function openAdminModal() {
+  if (!currentRawRun) {
+    document.getElementById('modalContent').innerHTML = '<pre>Selecione um caso na tabela clicando na linha.</pre>';
+  } else {
+    document.getElementById('modalContent').innerHTML = `<pre>${escHtml(JSON.stringify(currentRawRun, null, 2))}</pre>`;
+  }
+  document.getElementById('adminModal').classList.add('visible');
+}
+
+function openAdminWithRun(idx) {
+  currentRawRun = allRuns[idx];
+  openAdminModal();
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('adminModal')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('adminModal').classList.remove('visible');
+}
+
+// ── Escape HTML ───────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Countdown ─────────────────────────────────────────────────────────────────
+function startCountdown() {
+  clearInterval(refreshTimer);
+  countdown = 30;
+  refreshTimer = setInterval(() => {
+    countdown--;
+    document.getElementById('nextRefresh').textContent = ` (${countdown}s)`;
+    if (countdown <= 0) refreshAll();
+  }, 1000);
+}
+
+// ── Refresh All ───────────────────────────────────────────────────────────────
+async function refreshAll() {
+  await Promise.all([loadRuns(), loadMetrics()]);
+  startCountdown();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+lucide.createIcons();
+refreshAll();
 </script>
 </body>
 </html>
