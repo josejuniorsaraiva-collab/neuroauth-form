@@ -606,11 +606,12 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
           <option value="X">Emergência</option></select></div>
       <div class="field full"><label>Tipo de guia <span class="req">*</span></label>
         <select id="tipo_guia" required onchange="naToggleTipoGuia()">
-          <option value="">Selecionar</option>
-          <option value="Internação">🏥 Guia de Internação Hospitalar</option>
+          <option value="">Selecionar tipo de solicitação</option>
+          <option value="Internação">🏥 Internação Hospitalar (cirurgia com internação)</option>
+          <option value="Cirúrgico + OPME">🏥 Cirúrgico com OPME (internação + materiais)</option>
           <option value="SADT">📋 SADT (procedimento ambulatorial)</option>
-          <option value="SADT + OPME">📋 SADT + OPME</option></select>
-        <span class="hint">Cirurgia hospitalar → Internação. Procedimento ambulatorial → SADT.</span></div>
+          <option value="SADT + OPME">📋 SADT + OPME (ambulatorial com materiais)</option></select>
+        <span class="hint">Cirurgia hospitalar → Internação. Procedimento ambulatorial → SADT. Cirúrgico com OPME → Internação + OPME.</span></div>
       <div class="field"><label>Hospital / Clínica <span class="req">*</span></label>
         <select id="hospital" required>
           <option value="">Selecionar</option>
@@ -763,10 +764,13 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 <!-- TAB 4 — GUIA PRINCIPAL (Internação ou SADT) -->
 <div class="tab-page" id="p4">
 
-<!-- BLOCO INTERNAÇÃO -->
+<!-- BLOCO INTERNAÇÃO — baseado no modelo real TISS/Unimed -->
 <div class="card" id="card-internacao">
   <div class="card-hd"><div class="card-ico">🏥</div><div class="card-ttl">Guia de Internação Hospitalar</div></div>
   <div class="card-body">
+
+    <!-- SEÇÃO 1: Dados administrativos da internação -->
+    <div style="font-size:11px;font-weight:700;color:#0a6847;margin-bottom:8px;border-bottom:1px solid #e0e0e0;padding-bottom:4px">DADOS DA INTERNAÇÃO</div>
     <div class="grid g2">
       <div class="field"><label>Caráter da internação <span class="req">*</span></label>
         <select id="carater_internacao" onchange="syncCarater()">
@@ -774,16 +778,59 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
           <option value="E">Eletiva</option>
           <option value="U">Urgência</option>
           <option value="X">Emergência</option></select></div>
+      <div class="field"><label>Tipo de internação <span class="req">*</span></label>
+        <select id="tipo_internacao">
+          <option value="">Selecionar</option>
+          <option value="cirurgica">Cirúrgica</option>
+          <option value="clinica">Clínica</option></select></div>
       <div class="field"><label>Regime</label>
         <select id="regime_internacao" onchange="syncRegime()">
           <option value="Hospitalar">Hospitalar</option>
           <option value="Hospital-dia">Hospital-dia</option>
           <option value="Domiciliar">Domiciliar</option></select></div>
-      <div class="field"><label>Diárias previstas</label>
-        <input id="diarias_previstas" type="number" min="1" max="30" placeholder="Ex: 2"/></div>
+      <div class="field"><label>Acomodação <span class="req">*</span></label>
+        <select id="acomodacao_internacao">
+          <option value="">Selecionar</option>
+          <option value="enfermaria">Enfermaria</option>
+          <option value="apartamento">Apartamento</option>
+          <option value="UTI">UTI</option></select></div>
+      <div class="field"><label>Diárias previstas <span class="req">*</span></label>
+        <input id="diarias_previstas" type="number" min="1" max="60" placeholder="Ex: 3"/></div>
+      <div class="field"><label>Previsão de UTI</label>
+        <select id="previsao_uti">
+          <option value="nao">Não</option>
+          <option value="sim">Sim</option></select></div>
+      <div class="field"><label>Hospital solicitado</label>
+        <input id="hospital_internacao" type="text" class="af" readonly
+          oninput="document.getElementById('hospital').value=this.value"/></div>
+      <div class="field"><label>Data sugerida para internação</label>
+        <input id="data_internacao" type="date"/></div>
+    </div>
+
+    <!-- SEÇÃO 2: Indicação clínica -->
+    <div style="font-size:11px;font-weight:700;color:#0a6847;margin:14px 0 8px;border-bottom:1px solid #e0e0e0;padding-bottom:4px">INDICAÇÃO CLÍNICA</div>
+    <div class="grid g2">
+      <div class="field"><label>CID principal <span class="req">*</span></label>
+        <input id="cid_internacao" type="text" placeholder="Ex: I67.1"
+          oninput="document.getElementById('cid_principal').value=this.value"/></div>
+      <div class="field"><label>CID secundário</label>
+        <input id="cid_secundario_internacao" type="text" placeholder="Ex: G45.9"/></div>
+      <div class="field full"><label>Indicação clínica / justificativa de internação <span class="req">*</span></label>
+        <textarea id="indicacao_clinica_internacao" rows="3"
+          placeholder="Ex: Paciente interna para procedimento neurovascular minimamente invasivo — embolização de aneurisma cerebral via cateterismo…"
+          oninput="document.getElementById('indicacao_clinica').value=this.value"></textarea></div>
+    </div>
+
+    <!-- SEÇÃO 3: Vínculo com o ato cirúrgico -->
+    <div style="font-size:11px;font-weight:700;color:#0a6847;margin:14px 0 8px;border-bottom:1px solid #e0e0e0;padding-bottom:4px">ATO CIRÚRGICO</div>
+    <div class="grid g2">
       <div class="field"><label>Código TUSS principal <span class="auto">auto</span></label>
         <input id="tuss_internacao" type="text" class="af" placeholder="Ex: 30715014"
           oninput="document.getElementById('cod_tuss').value=this.value"/></div>
+      <div class="field"><label>Previsão de uso de OPME</label>
+        <select id="opme_previsto_internacao" onchange="if(this.value==='sim'){var o=document.getElementById('necessita_opme');if(o){o.value='Sim';toggleOpme();}}">
+          <option value="sim">Sim</option>
+          <option value="nao">Não</option></select></div>
       <div class="field full"><label>Descrição do ato cirúrgico <span class="req">*</span></label>
         <textarea id="descricao_cirurgica" rows="3"
           placeholder="Artrodese cervical anterior (ACDF) C5-C6, via anterior, com cage intersomático e placa de titânio…"></textarea></div>
@@ -791,8 +838,9 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
         <textarea id="procs_secundarios" rows="2"
           placeholder="Ex: Neuroanestesia, monitorização neurofisiológica intraoperatória…"></textarea></div>
     </div>
+
     <div class="info" style="margin-top:10px">
-      💡 <strong>Internação:</strong> OPME obrigatória para procedimentos cirúrgicos com implante. Preencha a aba OPME na próxima etapa.
+      💡 <strong>Internação é o container do caso:</strong> 1 Internação → N Procedimentos (SADT) → N Materiais (OPME) = 1 Episódio completo.
     </div>
   </div>
 </div>
@@ -1561,8 +1609,9 @@ function prevTab(){goTab(cur-1)}
 /* ── naToggleTipoGuia — controla bloco internação vs SADT ── */
 function naToggleTipoGuia() {
   const tipo = (document.getElementById('tipo_guia')?.value || '').toLowerCase();
-  const isInt  = tipo.includes('internação') || tipo.includes('internacao');
+  const isInt  = tipo.includes('internação') || tipo.includes('internacao') || tipo.includes('cirúrgico');
   const isSADT = tipo.includes('sadt');
+  const isOPME = tipo.includes('opme') || tipo.includes('cirúrgico');
 
   // Formulário: mostrar bloco correto na tab 4
   const cInt  = document.getElementById('card-internacao');
@@ -1578,8 +1627,15 @@ function naToggleTipoGuia() {
   const tgl = document.getElementById('tipo-guia-label');
   if (tgl) tgl.textContent = isInt ? 'Internação Hospitalar' : 'SADT';
 
-  // OPME obrigatório em internação
+  // Sincronizar hospital_internacao com hospital selecionado
   if (isInt) {
+    const hospSel = document.getElementById('hospital');
+    const hospInt = document.getElementById('hospital_internacao');
+    if (hospSel && hospInt) hospInt.value = hospSel.value;
+  }
+
+  // OPME obrigatório em internação cirúrgica ou cirúrgico+opme
+  if (isInt || isOPME) {
     const opme = document.getElementById('necessita_opme');
     if (opme && opme.value === '') { opme.value = 'Sim'; toggleOpme(); }
   }
@@ -1755,13 +1811,22 @@ function collect(){
     carater:caratText[g('carater')]||g('carater'),
     carater_cod:g('carater'),
     tipo_guia:g('tipo_guia'),
-    internacao: (g('tipo_guia')||'').toLowerCase().includes('internação') ? {
-      carater:    g('carater_internacao'),
-      regime:     g('regime_internacao'),
-      diarias:    g('diarias_previstas'),
-      tuss:       g('tuss_internacao'),
-      descricao:  g('descricao_cirurgica'),
-      procs_sec:  g('procs_secundarios'),
+    internacao: ((g('tipo_guia')||'').toLowerCase().includes('internação') || (g('tipo_guia')||'').toLowerCase().includes('cirúrgico')) ? {
+      carater:           g('carater_internacao'),
+      tipo_internacao:   g('tipo_internacao'),
+      regime:            g('regime_internacao'),
+      acomodacao:        g('acomodacao_internacao'),
+      diarias:           g('diarias_previstas'),
+      previsao_uti:      g('previsao_uti'),
+      data_internacao:   g('data_internacao'),
+      hospital:          g('hospital_internacao') || g('hospital'),
+      cid_principal:     g('cid_internacao'),
+      cid_secundario:    g('cid_secundario_internacao'),
+      indicacao_clinica: g('indicacao_clinica_internacao'),
+      tuss:              g('tuss_internacao'),
+      opme_previsto:     g('opme_previsto_internacao'),
+      descricao:         g('descricao_cirurgica'),
+      procs_sec:         g('procs_secundarios'),
     } : null,
     sadt_dados: (g('tipo_guia')||'').toLowerCase().includes('sadt') ? {
       tuss:       g('cod_tuss_sadt'),
@@ -1845,6 +1910,20 @@ function validate(){
   if(!d.medico_solicitante.trim()){errs.push('Nome do médico solicitante');mark('medico_solicitante')}
   if(!d.crm.trim()){errs.push('CRM / conselho');mark('crm')}
 
+  // Conditional: Internação — validação anti-glosa
+  const tipoGuia = (d.tipo_guia||'').toLowerCase();
+  const isInternacao = tipoGuia.includes('internação') || tipoGuia.includes('cirúrgico');
+  if(isInternacao && d.internacao){
+    if(!d.internacao.carater){errs.push('Caráter da internação');mark('carater_internacao')}
+    if(!d.internacao.tipo_internacao){errs.push('Tipo de internação (clínica/cirúrgica)');mark('tipo_internacao')}
+    if(!d.internacao.acomodacao){errs.push('Acomodação (enfermaria/apartamento/UTI)');mark('acomodacao_internacao')}
+    if(!d.internacao.diarias || parseInt(d.internacao.diarias)<=0){errs.push('Diárias previstas (obrigatório > 0)');mark('diarias_previstas')}
+    if(!d.internacao.cid_principal || !d.internacao.cid_principal.trim()){errs.push('CID principal da internação');mark('cid_internacao')}
+    if(!d.internacao.indicacao_clinica || d.internacao.indicacao_clinica.trim().length<20){
+      errs.push('Indicação clínica da internação (mínimo 20 caracteres)');mark('indicacao_clinica_internacao')}
+    if(!d.internacao.descricao || !d.internacao.descricao.trim()){errs.push('Descrição do ato cirúrgico');mark('descricao_cirurgica')}
+  }
+
   // Conditional: coluna → niveis_anatomicos
   if(COLUNA_PROCS.includes(d.procedimento)&&!d.niveis_anatomicos){
     errs.push('Níveis anatômicos (obrigatório para procedimentos de coluna)');mark('niveis_anatomicos')}
@@ -1875,9 +1954,14 @@ function buildMiniRev(){
     <div class="tile-v">${val||'—'}</div>
     ${sub?`<div class="tile-s">${sub}</div>`:''}
   </div>`;
+  const intBlock = d.internacao ? `
+    ${t('🏥 Internação', d.internacao.tipo_internacao ? d.internacao.tipo_internacao.charAt(0).toUpperCase()+d.internacao.tipo_internacao.slice(1) : '—',
+      (d.internacao.acomodacao||'') + (d.internacao.diarias ? ' · '+d.internacao.diarias+' dia(s)' : ''))}
+    ${t('🩺 CID Internação', d.internacao.cid_principal||'—', d.internacao.previsao_uti==='sim'?'⚠ UTI prevista':'')}` : '';
   let html=`<div class="tiles">
     ${t('🧑‍⚕️ Paciente',d.nome_paciente,d.idade)}
     ${t('🏥 Convênio',d.convenio,d.carater)}
+    ${intBlock}
     ${t('🔬 Procedimento',(d.procedimento||'').substring(0,32),d.cid_principal)}
     ${t('🔩 OPME',d.opme_1||'—',d.empresa_opme)}
     ${t('📋 Indicação',(d.indicacao_clinica||'').substring(0,50)+'…','')}
@@ -1960,6 +2044,14 @@ function renderInternacao(d) {
   const tuss = int.tuss || d.cod_tuss || '';
   const descCirurgica = int.descricao || d.procedimento || '';
   const procsSec = int.procs_sec || '';
+  const tipoInt = (int.tipo_internacao||'').charAt(0).toUpperCase() + (int.tipo_internacao||'').slice(1);
+  const acomodacao = (int.acomodacao||'').charAt(0).toUpperCase() + (int.acomodacao||'').slice(1);
+  const prevUTI = int.previsao_uti === 'sim' ? 'Sim' : 'Não';
+  const cidInt = int.cid_principal || d.cid_principal || '';
+  const cidSec = int.cid_secundario || d.cid2 || '';
+  const indicacaoInt = int.indicacao_clinica || d.indicacao_clinica || '';
+  const dataInt = int.data_internacao || d.data_cirurgia || '';
+  const hospitalInt = int.hospital || d.hospital || '';
 
   return `
 <div class="guia-wrap">
@@ -1970,7 +2062,7 @@ function renderInternacao(d) {
     <div class="logo-cariri" style="margin-top:3px">Cariri</div>
   </td>
   <td class="guia-title-cell" rowspan="2" style="font-size:11px;font-weight:700;text-align:center">
-    GUIA DE INTERNAÇÃO HOSPITALAR
+    GUIA DE SOLICITAÇÃO<br>DE INTERNAÇÃO
   </td>
   <td style="text-align:right;font-size:8px;font-weight:700;width:200px;vertical-align:top;padding:2px 4px">
     2 – Nº Guia no Prestador
@@ -2063,49 +2155,103 @@ function renderInternacao(d) {
     </table>
   </td>
 </tr>
-<!-- INTERNAÇÃO -->
-<tr><td colspan="3" class="sh">Dados da Internação</td></tr>
+<!-- DADOS DO HOSPITAL / LOCAL SOLICITADO / DADOS DA INTERNAÇÃO -->
+<tr><td colspan="3" class="sh">Dados do Hospital / Local Solicitado / Dados da Internação</td></tr>
 <tr>
   <td colspan="3" style="padding:0">
     <table style="width:100%;border-collapse:collapse">
       <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:100px">
-          <span class="fn">Caráter</span>
-          <span class="fv">${car}</span>
+        <td style="border:1px solid #000;padding:1px 3px" colspan="2">
+          <span class="fn">20 – Nome do Hospital / Local Solicitado</span>
+          <span class="fv">${hospitalInt}</span>
         </td>
         <td style="border:1px solid #000;padding:1px 3px;width:160px">
-          <span class="fn">Regime</span>
-          <span class="fv">${regime}</span>
+          <span class="fn">21 – Data sugerida p/ internação</span>
+          <span class="fv">${dataInt}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #000;padding:1px 3px;width:100px">
+          <span class="fn">22 – Caráter</span>
+          <span class="fv">${car}</span>
         </td>
         <td style="border:1px solid #000;padding:1px 3px;width:100px">
-          <span class="fn">Diárias previstas</span>
+          <span class="fn">23 – Tipo de Internação</span>
+          <span class="fv">${tipoInt}</span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px;width:120px">
+          <span class="fn">24 – Regime</span>
+          <span class="fv">${regime}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #000;padding:1px 3px">
+          <span class="fn">25 – Qtde Diárias Solicitadas</span>
           <span class="fv">${diarias}</span>
         </td>
         <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">Hospital / Clínica</span>
-          <span class="fv">${d.hospital||''}</span>
+          <span class="fn">26 – Previsão de uso de OPME</span>
+          <span class="fv">${int.opme_previsto==='sim'?'Sim':'Não'}</span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px">
+          <span class="fn">Acomodação</span>
+          <span class="fv">${acomodacao}</span>
+        </td>
+      </tr>
+      ${int.previsao_uti==='sim'?`<tr>
+        <td colspan="3" style="border:1px solid #000;padding:1px 3px;background:#fff3e0">
+          <span class="fn">⚠ Previsão de UTI</span>
+          <span class="fv" style="color:#e65100">Sim</span>
+        </td>
+      </tr>`:''}
+    </table>
+  </td>
+</tr>
+<!-- INDICAÇÃO CLÍNICA -->
+<tr><td colspan="3" class="sh">Indicação Clínica</td></tr>
+<tr>
+  <td colspan="3" style="border:1px solid #000;padding:3px 4px;min-height:60px">
+    <span class="fn">28 – Indicação Clínica</span>
+    <span class="fv sm" style="min-height:50px;display:block">${indicacaoInt}</span>
+  </td>
+</tr>
+<tr>
+  <td colspan="3" style="padding:0">
+    <table style="width:100%;border-collapse:collapse">
+      <tr>
+        <td style="border:1px solid #000;padding:1px 3px;width:130px">
+          <span class="fn">29 – CID 10 Principal</span>
+          <span class="fv">${cidInt}</span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px;width:130px">
+          <span class="fn">30 – CID 10 (2)</span>
+          <span class="fv">${cidSec}</span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px">
+          <span class="fn">33 – Indicação de Acidente</span>
+          <span class="fv">&nbsp;</span>
         </td>
       </tr>
     </table>
   </td>
 </tr>
-<!-- PROCEDIMENTO -->
+<!-- PROCEDIMENTO CIRÚRGICO PRINCIPAL -->
 <tr><td colspan="3" class="sh">Procedimento Cirúrgico Principal</td></tr>
 <tr>
   <td colspan="3" style="padding:0">
     <table style="width:100%;border-collapse:collapse">
       <tr>
         <td style="border:1px solid #000;padding:1px 3px;width:130px">
-          <span class="fn">Código TUSS</span>
+          <span class="fn">35 – Código TUSS</span>
           <span class="fv">${tuss}</span>
         </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:130px">
-          <span class="fn">CID-10</span>
-          <span class="fv">${d.cid_principal||''}</span>
-        </td>
         <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">Descrição do Ato Cirúrgico</span>
+          <span class="fn">36 – Descrição do Ato Cirúrgico</span>
           <span class="fv sm">${descCirurgica}</span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px;width:60px">
+          <span class="fn">37 – Qtde</span>
+          <span class="fv">01</span>
         </td>
       </tr>
     </table>
@@ -2117,13 +2263,6 @@ ${procsSec ? `<tr>
     <span class="fv sm">${procsSec}</span>
   </td>
 </tr>` : ''}
-<!-- INDICAÇÃO -->
-<tr>
-  <td colspan="3" style="border:1px solid #000;padding:3px 4px;min-height:80px">
-    <span class="fn">Indicação Clínica / Justificativa</span>
-    <span class="fv sm" style="min-height:60px;display:block">${d.indicacao_clinica||''}</span>
-  </td>
-</tr>
 <!-- ASSINATURAS -->
 <tr>
   <td colspan="3" style="padding:0">
