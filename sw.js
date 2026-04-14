@@ -1,12 +1,12 @@
 /* ============================================================
-   NEUROAUTH — Service Worker v3.1
-   Estratégia: Cache-first (app shell) + Network-first (fetch)
+   NEUROAUTH — Service Worker v3.2
+   Estratégia: Network-first (index.html) + Cache-fallback (assets)
    Otimizado para ambiente hospitalar (internet instável)
    ============================================================ */
 
 'use strict';
 
-const APP_VERSION = 'neuroauth-v3.1';
+const APP_VERSION = 'neuroauth-v3.2';
 const CACHE_NAME  = APP_VERSION + '-cache';
 
 /* Recursos do app shell a pré-cachear no install */
@@ -18,13 +18,16 @@ const APP_SHELL = [
   './icon-512.png'
 ];
 
+/* Arquivos que devem SEMPRE buscar da rede primeiro */
+const NETWORK_FIRST = ['index.html', '/'];
+
 /* ──────────────────────────────────────────────
    INSTALL — pré-cache do app shell
 ────────────────────────────────────────────── */
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      console.log('[SW] Instalando e cacheando app shell');
+      console.log('[SW v3.2] Instalando e cacheando app shell');
       return cache.addAll(APP_SHELL);
     }).then(function() {
       return self.skipWaiting();
@@ -33,7 +36,7 @@ self.addEventListener('install', function(event) {
 });
 
 /* ──────────────────────────────────────────────
-   ACTIVATE — limpa caches de versões anteriores
+   ACTIVATE — limpa TODOS os caches anteriores
 ────────────────────────────────────────────── */
 self.addEventListener('activate', function(event) {
   event.waitUntil(
@@ -42,7 +45,7 @@ self.addEventListener('activate', function(event) {
         cacheNames
           .filter(function(name) { return name !== CACHE_NAME; })
           .map(function(name) {
-            console.log('[SW] Removendo cache antigo:', name);
+            console.log('[SW v3.2] Removendo cache antigo:', name);
             return caches.delete(name);
           })
       );
@@ -53,34 +56,44 @@ self.addEventListener('activate', function(event) {
 });
 
 /* ──────────────────────────────────────────────
-   FETCH — Cache-first para app shell,
-           Network-first para requisições externas
+   FETCH — Network-first para index.html,
+           Cache-fallback para assets estáticos
 ────────────────────────────────────────────── */
 self.addEventListener('fetch', function(event) {
   var url = new URL(event.request.url);
 
-  /* Requisições externas (webhook Make.com) → sempre network, sem cache */
+  /* Requisições externas → bypass completo */
   if (url.origin !== self.location.origin) {
-    return; /* deixa o browser tratar normalmente */
+    return;
   }
 
-  /* App shell (mesmo origin) → Cache-first com fallback para network */
+  /* index.html e root → NETWORK-FIRST (sempre busca versão nova) */
+  var isNetworkFirst = NETWORK_FIRST.some(function(path) {
+    return url.pathname.endsWith(path) || url.pathname === '/' || url.pathname === '';
+  });
+
+  if (isNetworkFirst) {
+    event.respondWith(
+      fetch(event.request).then(function(response) {
+        if (response && response.status === 200) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, clone);
+          });
+        }
+        return response;
+      }).catch(function() {
+        /* Offline: serve do cache como fallback */
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+
+  /* Assets estáticos (imagens, manifest) → Cache-first */
   event.respondWith(
     caches.match(event.request).then(function(cached) {
-      if (cached) {
-        /* Cachado: serve imediatamente e atualiza em background */
-        var networkFetch = fetch(event.request).then(function(response) {
-          if (response && response.status === 200 && response.type === 'basic') {
-            var clone = response.clone();
-            caches.open(CACHE_NAME).then(function(cache) {
-              cache.put(event.request, clone);
-            });
-          }
-          return response;
-        }).catch(function() { /* offline — já servimos do cache */ });
-        return cached;
-      }
-      /* Não cachado: busca na rede e guarda no cache */
+      if (cached) return cached;
       return fetch(event.request).then(function(response) {
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
