@@ -239,10 +239,15 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 .opme-tbl td,.opme-tbl th{border:1px solid #000;padding:1px 3px;vertical-align:top}
 .opme-tbl .th{background:#e8e8e8;font-weight:700;font-size:7.5px}
 
+/* Guia de Internação A4 — layout oficial */
+.guia-internacao-a4 .guia-table{min-width:660px}
+.guia-internacao-a4 .fblank{min-height:16px;display:block;border-bottom:1px solid #ccc}
+
 @media print{
   .guia-wrap{page-break-inside:avoid}
   .guia-table{font-size:8px}
   .fv{font-size:10px}
+  .guia-internacao-a4{page-break-after:always}
 }
 
 /* ── NEUROAUTH DRAFT CONTROL ─────────────────────────────────── */
@@ -512,7 +517,8 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
     </div>
     <div class="mo-ft">
       <button class="btn btn-sec" onclick="closeModal('pvModal')">Fechar</button>
-      <button class="btn btn-out" onclick="printGuia('sadt')">🖨️ Imprimir SADT</button>
+      <button class="btn btn-out" id="btn-print-internacao" style="display:none" onclick="printGuia('internacao')">🖨️ Imprimir Internação</button>
+      <button class="btn btn-out" id="btn-print-sadt" onclick="printGuia('sadt')">🖨️ Imprimir SADT</button>
       <button class="btn btn-out" onclick="printGuia('opme')">🖨️ Imprimir OPME</button>
       <button class="btn btn-ok" id="confirmSendBtn" onclick="confirmedSend()">
         <span class="spinner" id="sp"></span> ✅ Confirmar Envio
@@ -2035,6 +2041,11 @@ function getEffectiveOpmeItems(d, selOpmes){
 /* ──────────────────────────────────────────────
    RENDER GUIA DE INTERNAÇÃO HOSPITALAR
 ────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────────
+   RENDER GUIA DE INTERNAÇÃO HOSPITALAR — Template A4 TISS Oficial
+   Baseado no modelo real Unimed (49 campos TISS)
+   Layout para pré-visualização e impressão A4
+────────────────────────────────────────────────────────────────── */
 function renderInternacao(d) {
   const int = d.internacao || {};
   const carLabel = {E:'Eletiva', U:'Urgência', X:'Emergência'};
@@ -2052,135 +2063,188 @@ function renderInternacao(d) {
   const indicacaoInt = int.indicacao_clinica || d.indicacao_clinica || '';
   const dataInt = int.data_internacao || d.data_cirurgia || '';
   const hospitalInt = int.hospital || d.hospital || '';
+  const opmePrevisao = int.opme_previsto === 'sim' ? 'Sim' : (int.opme_previsto === 'nao' ? 'Não' : '');
+  const convenio = d.convenio || '';
+  const codANS = d.codigo_ans || '';
+  const numCarteira = d.numero_carteira || '';
+  const valCarteira = d.validade_carteira || '';
+  const nomePaciente = d.nome_paciente || '';
+  const cns = d.cns || '';
+  const dataNasc = d.data_nascimento || '';
+  const sexo = d.sexo || '';
+  const medico = d.medico_solicitante || '';
+  const crm = d.crm || '';
+  const cbo = d.cbo || '';
+  const dataSolic = d.data_solicitacao || new Date().toLocaleDateString('pt-BR');
 
   return `
-<div class="guia-wrap">
+<div class="guia-wrap guia-internacao-a4">
 <table class="guia-table">
+<!-- CABEÇALHO OFICIAL -->
 <tr>
-  <td class="logo-cell" rowspan="2">
+  <td class="logo-cell" rowspan="2" style="width:120px">
     <div class="logo-uni"><div class="logo-u">Unimed</div></div>
-    <div class="logo-cariri" style="margin-top:3px">Cariri</div>
+    <div class="logo-cariri" style="margin-top:3px">${convenio||'Cariri'}</div>
   </td>
-  <td class="guia-title-cell" rowspan="2" style="font-size:11px;font-weight:700;text-align:center">
+  <td class="guia-title-cell" rowspan="2" style="font-size:12px;font-weight:700;text-align:center;letter-spacing:.5px">
     GUIA DE SOLICITAÇÃO<br>DE INTERNAÇÃO
   </td>
-  <td style="text-align:right;font-size:8px;font-weight:700;width:200px;vertical-align:top;padding:2px 4px">
-    2 – Nº Guia no Prestador
+  <td style="text-align:right;font-size:7px;font-weight:700;width:180px;vertical-align:top;padding:2px 4px">
+    <span class="fn">2 – Nº Guia no Prestador</span>
+    <span class="fblank"></span>
   </td>
 </tr>
 <tr>
   <td style="padding:1px 3px">
-    <span class="fn">Tipo</span>
-    <span class="fv">${(d.procedimento||'').toUpperCase()}</span>
+    <span class="fn">Versão</span>
+    <span class="fv" style="font-size:8px">NEUROAUTH v${typeof __NA_VERSION__!=='undefined'?__NA_VERSION__:'3.0'}</span>
   </td>
 </tr>
-<!-- IDENTIFICAÇÃO -->
+
+<!-- IDENTIFICAÇÃO ADMINISTRATIVA -->
 <tr>
   <td colspan="3" style="padding:0">
     <table style="width:100%;border-collapse:collapse">
       <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:110px">
-          <span class="fn">1 – Registro ANS</span>
-          <span class="fv">${d.codigo_ans||''}</span>
-        </td>
         <td style="border:1px solid #000;padding:1px 3px;width:130px">
-          <span class="fn">Data de Solicitação</span>
-          <span class="fv">${d.data_solicitacao||''}</span>
+          <span class="fn">1 – Registro ANS</span>
+          <span class="fv">${codANS}</span>
         </td>
         <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">Nº Guia Principal</span>
-          <span class="fv">&nbsp;</span>
+          <span class="fn">3 – Nº da Guia Atribuído pela Operadora</span>
+          <span class="fblank"></span>
         </td>
+      </tr>
+      <tr>
         <td style="border:1px solid #000;padding:1px 3px;width:130px">
-          <span class="fn">Senha / Autorização</span>
-          <span class="fv">&nbsp;</span>
+          <span class="fn">4 – Data da Autorização</span>
+          <span class="fblank"></span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px">
+          <span class="fn">5 – Senha</span>
+          <span class="fblank"></span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px;width:160px">
+          <span class="fn">6 – Data de Validade da Senha</span>
+          <span class="fblank"></span>
         </td>
       </tr>
     </table>
   </td>
 </tr>
+
 <!-- BENEFICIÁRIO -->
 <tr><td colspan="3" class="sh">Dados do Beneficiário</td></tr>
 <tr>
   <td colspan="3" style="padding:0">
     <table style="width:100%;border-collapse:collapse">
       <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:230px">
-          <span class="fn">Número da Carteira</span>
-          <span class="fv">${d.numero_carteira||''}</span>
+        <td style="border:1px solid #000;padding:1px 3px;width:240px">
+          <span class="fn">7 – Número da Carteira</span>
+          <span class="fv">${numCarteira}</span>
         </td>
         <td style="border:1px solid #000;padding:1px 3px;width:130px">
-          <span class="fn">Validade</span>
-          <span class="fv">${d.validade_carteira||''}</span>
+          <span class="fn">8 – Validade da Carteira</span>
+          <span class="fv">${valCarteira}</span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px;width:90px">
+          <span class="fn">9 – Atendimento a RN</span>
+          <span class="fv">&nbsp;</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #000;padding:1px 3px" colspan="2">
+          <span class="fn">10 – Nome</span>
+          <span class="fv">${nomePaciente}</span>
         </td>
         <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">Nome do Beneficiário</span>
-          <span class="fv">${d.nome_paciente||''}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:160px">
-          <span class="fn">CNS</span>
-          <span class="fv">${d.cns||''}</span>
+          <span class="fn">11 – Cartão Nacional de Saúde</span>
+          <span class="fv">${cns}</span>
         </td>
       </tr>
     </table>
   </td>
 </tr>
-<!-- SOLICITANTE -->
-<tr><td colspan="3" class="sh">Dados do Solicitante</td></tr>
+
+<!-- CONTRATADO SOLICITANTE -->
+<tr><td colspan="3" class="sh">Dados do Contratado Solicitante</td></tr>
+<tr>
+  <td colspan="3" style="padding:0">
+    <table style="width:100%;border-collapse:collapse">
+      <tr>
+        <td style="border:1px solid #000;padding:1px 3px;width:160px">
+          <span class="fn">12 – Código na Operadora</span>
+          <span class="fv">&nbsp;</span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px">
+          <span class="fn">13 – Nome do Contratado</span>
+          <span class="fv">&nbsp;</span>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+
+<!-- PROFISSIONAL SOLICITANTE -->
 <tr>
   <td colspan="3" style="padding:0">
     <table style="width:100%;border-collapse:collapse">
       <tr>
         <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">Nome do Médico Solicitante</span>
-          <span class="fv">${d.medico_solicitante||''}</span>
+          <span class="fn">14 – Nome do Profissional Solicitante</span>
+          <span class="fv">${medico}</span>
         </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:80px">
-          <span class="fn">Conselho</span>
+        <td style="border:1px solid #000;padding:1px 3px;width:70px">
+          <span class="fn">15 – Conselho</span>
           <span class="fv">CRM</span>
         </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:160px">
-          <span class="fn">Número</span>
-          <span class="fv">${d.crm||''}</span>
+        <td style="border:1px solid #000;padding:1px 3px;width:120px">
+          <span class="fn">16 – Número no Conselho</span>
+          <span class="fv">${crm}</span>
         </td>
         <td style="border:1px solid #000;padding:1px 3px;width:40px">
-          <span class="fn">UF</span>
+          <span class="fn">17 – UF</span>
           <span class="fv">CE</span>
         </td>
         <td style="border:1px solid #000;padding:1px 3px;width:80px">
-          <span class="fn">CBO</span>
-          <span class="fv">${d.cbo||''}</span>
+          <span class="fn">18 – Código CBO</span>
+          <span class="fv">${cbo}</span>
         </td>
       </tr>
     </table>
   </td>
 </tr>
-<!-- DADOS DO HOSPITAL / LOCAL SOLICITADO / DADOS DA INTERNAÇÃO -->
+
+<!-- HOSPITAL / LOCAL SOLICITADO / DADOS DA INTERNAÇÃO -->
 <tr><td colspan="3" class="sh">Dados do Hospital / Local Solicitado / Dados da Internação</td></tr>
 <tr>
   <td colspan="3" style="padding:0">
     <table style="width:100%;border-collapse:collapse">
       <tr>
-        <td style="border:1px solid #000;padding:1px 3px" colspan="2">
+        <td style="border:1px solid #000;padding:1px 3px;width:160px">
+          <span class="fn">19 – Código na Operadora / CNPJ</span>
+          <span class="fv">&nbsp;</span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px">
           <span class="fn">20 – Nome do Hospital / Local Solicitado</span>
           <span class="fv">${hospitalInt}</span>
         </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:160px">
-          <span class="fn">21 – Data sugerida p/ internação</span>
+        <td style="border:1px solid #000;padding:1px 3px;width:150px">
+          <span class="fn">21 – Data sugerida para internação</span>
           <span class="fv">${dataInt}</span>
         </td>
       </tr>
       <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:100px">
-          <span class="fn">22 – Caráter</span>
+        <td style="border:1px solid #000;padding:1px 3px">
+          <span class="fn">22 – Caráter do Atendimento</span>
           <span class="fv">${car}</span>
         </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:100px">
+        <td style="border:1px solid #000;padding:1px 3px">
           <span class="fn">23 – Tipo de Internação</span>
           <span class="fv">${tipoInt}</span>
         </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:120px">
-          <span class="fn">24 – Regime</span>
+        <td style="border:1px solid #000;padding:1px 3px">
+          <span class="fn">24 – Regime de Internação</span>
           <span class="fv">${regime}</span>
         </td>
       </tr>
@@ -2191,41 +2255,51 @@ function renderInternacao(d) {
         </td>
         <td style="border:1px solid #000;padding:1px 3px">
           <span class="fn">26 – Previsão de uso de OPME</span>
-          <span class="fv">${int.opme_previsto==='sim'?'Sim':'Não'}</span>
+          <span class="fv">${opmePrevisao}</span>
         </td>
         <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">Acomodação</span>
+          <span class="fn">27 – Acomodação</span>
           <span class="fv">${acomodacao}</span>
         </td>
       </tr>
-      ${int.previsao_uti==='sim'?`<tr>
-        <td colspan="3" style="border:1px solid #000;padding:1px 3px;background:#fff3e0">
-          <span class="fn">⚠ Previsão de UTI</span>
+      ${prevUTI==='Sim'?`<tr>
+        <td colspan="3" style="border:1px solid #000;padding:2px 4px;background:#fff3e0">
+          <span class="fn" style="color:#e65100;font-weight:700">⚠ Previsão de UTI</span>
           <span class="fv" style="color:#e65100">Sim</span>
         </td>
       </tr>`:''}
     </table>
   </td>
 </tr>
+
 <!-- INDICAÇÃO CLÍNICA -->
-<tr><td colspan="3" class="sh">Indicação Clínica</td></tr>
 <tr>
-  <td colspan="3" style="border:1px solid #000;padding:3px 4px;min-height:60px">
+  <td colspan="3" style="border:1px solid #000;padding:3px 4px;min-height:70px">
     <span class="fn">28 – Indicação Clínica</span>
-    <span class="fv sm" style="min-height:50px;display:block">${indicacaoInt}</span>
+    <span class="fv sm" style="min-height:55px;display:block;line-height:1.4">${indicacaoInt}</span>
   </td>
 </tr>
+
+<!-- CIDs -->
 <tr>
   <td colspan="3" style="padding:0">
     <table style="width:100%;border-collapse:collapse">
       <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:130px">
+        <td style="border:1px solid #000;padding:1px 3px;width:120px">
           <span class="fn">29 – CID 10 Principal</span>
           <span class="fv">${cidInt}</span>
         </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:130px">
+        <td style="border:1px solid #000;padding:1px 3px;width:120px">
           <span class="fn">30 – CID 10 (2)</span>
           <span class="fv">${cidSec}</span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px;width:120px">
+          <span class="fn">31 – CID 10 (3)</span>
+          <span class="fv">&nbsp;</span>
+        </td>
+        <td style="border:1px solid #000;padding:1px 3px;width:120px">
+          <span class="fn">32 – CID 10 (4)</span>
+          <span class="fv">&nbsp;</span>
         </td>
         <td style="border:1px solid #000;padding:1px 3px">
           <span class="fn">33 – Indicação de Acidente</span>
@@ -2235,49 +2309,61 @@ function renderInternacao(d) {
     </table>
   </td>
 </tr>
-<!-- PROCEDIMENTO CIRÚRGICO PRINCIPAL -->
-<tr><td colspan="3" class="sh">Procedimento Cirúrgico Principal</td></tr>
+
+<!-- PROCEDIMENTOS -->
+<tr><td colspan="3" class="sh">Procedimentos ou Itens Assistenciais Solicitados</td></tr>
 <tr>
   <td colspan="3" style="padding:0">
     <table style="width:100%;border-collapse:collapse">
       <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:130px">
-          <span class="fn">35 – Código TUSS</span>
-          <span class="fv">${tuss}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">36 – Descrição do Ato Cirúrgico</span>
-          <span class="fv sm">${descCirurgica}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:60px">
-          <span class="fn">37 – Qtde</span>
-          <span class="fv">01</span>
-        </td>
+        <td style="border:1px solid #000;padding:1px 3px;width:50px;background:#f0f0f0;font-size:7px;font-weight:700">34 – Tab</td>
+        <td style="border:1px solid #000;padding:1px 3px;width:130px;background:#f0f0f0;font-size:7px;font-weight:700">35 – Código do Procedimento</td>
+        <td style="border:1px solid #000;padding:1px 3px;background:#f0f0f0;font-size:7px;font-weight:700">36 – Descrição</td>
+        <td style="border:1px solid #000;padding:1px 3px;width:60px;background:#f0f0f0;font-size:7px;font-weight:700">37 – Qtde</td>
       </tr>
+      <tr>
+        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">01</span></td>
+        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">${tuss}</span></td>
+        <td style="border:1px solid #000;padding:1px 3px"><span class="fv sm">${descCirurgica}</span></td>
+        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">01</span></td>
+      </tr>
+${procsSec ? `      <tr>
+        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">02</span></td>
+        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">&nbsp;</span></td>
+        <td style="border:1px solid #000;padding:1px 3px"><span class="fv sm">${procsSec}</span></td>
+        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">01</span></td>
+      </tr>` : ''}
     </table>
   </td>
 </tr>
-${procsSec ? `<tr>
-  <td colspan="3" style="border:1px solid #000;padding:2px 4px">
-    <span class="fn">Procedimentos Secundários / Auxiliares</span>
-    <span class="fv sm">${procsSec}</span>
+
+<!-- OBSERVAÇÃO / JUSTIFICATIVA -->
+<tr>
+  <td colspan="3" style="border:1px solid #000;padding:3px 4px;min-height:40px">
+    <span class="fn">45 – Observação / Justificativa</span>
+    <span class="fv sm" style="min-height:30px;display:block">&nbsp;</span>
   </td>
-</tr>` : ''}
+</tr>
+
 <!-- ASSINATURAS -->
 <tr>
   <td colspan="3" style="padding:0">
     <table style="width:100%;border-collapse:collapse">
       <tr>
-        <td style="border:1px solid #000;padding:2px 4px;height:36px;width:33%">
-          <span class="fn">Assinatura do Médico Solicitante</span>
+        <td style="border:1px solid #000;padding:2px 4px;width:25%">
+          <span class="fn">46 – Data da Solicitação</span>
+          <span class="fv">${dataSolic}</span>
+        </td>
+        <td style="border:1px solid #000;padding:2px 4px;height:42px;width:25%">
+          <span class="fn">47 – Assinatura do Profissional Solicitante</span>
           <span class="sig-area"></span>
         </td>
-        <td style="border:1px solid #000;padding:2px 4px;width:33%">
-          <span class="fn">Assinatura do Beneficiário</span>
+        <td style="border:1px solid #000;padding:2px 4px;width:25%">
+          <span class="fn">48 – Assinatura do Beneficiário ou Responsável</span>
           <span class="sig-area"></span>
         </td>
-        <td style="border:1px solid #000;padding:2px 4px">
-          <span class="fn">Assinatura do Responsável pela Autorização</span>
+        <td style="border:1px solid #000;padding:2px 4px;width:25%">
+          <span class="fn">49 – Assinatura do Responsável pela Autorização</span>
           <span class="sig-area"></span>
         </td>
       </tr>
@@ -2783,7 +2869,7 @@ function renderOPME(d){
 function openPreview(){
   const d=collect();
   const tipo=(d.tipo_guia||'').toLowerCase();
-  const isInt=tipo.includes('internação')||tipo.includes('internacao');
+  const isInt=tipo.includes('internação')||tipo.includes('internacao')||tipo.includes('cirúrgico');
 
   // Renderizar documento principal conforme tipo
   document.getElementById('sadt-render').innerHTML=renderSADT(d,[]);
@@ -2798,6 +2884,12 @@ function openPreview(){
     : document.getElementById('ptab-sadt');
   const firstPage = isInt ? 'pv-internacao' : 'pv-sadt';
   if(firstTab) showPTab(firstPage, firstTab);
+
+  // Mostrar/esconder botões de impressão conforme tipo
+  const btnPrintInt = document.getElementById('btn-print-internacao');
+  const btnPrintSadt = document.getElementById('btn-print-sadt');
+  if(btnPrintInt) btnPrintInt.style.display = isInt ? '' : 'none';
+  if(btnPrintSadt) btnPrintSadt.style.display = isInt ? 'none' : '';
 
   // Payload: documentos_gerados
   d.documentos_gerados = isInt
@@ -3184,7 +3276,9 @@ function naGetPrintHeader(which){
 }
 
 function printGuia(which){
-  const html = which==='sadt'
+  const html = which==='internacao'
+    ? document.getElementById('internacao-render').innerHTML
+    : which==='sadt'
     ? document.getElementById('sadt-render').innerHTML
     : document.getElementById('opme-render').innerHTML;
   const w=window.open('','_blank');
