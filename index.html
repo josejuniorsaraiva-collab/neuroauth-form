@@ -2847,46 +2847,58 @@ function renderOPME(d){
 ────────────────────────────────────────────── */
 function openPreview(){
   const d=collect();
-  const tipo=(d.tipo_guia||'').toLowerCase();
-  const isInt=tipo.includes('internação')||tipo.includes('internacao')||tipo.includes('cirúrgico');
-  const isSADT=tipo.includes('sadt');
-  console.log('[NA] openPreview tipo='+tipo+' isInt='+isInt+' isSADT='+isSADT);
+
+  // ── DETECÇÃO ROBUSTA: normalizar + inferir por campos preenchidos ──
+  const tipo=String(d.tipo_guia||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+  // Inferir internação pelos campos reais preenchidos (não só tipo_guia)
+  const int=d.internacao||{};
+  const hasInternacao=
+    !!(int.carater||d.carater_internacao)||
+    !!(int.tipo_internacao||d.tipo_internacao)||
+    !!(int.acomodacao||d.acomodacao_internacao)||
+    !!(int.cid_principal||d.cid_internacao)||
+    !!(int.indicacao_clinica||d.indicacao_clinica_internacao)||
+    !!(int.descricao||d.descricao_cirurgica);
+
+  const hasSADT=!!(d.procedimento||d.cod_tuss||d.cod_tuss_sadt);
+  const hasOPME=!!(d.necessita_opme==='Sim'||(d.opme_items&&d.opme_items.length));
+
+  const isInt=tipo.includes('internacao')||tipo.includes('cirurgico')||hasInternacao;
+  const isSADT=tipo.includes('sadt')||(!isInt&&hasSADT);
+
+  console.log('[NA] openPreview',{tipo,isInt,isSADT,hasInternacao,hasSADT,hasOPME});
 
   // Renderizar TODOS os documentos
   document.getElementById('sadt-render').innerHTML=renderSADT(d,[]);
   document.getElementById('internacao-render').innerHTML=renderInternacao(d);
 
-  // ── CONTROLE EXPLÍCITO DE ABAS ──
-  // Referências diretas
+  // ── CONTROLE DE ABAS: independentes, não mutuamente exclusivas ──
   var tabInt=document.getElementById('ptab-internacao');
   var tabSADT=document.getElementById('ptab-sadt');
   var btnPrintInt=document.getElementById('btn-print-internacao');
   var btnPrintSadt=document.getElementById('btn-print-sadt');
 
-  if(isInt){
-    // Internação ou Cirúrgico+OPME: mostrar aba Internação, esconder SADT
-    if(tabInt) tabInt.style.display='';
-    if(tabSADT) tabSADT.style.display='none';
-    if(btnPrintInt) btnPrintInt.style.display='';
-    if(btnPrintSadt) btnPrintSadt.style.display='none';
-    // Ativar aba Internação como primeira
-    if(tabInt) showPTab('pv-internacao',tabInt);
-  } else {
-    // SADT: mostrar aba SADT, esconder Internação
-    if(tabInt) tabInt.style.display='none';
-    if(tabSADT) tabSADT.style.display='';
-    if(btnPrintInt) btnPrintInt.style.display='none';
-    if(btnPrintSadt) btnPrintSadt.style.display='';
-    // Ativar aba SADT como primeira
-    if(tabSADT) showPTab('pv-sadt',tabSADT);
+  if(tabInt) tabInt.style.display=isInt?'':'none';
+  if(tabSADT) tabSADT.style.display=(isSADT&&!isInt)?'':'none';
+  if(btnPrintInt) btnPrintInt.style.display=isInt?'':'none';
+  if(btnPrintSadt) btnPrintSadt.style.display=(isSADT&&!isInt)?'':'none';
+
+  // Ativar primeira aba visível
+  if(isInt&&tabInt){
+    showPTab('pv-internacao',tabInt);
+  } else if(isSADT&&tabSADT){
+    showPTab('pv-sadt',tabSADT);
   }
 
   // Payload: documentos_gerados
-  d.documentos_gerados = isInt
-    ? ['internacao','opme','justificativa']
-    : tipo.includes('sadt+opme') || tipo.includes('sadt + opme')
-      ? ['sadt','opme','justificativa']
-      : ['sadt','justificativa'];
+  var docs=[];
+  if(isInt) docs.push('internacao');
+  if(isSADT||!isInt) docs.push('sadt');
+  if(hasOPME) docs.push('opme');
+  docs.push('justificativa');
+  d.documentos_gerados=docs;
 
   populateSidebar(d);
   updateGuiaFromSidebar();
