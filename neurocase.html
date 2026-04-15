@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEUROCASE — Registro Acadêmico Neurocirúrgico</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f8fafc; min-height: 100vh; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #f1f5f9; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  input, textarea, select { font-family: inherit; }
+  button { font-family: inherit; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback } = React;
+
+const SUBAREAS = ["Coluna","Tumor","Vascular","Trauma","Hidrocefalia","Funcional","Base de Crânio","Periférico","Dor","Outro"];
+const POTENCIAL_OPTS = ["Rotineiro","Didático","Complexo","Raro","Publicável"];
+const TABS = [
+  {id:"id",label:"1. Identificação"},
+  {id:"pre",label:"2. Pré-op"},
+  {id:"intra",label:"3. Intraop"},
+  {id:"pos",label:"4. Pós-op"},
+  {id:"acad",label:"5. Acadêmico"},
+];
+const emptyForm = {
+  id:"",idade:"",sexo:"",data:"",subarea:"",diagnostico:"",diagnosticos_sec:"",
+  queixa:"",tempo_sintomas:"",deficit:"",exame_imagem:"",indicacao:"",
+  data_cirurgia:"",procedimento:"",via_acesso:"",equipe:"",intercorrencias:"nao",intercorrencias_desc:"",
+  estado_neuro:"",complicacoes:"",tempo_internacao:"",condicao_alta:"",
+  ponto_chave:"",o_que_ensina:"",potencial:""
+};
+const ACCENT = "#0f4c81";
+
+function Field({label,req,children}){
+  return(
+    <div style={{marginBottom:14}}>
+      <div style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:5}}>
+        {label}{req&&<span style={{color:"#ef4444",marginLeft:2}}>*</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+const inputStyle={width:"100%",padding:"8px 12px",border:"1.5px solid #e2e8f0",borderRadius:8,fontSize:14,color:"#1e293b",background:"#fff",outline:"none",transition:"border-color 0.15s"};
+function Inp({value,onChange,placeholder,type="text"}){
+  const [focus,setFocus]=useState(false);
+  return <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+    style={{...inputStyle,borderColor:focus?"#0f4c81":"#e2e8f0"}}
+    onFocus={()=>setFocus(true)} onBlur={()=>setFocus(false)}/>;
+}
+function Tex({value,onChange,placeholder,rows=3}){
+  const [focus,setFocus]=useState(false);
+  return <textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} rows={rows}
+    style={{...inputStyle,resize:"vertical",borderColor:focus?"#0f4c81":"#e2e8f0"}}
+    onFocus={()=>setFocus(true)} onBlur={()=>setFocus(false)}/>;
+}
+function Sel({value,onChange,options,placeholder}){
+  return(
+    <select value={value} onChange={e=>onChange(e.target.value)}
+      style={{...inputStyle,color:value?"#1e293b":"#94a3b8",cursor:"pointer"}}>
+      <option value="">{placeholder||"Selecione..."}</option>
+      {options.map(o=><option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+}
+
+function buildPrompt(f){
+  return `Você é um assistente clínico-acadêmico especializado em neurocirurgia.
+
+Analise o seguinte caso e gere a saída padronizada completa.
+
+--- DADOS DO CASO ---
+ID: ${f.id||"não informado"} | Idade: ${f.idade||"?"} | Sexo: ${f.sexo||"?"} | Data: ${f.data||"?"}
+Subárea: ${f.subarea||"?"} | Diagnóstico: ${f.diagnostico||"?"}
+Diagnósticos secundários: ${f.diagnosticos_sec||"nenhum"}
+
+PRÉ-OPERATÓRIO
+Queixa: ${f.queixa||"?"} | Tempo: ${f.tempo_sintomas||"?"}
+Déficit neurológico: ${f.deficit||"não informado"}
+Imagem: ${f.exame_imagem||"não informado"}
+Indicação: ${f.indicacao||"não informado"}
+
+INTRAOPERATÓRIO
+Data: ${f.data_cirurgia||"?"} | Procedimento: ${f.procedimento||"?"}
+Via: ${f.via_acesso||"?"} | Equipe: ${f.equipe||"?"}
+Intercorrências: ${f.intercorrencias==="sim"?"Sim — "+f.intercorrencias_desc:"Não"}
+
+PÓS-OPERATÓRIO
+Estado neurológico: ${f.estado_neuro||"?"}
+Complicações: ${f.complicacoes||"nenhuma"}
+Internação: ${f.tempo_internacao||"?"} | Alta: ${f.condicao_alta||"?"}
+
+ACADÊMICO
+Ponto-chave: ${f.ponto_chave||"?"}
+Ensina: ${f.o_que_ensina||"?"}
+Potencial: ${f.potencial||"?"}
+---
+
+Gere a saída EXATAMENTE neste formato (use esses títulos exatos):
+
+## 1. RESUMO CLÍNICO
+[3–5 linhas, linguagem médica técnica]
+
+## 2. LINHA DO TEMPO
+[Sequência cronológica do caso]
+
+## 3. RESUMO ACADÊMICO
+[Versão didática estruturada, foco em ensino]
+
+## 4. TÍTULO SUGERIDO
+[Curto e claro]
+
+## 5. CLASSIFICAÇÃO TEMÁTICA
+[ex: Coluna — Hérnia discal L4-L5]
+
+## 6. CLASSIFICAÇÃO ACADÊMICA
+[Rotineiro / Didático / Complexo / Raro / Publicável — com justificativa]
+
+## 7. PENDÊNCIAS
+[Lista do que está faltando ou inconsistente]
+
+## 8. STATUS FINAL
+[Incompleto / Adequado para arquivo / Adequado para discussão / Adequado para aula / Adequado para publicação]
+
+REGRAS: nunca inventar dados. Se faltar → colocar em Pendências. Linguagem médica técnica.`;
+}
+
+function parseResult(text){
+  const keys=["resumo","timeline","academico","titulo","tematica","academica","pendencias","status"];
+  const out={};
+  keys.forEach((k,i)=>{
+    const n=i+1, nx=i+2;
+    const s=text.indexOf(`## ${n}.`);
+    const e=text.indexOf(`## ${nx}.`);
+    if(s!==-1) out[k]=text.slice(s,e===-1?text.length:e).replace(/^##\s*\d+\.[^\n]*\n/,"").trim();
+    else out[k]="";
+  });
+  return out;
+}
+
+function StatusBadge({t}){
+  const map={
+    "incompleto":["#fee2e2","#dc2626"],
+    "arquivo":["#e0f2fe","#0284c7"],
+    "discussão":["#fef9c3","#ca8a04"],
+    "aula":["#dcfce7","#16a34a"],
+    "publicação":["#f3e8ff","#9333ea"],
+  };
+  const key=Object.keys(map).find(k=>t.toLowerCase().includes(k));
+  const [bg,col]=key?map[key]:["#f1f5f9","#475569"];
+  const labels={"incompleto":"Incompleto","arquivo":"Adequado para arquivo","discussão":"Adequado para discussão","aula":"Adequado para aula","publicação":"Adequado para publicação"};
+  const label=key?labels[key]:t;
+  return <span style={{background:bg,color:col,padding:"5px 14px",borderRadius:99,fontSize:13,fontWeight:700}}>{label}</span>;
+}
+
+function App(){
+  const [tab,setTab]=useState("id");
+  const [form,setForm]=useState(emptyForm);
+  const [view,setView]=useState("form");
+  const [prompt,setPrompt]=useState("");
+  const [resposta,setResposta]=useState("");
+  const [parsed,setParsed]=useState(null);
+  const [copied,setCopied]=useState("");
+
+  const set=k=>v=>setForm(f=>({...f,[k]:v}));
+
+  function gerar(){
+    setPrompt(buildPrompt(form));
+    setView("prompt");
+  }
+  function analisar(){
+    if(!resposta.trim())return;
+    setParsed(parseResult(resposta));
+    setView("result");
+  }
+  function copy(text,key){
+    navigator.clipboard.writeText(text).then(()=>{
+      setCopied(key);
+      setTimeout(()=>setCopied(""),2000);
+    });
+  }
+  function novoCase(){
+    setForm(emptyForm);setResposta("");setPrompt("");setParsed(null);
+    setView("form");setTab("id");
+  }
+  const tabIdx=TABS.findIndex(t=>t.id===tab);
+
+  return(
+    <div style={{fontFamily:"'Segoe UI',system-ui,sans-serif",background:"#f8fafc",minHeight:"100vh",paddingBottom:48}}>
+      {/* Header */}
+      <div style={{background:ACCENT,color:"#fff",padding:"18px 24px",marginBottom:24,boxShadow:"0 2px 8px rgba(15,76,129,0.2)"}}>
+        <div style={{maxWidth:860,margin:"0 auto",display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:28}}>🧠</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>NEUROCASE</div>
+            <div style={{fontSize:12,opacity:0.75}}>Sistema Acadêmico de Registro Neurocirúrgico</div>
+          </div>
+          {view!=="form"&&(
+            <button onClick={()=>setView("form")} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",padding:"7px 16px",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>
+              ← Formulário
+            </button>
+          )}
+          <button onClick={novoCase} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",padding:"7px 16px",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>
+            + Novo Caso
+          </button>
+        </div>
+      </div>
+
+      <div style={{maxWidth:860,margin:"0 auto",padding:"0 16px"}}>
+
+        {/* ── FORM ── */}
+        {view==="form"&&(
+          <>
+            {/* Tabs */}
+            <div style={{display:"flex",gap:4,background:"#fff",padding:6,borderRadius:12,border:"1px solid #e2e8f0",marginBottom:20}}>
+              {TABS.map((t,i)=>(
+                <button key={t.id} onClick={()=>setTab(t.id)} style={{
+                  flex:1,padding:"9px 4px",border:"none",borderRadius:8,cursor:"pointer",
+                  fontSize:12,fontWeight:tab===t.id?700:500,
+                  background:tab===t.id?ACCENT:"transparent",
+                  color:tab===t.id?"#fff":"#64748b",transition:"all 0.15s"
+                }}>{t.label}</button>
+              ))}
+            </div>
+
+            <div style={{background:"#fff",borderRadius:16,border:"1px solid #e2e8f0",padding:"24px 28px"}}>
+
+              {tab==="id"&&(
+                <>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                    <Field label="ID do Caso" req><Inp value={form.id} onChange={set("id")} placeholder="NC-2026-001"/></Field>
+                    <Field label="Data do Caso" req><Inp value={form.data} onChange={set("data")} type="date"/></Field>
+                    <Field label="Idade" req><Inp value={form.idade} onChange={set("idade")} placeholder="Ex: 58 anos"/></Field>
+                    <Field label="Sexo" req><Sel value={form.sexo} onChange={set("sexo")} options={["Masculino","Feminino","Outro"]} placeholder="Selecione..."/></Field>
+                    <Field label="Subárea" req><Sel value={form.subarea} onChange={set("subarea")} options={SUBAREAS}/></Field>
+                    <Field label="Data da Cirurgia"><Inp value={form.data_cirurgia} onChange={set("data_cirurgia")} type="date"/></Field>
+                  </div>
+                  <Field label="Diagnóstico Principal" req><Inp value={form.diagnostico} onChange={set("diagnostico")} placeholder="Ex: Hérnia discal L4-L5 com radiculopatia direita"/></Field>
+                  <Field label="Diagnósticos Secundários"><Inp value={form.diagnosticos_sec} onChange={set("diagnosticos_sec")} placeholder="Ex: HAS, DM2, Espondiloartrose"/></Field>
+                </>
+              )}
+
+              {tab==="pre"&&(
+                <>
+                  <Field label="Queixa Principal" req><Inp value={form.queixa} onChange={set("queixa")} placeholder="Ex: Dor lombar com irradiação para MMII há 6 meses"/></Field>
+                  <Field label="Tempo de Sintomas" req><Inp value={form.tempo_sintomas} onChange={set("tempo_sintomas")} placeholder="Ex: 6 meses"/></Field>
+                  <Field label="Déficit Neurológico"><Tex value={form.deficit} onChange={set("deficit")} placeholder="Ex: Fraqueza grau IV em flexores do pé direito, hipoestesia L5" rows={2}/></Field>
+                  <Field label="Achado Principal de Imagem" req><Tex value={form.exame_imagem} onChange={set("exame_imagem")} placeholder="Ex: RM lombossacra — protrusão discal L4-L5 com compressão radicular direita" rows={2}/></Field>
+                  <Field label="Indicação Cirúrgica" req><Tex value={form.indicacao} onChange={set("indicacao")} placeholder="Ex: Falha ao tratamento conservador por 6 meses + déficit motor progressivo" rows={2}/></Field>
+                </>
+              )}
+
+              {tab==="intra"&&(
+                <>
+                  <Field label="Procedimento Realizado" req><Inp value={form.procedimento} onChange={set("procedimento")} placeholder="Ex: Microdiscectomia L4-L5 com foraminotomia direita"/></Field>
+                  <Field label="Via de Acesso" req><Inp value={form.via_acesso} onChange={set("via_acesso")} placeholder="Ex: Posterior, minimamente invasiva"/></Field>
+                  <Field label="Equipe Cirúrgica"><Inp value={form.equipe} onChange={set("equipe")} placeholder="Ex: Dr. Jose Jr + R2 + R1"/></Field>
+                  <Field label="Intercorrências" req>
+                    <div style={{display:"flex",gap:20}}>
+                      {["nao","sim"].map(v=>(
+                        <label key={v} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:14}}>
+                          <input type="radio" name="interc" checked={form.intercorrencias===v} onChange={()=>set("intercorrencias")(v)}/>
+                          {v==="nao"?"Não":"Sim"}
+                        </label>
+                      ))}
+                    </div>
+                  </Field>
+                  {form.intercorrencias==="sim"&&(
+                    <Field label="Descrição das Intercorrências">
+                      <Tex value={form.intercorrencias_desc} onChange={set("intercorrencias_desc")} placeholder="Descreva o ocorrido" rows={2}/>
+                    </Field>
+                  )}
+                </>
+              )}
+
+              {tab==="pos"&&(
+                <>
+                  <Field label="Estado Neurológico Pós-op" req><Tex value={form.estado_neuro} onChange={set("estado_neuro")} placeholder="Ex: Melhora imediata da dor, força grau V no pós-op imediato" rows={2}/></Field>
+                  <Field label="Complicações"><Tex value={form.complicacoes} onChange={set("complicacoes")} placeholder="Ex: Nenhuma / ou descreva..." rows={2}/></Field>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                    <Field label="Tempo de Internação" req><Inp value={form.tempo_internacao} onChange={set("tempo_internacao")} placeholder="Ex: 2 dias"/></Field>
+                    <Field label="Condição na Alta" req><Inp value={form.condicao_alta} onChange={set("condicao_alta")} placeholder="Ex: Deambulando, sem déficit"/></Field>
+                  </div>
+                </>
+              )}
+
+              {tab==="acad"&&(
+                <>
+                  <Field label="Ponto-chave do Caso" req><Tex value={form.ponto_chave} onChange={set("ponto_chave")} placeholder="Ex: Diagnóstico diferencial entre radiculopatia e neuropatia periférica" rows={2}/></Field>
+                  <Field label="O que este caso ensina" req><Tex value={form.o_que_ensina} onChange={set("o_que_ensina")} placeholder="Ex: Importância da correlação clínico-radiológica antes de indicar cirurgia" rows={2}/></Field>
+                  <Field label="Potencial Acadêmico" req><Sel value={form.potencial} onChange={set("potencial")} options={POTENCIAL_OPTS} placeholder="Classifique o potencial..."/></Field>
+                </>
+              )}
+            </div>
+
+            {/* Nav buttons */}
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:16,gap:12}}>
+              <button onClick={()=>setTab(TABS[tabIdx-1]?.id)} disabled={tabIdx===0}
+                style={{padding:"10px 24px",borderRadius:10,border:"1.5px solid #e2e8f0",background:"#fff",cursor:"pointer",fontSize:14,color:"#475569",opacity:tabIdx===0?0.3:1,fontWeight:500}}>
+                ← Anterior
+              </button>
+              {tabIdx<TABS.length-1?(
+                <button onClick={()=>setTab(TABS[tabIdx+1].id)}
+                  style={{padding:"10px 24px",borderRadius:10,border:"none",background:ACCENT,color:"#fff",cursor:"pointer",fontSize:14,fontWeight:700}}>
+                  Próximo →
+                </button>
+              ):(
+                <button onClick={gerar}
+                  style={{padding:"10px 28px",borderRadius:10,border:"none",background:"#16a34a",color:"#fff",cursor:"pointer",fontSize:14,fontWeight:700}}>
+                  🤖 Gerar Análise IA
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ── PROMPT ── */}
+        {view==="prompt"&&(
+          <div style={{background:"#fff",borderRadius:16,border:"1px solid #e2e8f0",padding:"28px"}}>
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:18,fontWeight:800,color:"#1e293b",marginBottom:4}}>Prompt gerado ✅</div>
+              <div style={{fontSize:14,color:"#64748b"}}>Copie, cole no ChatGPT ou Claude e cole a resposta abaixo.</div>
+            </div>
+
+            <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:12,padding:16,marginBottom:20,position:"relative"}}>
+              <pre style={{fontSize:12,color:"#334155",fontFamily:"monospace",whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:220,overflowY:"auto",lineHeight:1.6}}>
+                {prompt}
+              </pre>
+              <button onClick={()=>copy(prompt,"prompt")}
+                style={{position:"absolute",top:12,right:12,padding:"6px 14px",borderRadius:8,border:"none",background:copied==="prompt"?"#16a34a":ACCENT,color:"#fff",cursor:"pointer",fontSize:12,fontWeight:700}}>
+                {copied==="prompt"?"✓ Copiado!":"Copiar"}
+              </button>
+            </div>
+
+            <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:12,padding:"12px 16px",marginBottom:20,fontSize:13,color:"#92400e"}}>
+              <strong>Como usar:</strong> 1) Copie o prompt acima · 2) Abra <a href="https://chat.openai.com" target="_blank" style={{color:"#0f4c81"}}>chat.openai.com</a> (gratuito) ou <a href="https://claude.ai" target="_blank" style={{color:"#0f4c81"}}>claude.ai</a> · 3) Cole e aguarde a resposta · 4) Copie a resposta completa e cole abaixo
+            </div>
+
+            <div style={{marginBottom:12,fontSize:14,fontWeight:600,color:"#1e293b"}}>Cole a resposta aqui:</div>
+            <textarea value={resposta} onChange={e=>setResposta(e.target.value)}
+              placeholder="Cole aqui a resposta completa do ChatGPT ou Claude..." rows={10}
+              style={{width:"100%",padding:"12px",border:"1.5px solid #e2e8f0",borderRadius:10,fontSize:13,fontFamily:"inherit",color:"#334155",background:"#fff",resize:"vertical"}}/>
+            <button onClick={analisar} disabled={!resposta.trim()}
+              style={{marginTop:12,width:"100%",padding:"12px",borderRadius:10,border:"none",
+                background:resposta.trim()?"#16a34a":"#e2e8f0",
+                color:resposta.trim()?"#fff":"#94a3b8",
+                cursor:resposta.trim()?"pointer":"not-allowed",fontSize:15,fontWeight:700}}>
+              📊 Ver Análise Estruturada
+            </button>
+          </div>
+        )}
+
+        {/* ── RESULT ── */}
+        {view==="result"&&parsed&&(
+          <>
+            {/* Status card */}
+            <div style={{background:"#fff",borderRadius:16,border:"1px solid #e2e8f0",padding:"20px 24px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+              <div>
+                <div style={{fontSize:17,fontWeight:800,color:"#1e293b"}}>{form.id||"Caso"} — {form.diagnostico||"Sem diagnóstico"}</div>
+                <div style={{fontSize:13,color:"#64748b",marginTop:2}}>{form.subarea} · {form.idade} · {form.sexo} · {form.data}</div>
+              </div>
+              <StatusBadge t={parsed.status}/>
+            </div>
+
+            {[
+              {k:"resumo",title:"Resumo Clínico",icon:"📋",color:"#0f4c81"},
+              {k:"timeline",title:"Linha do Tempo",icon:"⏱️",color:"#0369a1"},
+              {k:"academico",title:"Resumo Acadêmico",icon:"🎓",color:"#7c3aed"},
+              {k:"titulo",title:"Título Sugerido",icon:"📌",color:"#b45309"},
+              {k:"tematica",title:"Classificação Temática",icon:"🏷️",color:"#0f766e"},
+              {k:"academica",title:"Classificação Acadêmica",icon:"⭐",color:"#b45309"},
+              {k:"pendencias",title:"Pendências",icon:"⚠️",color:"#dc2626"},
+            ].filter(s=>parsed[s.k]).map(s=>(
+              <div key={s.k} style={{background:"#fff",borderRadius:14,border:"1px solid #e2e8f0",padding:"18px 24px",marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:700,color:s.color,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>
+                  {s.icon} {s.title}
+                </div>
+                <div style={{fontSize:14,color:"#334155",lineHeight:1.7,whiteSpace:"pre-wrap"}}>{parsed[s.k]}</div>
+              </div>
+            ))}
+
+            <div style={{display:"flex",gap:10,marginTop:8}}>
+              <button onClick={()=>copy(resposta,"relatorio")}
+                style={{flex:1,padding:"12px",borderRadius:10,border:"1.5px solid #e2e8f0",background:"#fff",cursor:"pointer",fontSize:14,fontWeight:600,color:"#475569"}}>
+                {copied==="relatorio"?"✓ Copiado!":"Copiar Relatório"}
+              </button>
+              <button onClick={novoCase}
+                style={{flex:1,padding:"12px",borderRadius:10,border:"none",background:ACCENT,color:"#fff",cursor:"pointer",fontSize:14,fontWeight:700}}>
+                + Novo Caso
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
