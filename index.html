@@ -2,8 +2,29 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>NEUROAUTH v3.0 — Solicitação Cirúrgica</title>
+<script>
+/* SW KILL — força limpeza de cache na primeira carga após deploy v3.6 */
+if('serviceWorker' in navigator){
+  var _swVer='v3.6';
+  if(localStorage.getItem('na_sw_ver')!==_swVer){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(r){r.unregister();});
+    });
+    caches.keys().then(function(keys){
+      keys.forEach(function(k){caches.delete(k);});
+    });
+    localStorage.setItem('na_sw_ver',_swVer);
+    if(navigator.serviceWorker.controller){
+      setTimeout(function(){location.reload(true);},300);
+    }
+  }
+}
+</script>
 
 <!-- iOS PWA Meta Tags -->
 <meta name="apple-mobile-web-app-capable" content="yes"/>
