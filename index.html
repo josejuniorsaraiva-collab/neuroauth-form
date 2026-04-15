@@ -10,7 +10,7 @@
 <script>
 /* SW KILL — força limpeza de cache na primeira carga após deploy v3.6 */
 if('serviceWorker' in navigator){
-  var _swVer='v3.6';
+  var _swVer='v3.7';
   if(localStorage.getItem('na_sw_ver')!==_swVer){
     navigator.serviceWorker.getRegistrations().then(function(regs){
       regs.forEach(function(r){r.unregister();});
@@ -2053,6 +2053,11 @@ function getEffectiveOpmeItems(d, selOpmes){
    Baseado no modelo real Unimed (49 campos TISS)
    Layout para pré-visualização e impressão A4
 ────────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   RENDER GUIA DE INTERNAÇÃO — Modelo fiel Unimed TISS
+   Referência: guia-de-solicitacao-de-internacao UNIMED
+   49 campos, layout verde, tabela 12 linhas, seção autorização
+═══════════════════════════════════════════════════════════════ */
 function renderInternacao(d) {
   const int = d.internacao || {};
   const carLabel = {E:'Eletiva', U:'Urgência', X:'Emergência'};
@@ -2083,300 +2088,186 @@ function renderInternacao(d) {
   const crm = d.crm || '';
   const cbo = d.cbo || '';
   const dataSolic = d.data_solicitacao || new Date().toLocaleDateString('pt-BR');
+  // Procedimentos: principal da seleção + auxiliares
+  const selProcs = typeof getSelectedProcs==='function' ? getSelectedProcs() : [];
+  const procPrincipal = selProcs.length ? selProcs[0] : {codigo:tuss,descricao:descCirurgica};
+  const procsAux = selProcs.length>1 ? selProcs.slice(1) : (procsSec ? [{codigo:'',descricao:procsSec}] : []);
+  // CSS inline para modelo verde Unimed
+  const B='border:1px solid #5a8f5a;'; const P='padding:2px 4px;'; const VT='vertical-align:top;';
+  const SH='background:#c8dfc8;font-weight:700;font-size:7.5px;'+P;
+  const FN='font-size:6.5px;color:#333;display:block;margin-bottom:1px;';
+  const FV='font-size:9px;font-weight:600;min-height:13px;display:block;color:#000;';
+
+  // Gerar linhas de procedimentos (12 slots como no modelo real)
+  var procRows='';
+  for(var pi=0;pi<12;pi++){
+    var p=pi===0?procPrincipal:(pi-1<procsAux.length?procsAux[pi-1]:null);
+    procRows+=`<tr>
+      <td style="${B}${P}width:20px;font-size:7px;font-weight:700">${String(pi+1).padStart(2,'0')}</td>
+      <td style="${B}${P}width:40px"><span style="${FV}font-size:8px">${p?'57':''}</span></td>
+      <td style="${B}${P}width:120px"><span style="${FV}font-size:8px">${p?p.codigo||'':''}</span></td>
+      <td style="${B}${P}"><span style="${FV}font-size:8px">${p?p.descricao||'':''}</span></td>
+      <td style="${B}${P}width:55px;text-align:center"><span style="${FV}font-size:8px">${p?'01':''}</span></td>
+      <td style="${B}${P}width:55px"><span style="${FV}font-size:8px"></span></td>
+    </tr>`;
+  }
 
   return `
-<div class="guia-wrap guia-internacao-a4">
-<table class="guia-table">
-<!-- CABEÇALHO OFICIAL -->
+<div class="guia-wrap guia-internacao-a4" style="font-family:Arial,Helvetica,sans-serif;font-size:8px;color:#000;background:#fff">
+<table style="width:100%;border-collapse:collapse;border:2px solid #5a8f5a">
+<!-- CABEÇALHO — fiel ao modelo Unimed verde -->
 <tr>
-  <td class="logo-cell" rowspan="2" style="width:120px">
-    <div class="logo-uni"><div class="logo-u">Unimed</div></div>
-    <div class="logo-cariri" style="margin-top:3px">${convenio||'Cariri'}</div>
+  <td rowspan="2" style="${B}${P}${VT}width:110px;background:#c8dfc8">
+    <div style="background:#1a6b1a;color:#fff;padding:3px 8px;font-size:11px;font-weight:900;font-style:italic;border-radius:2px;display:inline-block">Unimed</div>
+    <div style="font-size:7px;margin-top:2px;color:#333">${convenio||'Norte de Minas'}</div>
   </td>
-  <td class="guia-title-cell" rowspan="2" style="font-size:12px;font-weight:700;text-align:center;letter-spacing:.5px">
+  <td rowspan="2" style="${B}text-align:center;font-weight:700;font-size:11px;padding:6px;letter-spacing:.5px">
     GUIA DE SOLICITAÇÃO<br>DE INTERNAÇÃO
   </td>
-  <td style="text-align:right;font-size:7px;font-weight:700;width:180px;vertical-align:top;padding:2px 4px">
-    <span class="fn">2 – Nº Guia no Prestador</span>
-    <span class="fblank"></span>
+  <td style="${B}${P}width:180px;${VT}">
+    <span style="${FN}font-weight:700">2- Nº Guia no Prestador</span>
+    <span style="${FV}">&nbsp;</span>
   </td>
 </tr>
-<tr>
-  <td style="padding:1px 3px">
-    <span class="fn">Versão</span>
-    <span class="fv" style="font-size:8px">NEUROAUTH v${typeof __NA_VERSION__!=='undefined'?__NA_VERSION__:'3.0'}</span>
-  </td>
-</tr>
+<tr><td style="${B}${P}"><span style="${FN}">NEUROAUTH v${typeof __NA_VERSION__!=='undefined'?__NA_VERSION__:'3.0'}</span></td></tr>
 
-<!-- IDENTIFICAÇÃO ADMINISTRATIVA -->
+<!-- 1, 3 -->
 <tr>
-  <td colspan="3" style="padding:0">
-    <table style="width:100%;border-collapse:collapse">
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:130px">
-          <span class="fn">1 – Registro ANS</span>
-          <span class="fv">${codANS}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">3 – Nº da Guia Atribuído pela Operadora</span>
-          <span class="fblank"></span>
-        </td>
-      </tr>
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:130px">
-          <span class="fn">4 – Data da Autorização</span>
-          <span class="fblank"></span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">5 – Senha</span>
-          <span class="fblank"></span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:160px">
-          <span class="fn">6 – Data de Validade da Senha</span>
-          <span class="fblank"></span>
-        </td>
-      </tr>
-    </table>
-  </td>
+  <td style="${B}${P}"><span style="${FN}">1 - Registro ANS</span><span style="${FV}">${codANS}</span></td>
+  <td colspan="2" style="${B}${P}"><span style="${FN}">3 - Número da Guia Atribuído pela Operadora</span><span style="${FV}">&nbsp;</span></td>
+</tr>
+<!-- 4, 5, 6 -->
+<tr>
+  <td style="${B}${P}"><span style="${FN}">4 - Data da Autorização</span><span style="${FV}">&nbsp;</span></td>
+  <td style="${B}${P}"><span style="${FN}">5 - Senha</span><span style="${FV}">&nbsp;</span></td>
+  <td style="${B}${P}"><span style="${FN}">6 – Data de Validade da Senha</span><span style="${FV}">&nbsp;</span></td>
 </tr>
 
 <!-- BENEFICIÁRIO -->
-<tr><td colspan="3" class="sh">Dados do Beneficiário</td></tr>
+<tr><td colspan="3" style="${SH}">Dados do Beneficiário</td></tr>
+<!-- 7, 8, 9 -->
 <tr>
-  <td colspan="3" style="padding:0">
-    <table style="width:100%;border-collapse:collapse">
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:240px">
-          <span class="fn">7 – Número da Carteira</span>
-          <span class="fv">${numCarteira}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:130px">
-          <span class="fn">8 – Validade da Carteira</span>
-          <span class="fv">${valCarteira}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:90px">
-          <span class="fn">9 – Atendimento a RN</span>
-          <span class="fv">&nbsp;</span>
-        </td>
-      </tr>
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px" colspan="2">
-          <span class="fn">10 – Nome</span>
-          <span class="fv">${nomePaciente}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">11 – Cartão Nacional de Saúde</span>
-          <span class="fv">${cns}</span>
-        </td>
-      </tr>
-    </table>
-  </td>
+  <td style="${B}${P}"><span style="${FN}">7 - Número da Carteira</span><span style="${FV}">${numCarteira}</span></td>
+  <td style="${B}${P}"><span style="${FN}">8 - Validade da Carteira</span><span style="${FV}">${valCarteira}</span></td>
+  <td style="${B}${P}width:80px"><span style="${FN}">9-Atendimento a RN</span><span style="${FV}">&nbsp;</span></td>
+</tr>
+<!-- 10, 11 -->
+<tr>
+  <td colspan="2" style="${B}${P}"><span style="${FN}">10 - Nome</span><span style="${FV}">${nomePaciente}</span></td>
+  <td style="${B}${P}"><span style="${FN}">11 - Cartão Nacional de Saúde</span><span style="${FV}">${cns}</span></td>
 </tr>
 
 <!-- CONTRATADO SOLICITANTE -->
-<tr><td colspan="3" class="sh">Dados do Contratado Solicitante</td></tr>
+<tr><td colspan="3" style="${SH}">Dados do Contratado Solicitante</td></tr>
 <tr>
-  <td colspan="3" style="padding:0">
-    <table style="width:100%;border-collapse:collapse">
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:160px">
-          <span class="fn">12 – Código na Operadora</span>
-          <span class="fv">&nbsp;</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">13 – Nome do Contratado</span>
-          <span class="fv">&nbsp;</span>
-        </td>
-      </tr>
-    </table>
+  <td style="${B}${P}"><span style="${FN}">12 – Código na Operadora</span><span style="${FV}">&nbsp;</span></td>
+  <td colspan="2" style="${B}${P}"><span style="${FN}">13 - Nome do Contratado</span><span style="${FV}">&nbsp;</span></td>
+</tr>
+
+<!-- PROFISSIONAL SOLICITANTE: 14-18 -->
+<tr>
+  <td style="${B}${P}"><span style="${FN}">14 - Nome do Profissional Solicitante</span><span style="${FV}">${medico}</span></td>
+  <td style="${B}${P}padding:0">
+    <table style="width:100%;border-collapse:collapse"><tr>
+      <td style="${B}${P}width:60px"><span style="${FN}">15 - Conselho Profissional</span><span style="${FV}">CRM</span></td>
+      <td style="${B}${P}"><span style="${FN}">16 - Número no Conselho</span><span style="${FV}">${crm}</span></td>
+    </tr></table>
+  </td>
+  <td style="${B}${P}padding:0">
+    <table style="width:100%;border-collapse:collapse"><tr>
+      <td style="${B}${P}width:35px"><span style="${FN}">17 - UF</span><span style="${FV}">CE</span></td>
+      <td style="${B}${P}"><span style="${FN}">18 - Código CBO</span><span style="${FV}">${cbo}</span></td>
+    </tr></table>
   </td>
 </tr>
 
-<!-- PROFISSIONAL SOLICITANTE -->
+<!-- HOSPITAL / INTERNAÇÃO -->
+<tr><td colspan="3" style="${SH}">Dados do Hospital/Local Solicitado / Dados da Internação</td></tr>
+<!-- 19, 20, 21 -->
 <tr>
-  <td colspan="3" style="padding:0">
-    <table style="width:100%;border-collapse:collapse">
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">14 – Nome do Profissional Solicitante</span>
-          <span class="fv">${medico}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:70px">
-          <span class="fn">15 – Conselho</span>
-          <span class="fv">CRM</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:120px">
-          <span class="fn">16 – Número no Conselho</span>
-          <span class="fv">${crm}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:40px">
-          <span class="fn">17 – UF</span>
-          <span class="fv">CE</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:80px">
-          <span class="fn">18 – Código CBO</span>
-          <span class="fv">${cbo}</span>
-        </td>
-      </tr>
-    </table>
+  <td style="${B}${P}"><span style="${FN}">19- Código na Operadora / CNPJ</span><span style="${FV}">&nbsp;</span></td>
+  <td style="${B}${P}"><span style="${FN}">20 - Nome do Hospital/Local Solicitado</span><span style="${FV}">${hospitalInt}</span></td>
+  <td style="${B}${P}"><span style="${FN}">21 - Data sugerida para internação</span><span style="${FV}">${dataInt}</span></td>
+</tr>
+<!-- 22-27 em linha única como no modelo -->
+<tr>
+  <td colspan="3" style="${B}padding:0">
+    <table style="width:100%;border-collapse:collapse"><tr>
+      <td style="${B}${P}"><span style="${FN}">22 - Caráter do Atendimento</span><span style="${FV}">${car}</span></td>
+      <td style="${B}${P}"><span style="${FN}">23-Tipo de Internação</span><span style="${FV}">${tipoInt}</span></td>
+      <td style="${B}${P}"><span style="${FN}">24 - Regime de Internação</span><span style="${FV}">${regime}</span></td>
+      <td style="${B}${P}"><span style="${FN}">25 - Qtde. Diárias Solicitadas</span><span style="${FV}">${diarias}</span></td>
+      <td style="${B}${P}"><span style="${FN}">26 – Previsão de uso de OPME</span><span style="${FV}">${opmePrevisao}</span></td>
+      <td style="${B}${P}"><span style="${FN}">27 – Previsão de uso de quimioterápico</span><span style="${FV}">&nbsp;</span></td>
+    </tr></table>
   </td>
 </tr>
 
-<!-- HOSPITAL / LOCAL SOLICITADO / DADOS DA INTERNAÇÃO -->
-<tr><td colspan="3" class="sh">Dados do Hospital / Local Solicitado / Dados da Internação</td></tr>
-<tr>
-  <td colspan="3" style="padding:0">
-    <table style="width:100%;border-collapse:collapse">
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:160px">
-          <span class="fn">19 – Código na Operadora / CNPJ</span>
-          <span class="fv">&nbsp;</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">20 – Nome do Hospital / Local Solicitado</span>
-          <span class="fv">${hospitalInt}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:150px">
-          <span class="fn">21 – Data sugerida para internação</span>
-          <span class="fv">${dataInt}</span>
-        </td>
-      </tr>
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">22 – Caráter do Atendimento</span>
-          <span class="fv">${car}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">23 – Tipo de Internação</span>
-          <span class="fv">${tipoInt}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">24 – Regime de Internação</span>
-          <span class="fv">${regime}</span>
-        </td>
-      </tr>
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">25 – Qtde Diárias Solicitadas</span>
-          <span class="fv">${diarias}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">26 – Previsão de uso de OPME</span>
-          <span class="fv">${opmePrevisao}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">27 – Acomodação</span>
-          <span class="fv">${acomodacao}</span>
-        </td>
-      </tr>
-      ${prevUTI==='Sim'?`<tr>
-        <td colspan="3" style="border:1px solid #000;padding:2px 4px;background:#fff3e0">
-          <span class="fn" style="color:#e65100;font-weight:700">⚠ Previsão de UTI</span>
-          <span class="fv" style="color:#e65100">Sim</span>
-        </td>
-      </tr>`:''}
-    </table>
-  </td>
-</tr>
+<!-- 28 INDICAÇÃO CLÍNICA -->
+<tr><td colspan="3" style="${B}${P}min-height:60px">
+  <span style="${FN}">28 - Indicação Clínica</span>
+  <span style="${FV}min-height:45px;display:block;line-height:1.5;font-size:9px">${indicacaoInt}</span>
+</td></tr>
 
-<!-- INDICAÇÃO CLÍNICA -->
-<tr>
-  <td colspan="3" style="border:1px solid #000;padding:3px 4px;min-height:70px">
-    <span class="fn">28 – Indicação Clínica</span>
-    <span class="fv sm" style="min-height:55px;display:block;line-height:1.4">${indicacaoInt}</span>
-  </td>
-</tr>
+<!-- CIDs: 29-33 -->
+<tr><td colspan="3" style="${B}padding:0">
+  <table style="width:100%;border-collapse:collapse"><tr>
+    <td style="${B}${P}width:110px"><span style="${FN}">29-CID 10 Principal</span><span style="${FV}">${cidInt}</span></td>
+    <td style="${B}${P}width:110px"><span style="${FN}">30 - CID 10 (2)</span><span style="${FV}">${cidSec}</span></td>
+    <td style="${B}${P}width:110px"><span style="${FN}">31 - CID 10 (3)</span><span style="${FV}">&nbsp;</span></td>
+    <td style="${B}${P}width:110px"><span style="${FN}">32 - CID 10 (4 )</span><span style="${FV}">&nbsp;</span></td>
+    <td style="${B}${P}"><span style="${FN}">33 - Indicação de Acidente (acidente ou doença relacionada)</span><span style="${FV}">&nbsp;</span></td>
+  </tr></table>
+</td></tr>
 
-<!-- CIDs -->
-<tr>
-  <td colspan="3" style="padding:0">
-    <table style="width:100%;border-collapse:collapse">
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:120px">
-          <span class="fn">29 – CID 10 Principal</span>
-          <span class="fv">${cidInt}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:120px">
-          <span class="fn">30 – CID 10 (2)</span>
-          <span class="fv">${cidSec}</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:120px">
-          <span class="fn">31 – CID 10 (3)</span>
-          <span class="fv">&nbsp;</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px;width:120px">
-          <span class="fn">32 – CID 10 (4)</span>
-          <span class="fv">&nbsp;</span>
-        </td>
-        <td style="border:1px solid #000;padding:1px 3px">
-          <span class="fn">33 – Indicação de Acidente</span>
-          <span class="fv">&nbsp;</span>
-        </td>
-      </tr>
-    </table>
-  </td>
-</tr>
+<!-- PROCEDIMENTOS: tabela 12 linhas como modelo real -->
+<tr><td colspan="3" style="${SH}">Procedimentos ou Itens Assistenciais Solicitados</td></tr>
+<tr><td colspan="3" style="${B}padding:0">
+  <table style="width:100%;border-collapse:collapse">
+    <tr style="background:#e8efe8">
+      <td style="${B}${P}width:20px;font-size:6.5px;font-weight:700">&nbsp;</td>
+      <td style="${B}${P}width:40px;font-size:6.5px;font-weight:700">34-Tabela</td>
+      <td style="${B}${P}width:120px;font-size:6.5px;font-weight:700">35 - Código do Procedimento ou Item Assistencial</td>
+      <td style="${B}${P}font-size:6.5px;font-weight:700">36 - Descrição</td>
+      <td style="${B}${P}width:55px;font-size:6.5px;font-weight:700;text-align:center">37 - Qtde. Solic</td>
+      <td style="${B}${P}width:55px;font-size:6.5px;font-weight:700;text-align:center">38 – Qtde Aut</td>
+    </tr>
+    ${procRows}
+  </table>
+</td></tr>
 
-<!-- PROCEDIMENTOS -->
-<tr><td colspan="3" class="sh">Procedimentos ou Itens Assistenciais Solicitados</td></tr>
-<tr>
-  <td colspan="3" style="padding:0">
-    <table style="width:100%;border-collapse:collapse">
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px;width:50px;background:#f0f0f0;font-size:7px;font-weight:700">34 – Tab</td>
-        <td style="border:1px solid #000;padding:1px 3px;width:130px;background:#f0f0f0;font-size:7px;font-weight:700">35 – Código do Procedimento</td>
-        <td style="border:1px solid #000;padding:1px 3px;background:#f0f0f0;font-size:7px;font-weight:700">36 – Descrição</td>
-        <td style="border:1px solid #000;padding:1px 3px;width:60px;background:#f0f0f0;font-size:7px;font-weight:700">37 – Qtde</td>
-      </tr>
-      <tr>
-        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">01</span></td>
-        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">${tuss}</span></td>
-        <td style="border:1px solid #000;padding:1px 3px"><span class="fv sm">${descCirurgica}</span></td>
-        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">01</span></td>
-      </tr>
-${procsSec ? `      <tr>
-        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">02</span></td>
-        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">&nbsp;</span></td>
-        <td style="border:1px solid #000;padding:1px 3px"><span class="fv sm">${procsSec}</span></td>
-        <td style="border:1px solid #000;padding:1px 3px"><span class="fv" style="font-size:9px">01</span></td>
-      </tr>` : ''}
-    </table>
-  </td>
-</tr>
+<!-- DADOS DA AUTORIZAÇÃO: 39-44 -->
+<tr><td colspan="3" style="${SH}">Dados da Autorização</td></tr>
+<tr><td colspan="3" style="${B}padding:0">
+  <table style="width:100%;border-collapse:collapse">
+    <tr>
+      <td style="${B}${P}"><span style="${FN}">39 - Data Provável da Admissão Hospitalar</span><span style="${FV}">${dataInt}</span></td>
+      <td style="${B}${P}"><span style="${FN}">40 - Qtde. Diarias Autorizadas</span><span style="${FV}">&nbsp;</span></td>
+      <td style="${B}${P}"><span style="${FN}">41 - Tipo da Acomodação Autorizada</span><span style="${FV}">${acomodacao}</span></td>
+    </tr>
+    <tr>
+      <td style="${B}${P}"><span style="${FN}">42 - Código na Operadora / CNPJ autorizado</span><span style="${FV}">&nbsp;</span></td>
+      <td style="${B}${P}"><span style="${FN}">43 - Nome do Hospital / Local Autorizado</span><span style="${FV}">${hospitalInt}</span></td>
+      <td style="${B}${P}"><span style="${FN}">44 - Código CNES</span><span style="${FV}">&nbsp;</span></td>
+    </tr>
+  </table>
+</td></tr>
 
-<!-- OBSERVAÇÃO / JUSTIFICATIVA -->
-<tr>
-  <td colspan="3" style="border:1px solid #000;padding:3px 4px;min-height:40px">
-    <span class="fn">45 – Observação / Justificativa</span>
-    <span class="fv sm" style="min-height:30px;display:block">&nbsp;</span>
-  </td>
-</tr>
+<!-- 45 OBSERVAÇÃO -->
+<tr><td colspan="3" style="${B}${P}min-height:40px">
+  <span style="${FN}">45 – Observação / Justificativa</span>
+  <span style="${FV}min-height:28px;display:block">&nbsp;</span>
+</td></tr>
 
-<!-- ASSINATURAS -->
-<tr>
-  <td colspan="3" style="padding:0">
-    <table style="width:100%;border-collapse:collapse">
-      <tr>
-        <td style="border:1px solid #000;padding:2px 4px;width:25%">
-          <span class="fn">46 – Data da Solicitação</span>
-          <span class="fv">${dataSolic}</span>
-        </td>
-        <td style="border:1px solid #000;padding:2px 4px;height:42px;width:25%">
-          <span class="fn">47 – Assinatura do Profissional Solicitante</span>
-          <span class="sig-area"></span>
-        </td>
-        <td style="border:1px solid #000;padding:2px 4px;width:25%">
-          <span class="fn">48 – Assinatura do Beneficiário ou Responsável</span>
-          <span class="sig-area"></span>
-        </td>
-        <td style="border:1px solid #000;padding:2px 4px;width:25%">
-          <span class="fn">49 – Assinatura do Responsável pela Autorização</span>
-          <span class="sig-area"></span>
-        </td>
-      </tr>
-    </table>
-  </td>
-</tr>
+<!-- ASSINATURAS: 46-49 -->
+<tr><td colspan="3" style="${B}padding:0">
+  <table style="width:100%;border-collapse:collapse"><tr>
+    <td style="${B}${P}width:25%"><span style="${FN}">46-Data da Solicitação</span><span style="${FV}">${dataSolic}</span></td>
+    <td style="${B}${P}width:25%;height:38px"><span style="${FN}">47-Assinatura do Profissional Solicitante</span></td>
+    <td style="${B}${P}width:25%"><span style="${FN}">48-Assinatura do Beneficiário ou Responsável</span></td>
+    <td style="${B}${P}width:25%"><span style="${FN}">49-Assinatura do Responsável pela Autorização</span></td>
+  </tr></table>
+</td></tr>
 </table>
 </div>`;
 }
@@ -2876,54 +2767,43 @@ function renderOPME(d){
 function openPreview(){
   const d=collect();
 
-  // ── DETECÇÃO ROBUSTA: normalizar + inferir por campos preenchidos ──
-  const tipo=String(d.tipo_guia||'').toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-
-  // Inferir internação pelos campos reais preenchidos (não só tipo_guia)
+  // ── FLAGS INDEPENDENTES (lógica acumulativa, nunca excludente) ──
   const int=d.internacao||{};
-  const hasInternacao=
-    !!(int.carater||d.carater_internacao)||
-    !!(int.tipo_internacao||d.tipo_internacao)||
-    !!(int.acomodacao||d.acomodacao_internacao)||
-    !!(int.cid_principal||d.cid_internacao)||
-    !!(int.indicacao_clinica||d.indicacao_clinica_internacao)||
-    !!(int.descricao||d.descricao_cirurgica);
-
-  const hasSADT=!!(d.procedimento||d.cod_tuss||d.cod_tuss_sadt);
+  const hasInternacao=!!d.internacao;
+  const hasSADT=!!(d.procedimento||d.cod_tuss||d.cod_tuss_sadt||d.cod_cbhpm);
   const hasOPME=!!(d.necessita_opme==='Sim'||(d.opme_items&&d.opme_items.length));
 
-  const isInt=tipo.includes('internacao')||tipo.includes('cirurgico')||hasInternacao;
-  const isSADT=tipo.includes('sadt')||(!isInt&&hasSADT);
+  console.log('[NA] openPreview',{hasInternacao,hasSADT,hasOPME,internacao:d.internacao});
 
-  console.log('[NA] openPreview',{tipo,isInt,isSADT,hasInternacao,hasSADT,hasOPME});
-
-  // Renderizar TODOS os documentos
+  // Renderizar TODOS os documentos sempre
   document.getElementById('sadt-render').innerHTML=renderSADT(d,[]);
   document.getElementById('internacao-render').innerHTML=renderInternacao(d);
 
-  // ── CONTROLE DE ABAS: independentes, não mutuamente exclusivas ──
+  // ── ABAS: mostrar tudo que tiver dados (acumulativo) ──
   var tabInt=document.getElementById('ptab-internacao');
   var tabSADT=document.getElementById('ptab-sadt');
   var btnPrintInt=document.getElementById('btn-print-internacao');
   var btnPrintSadt=document.getElementById('btn-print-sadt');
 
-  if(tabInt) tabInt.style.display=isInt?'':'none';
-  if(tabSADT) tabSADT.style.display=(isSADT&&!isInt)?'':'none';
-  if(btnPrintInt) btnPrintInt.style.display=isInt?'':'none';
-  if(btnPrintSadt) btnPrintSadt.style.display=(isSADT&&!isInt)?'':'none';
+  // Internação: visível se houver dados de internação
+  if(tabInt) tabInt.style.display=hasInternacao?'':'none';
+  if(btnPrintInt) btnPrintInt.style.display=hasInternacao?'':'none';
 
-  // Ativar primeira aba visível
-  if(isInt&&tabInt){
+  // SADT: visível se houver procedimento (INDEPENDENTE de internação)
+  if(tabSADT) tabSADT.style.display=hasSADT?'':'none';
+  if(btnPrintSadt) btnPrintSadt.style.display=hasSADT?'':'none';
+
+  // Ativar primeira aba com dados
+  if(hasInternacao&&tabInt){
     showPTab('pv-internacao',tabInt);
-  } else if(isSADT&&tabSADT){
+  } else if(hasSADT&&tabSADT){
     showPTab('pv-sadt',tabSADT);
   }
 
-  // Payload: documentos_gerados
+  // Payload: documentos_gerados (acumulativo)
   var docs=[];
-  if(isInt) docs.push('internacao');
-  if(isSADT||!isInt) docs.push('sadt');
+  if(hasInternacao) docs.push('internacao');
+  if(hasSADT) docs.push('sadt');
   if(hasOPME) docs.push('opme');
   docs.push('justificativa');
   d.documentos_gerados=docs;
