@@ -10,7 +10,7 @@
 <script>
 /* SW KILL — força limpeza de cache na primeira carga após deploy v3.6 */
 if('serviceWorker' in navigator){
-  var _swVer='v3.7';
+  var _swVer='v3.8';
   if(localStorage.getItem('na_sw_ver')!==_swVer){
     navigator.serviceWorker.getRegistrations().then(function(regs){
       regs.forEach(function(r){r.unregister();});
@@ -2064,34 +2064,33 @@ function renderInternacao(d) {
   const car = carLabel[int.carater || d.carater_cod] || int.carater || d.carater || '';
   const regime = int.regime || d.regime || '';
   const diarias = int.diarias || '';
-  const tuss = int.tuss || d.cod_tuss || '';
-  const descCirurgica = int.descricao || d.procedimento || '';
-  const procsSec = int.procs_sec || '';
+  // ── FONTE ÚNICA: procedimentos vêm do builder (SADT), justificativa do campo global ──
+  const selProcs = typeof getSelectedProcs==='function' ? getSelectedProcs() : [];
+  const procPrincipal = selProcs.length ? selProcs[0] : {codigo: int.tuss||d.cod_tuss||'', descricao: d.procedimento||int.descricao||''};
+  const procsAux = selProcs.length>1 ? selProcs.slice(1) : (int.procs_sec ? [{codigo:'',descricao:int.procs_sec}] : []);
+  // Justificativa: fonte única = g('indicacao_clinica') ou sidebar
+  const justEl = typeof document!=='undefined' ? document.getElementById('sb-justificativa') : null;
+  const indicacaoInt = (justEl&&justEl.value.trim()) || d.indicacao_clinica || int.indicacao_clinica || '';
+  // Dados da internação
   const tipoInt = (int.tipo_internacao||'').charAt(0).toUpperCase() + (int.tipo_internacao||'').slice(1);
   const acomodacao = (int.acomodacao||'').charAt(0).toUpperCase() + (int.acomodacao||'').slice(1);
   const prevUTI = int.previsao_uti === 'sim' ? 'Sim' : 'Não';
-  const cidInt = int.cid_principal || d.cid_principal || '';
+  const cidInt = d.cid_principal || int.cid_principal || '';
   const cidSec = int.cid_secundario || d.cid2 || '';
-  const indicacaoInt = int.indicacao_clinica || d.indicacao_clinica || '';
   const dataInt = int.data_internacao || d.data_cirurgia || '';
   const hospitalInt = int.hospital || d.hospital || '';
-  const opmePrevisao = int.opme_previsto === 'sim' ? 'Sim' : (int.opme_previsto === 'nao' ? 'Não' : '');
+  const opmePrevisao = (int.opme_previsto==='sim'||d.necessita_opme==='Sim') ? 'Sim' : (int.opme_previsto==='nao' ? 'Não' : '');
+  // Dados administrativos
   const convenio = d.convenio || '';
   const codANS = d.codigo_ans || '';
   const numCarteira = d.numero_carteira || '';
   const valCarteira = d.validade_carteira || '';
   const nomePaciente = d.nome_paciente || '';
   const cns = d.cns || '';
-  const dataNasc = d.data_nascimento || '';
-  const sexo = d.sexo || '';
   const medico = d.medico_solicitante || '';
   const crm = d.crm || '';
   const cbo = d.cbo || '';
   const dataSolic = d.data_solicitacao || new Date().toLocaleDateString('pt-BR');
-  // Procedimentos: principal da seleção + auxiliares
-  const selProcs = typeof getSelectedProcs==='function' ? getSelectedProcs() : [];
-  const procPrincipal = selProcs.length ? selProcs[0] : {codigo:tuss,descricao:descCirurgica};
-  const procsAux = selProcs.length>1 ? selProcs.slice(1) : (procsSec ? [{codigo:'',descricao:procsSec}] : []);
   // CSS inline para modelo verde Unimed
   const B='border:1px solid #5a8f5a;'; const P='padding:2px 4px;'; const VT='vertical-align:top;';
   const SH='background:#c8dfc8;font-weight:700;font-size:7.5px;'+P;
@@ -3050,6 +3049,12 @@ function loadFavOpmes(){
   toast(`⭐ ${favs.length} favorito(s) carregado(s)`);
 }
 
+/* Fonte única: procedimento principal do episódio (usado por Internação e SADT) */
+function getCoreProcedimento(){
+  var procs=getSelectedProcs();
+  return procs&&procs.length?procs[0]:null;
+}
+
 function getSelectedProcs(){
   const items=[];
   const proc=g('procedimento');
@@ -3152,6 +3157,7 @@ function updateGuiaFromSidebar(){
     ? opmeFinal.map((o,i)=>`${i+1}. ${o.descricao} (qtd: ${o.qtd||1})`).join('\n')
     : '';
   document.getElementById('sadt-render').innerHTML=renderSADT(enriched,selProcs);
+  document.getElementById('internacao-render').innerHTML=renderInternacao(enriched);
   document.getElementById('opme-render').innerHTML=renderOPME(enriched);
   document.getElementById('dados-render').textContent=JSON.stringify({
     ...enriched,

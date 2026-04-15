@@ -6,7 +6,7 @@
 
 'use strict';
 
-const APP_VERSION = 'neuroauth-v3.7';
+const APP_VERSION = 'neuroauth-v3.8';
 const CACHE_NAME  = APP_VERSION + '-cache';
 
 /* Recursos do app shell a pré-cachear no install */
