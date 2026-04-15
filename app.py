@@ -286,6 +286,45 @@ def route_login():
     return jsonify(response), status
 
 
+@app.route("/auth/google", methods=["POST"])
+def auth_google():
+    """POST /auth/google — verifica Google ID token e devolve hub JWT."""
+    import jwt as _jwt
+    import time as _time
+    from google.oauth2 import id_token as _id_token
+    from google.auth.transport import requests as _grequests
+
+    data = request.get_json(force=True) or {}
+    credential = data.get("credential", "")
+    if not credential:
+        return jsonify({"error": "missing_credential", "message": "Campo 'credential' obrigatório."}), 400
+
+    GOOGLE_CLIENT_ID = os.environ.get(
+        "GOOGLE_CLIENT_ID",
+        "118851719832-qaktum0kj1a6r2a2fp6c75hhag8p2tlf.apps.googleusercontent.com"
+    )
+    try:
+        idinfo = _id_token.verify_oauth2_token(
+            credential, _grequests.Request(), GOOGLE_CLIENT_ID
+        )
+        email = (idinfo.get("email") or "").strip().lower()
+        name  = idinfo.get("name", email)
+    except Exception as e:
+        log.warning("auth_google: token inválido — %s", e)
+        return jsonify({"error": "invalid_credential", "message": "Token Google inválido ou expirado."}), 401
+
+    SECRET_KEY = os.environ.get("SECRET_KEY", "")
+    if not SECRET_KEY:
+        log.error("auth_google: SECRET_KEY não configurada")
+        return jsonify({"error": "server_misconfigured", "message": "Servidor não configurado."}), 500
+
+    exp = int(_time.time()) + 86400  # 24 horas
+    payload = {"sub": email, "email": email, "name": name, "role": "medico", "exp": exp}
+    token = _jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    log.info("auth_google: JWT emitido para %s", email)
+    return jsonify({"access_token": token, "token_type": "bearer", "email": email}), 200
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # PROFILES — busca em PROC_MESTRE
 # ══════════════════════════════════════════════════════════════════════════════
