@@ -1799,24 +1799,26 @@ function collect(){
     internacao: (function(){
       var tg=String(g('tipo_guia')||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       var byTipo=tg.includes('internacao')||tg.includes('cirurgico');
-      var byFields=!!(g('carater_internacao')||g('tipo_internacao')||g('acomodacao_internacao')||g('cid_internacao')||g('indicacao_clinica_internacao')||g('descricao_cirurgica'));
-      return (byTipo||byFields)?{
-        carater:           g('carater_internacao'),
-        tipo_internacao:   g('tipo_internacao'),
-        regime:            g('regime_internacao'),
-        acomodacao:        g('acomodacao_internacao'),
-        diarias:           g('diarias_previstas'),
-        previsao_uti:      g('previsao_uti'),
-        data_internacao:   g('data_internacao'),
-        hospital:          g('hospital_internacao') || g('hospital'),
-        cid_principal:     g('cid_internacao'),
-        cid_secundario:    g('cid_secundario_internacao'),
-        indicacao_clinica: g('indicacao_clinica_internacao'),
-        tuss:              g('tuss_internacao'),
-        opme_previsto:     g('opme_previsto_internacao'),
-        descricao:         g('descricao_cirurgica'),
-        procs_sec:         g('procs_secundarios'),
-      }:null;
+      /* Campos com fallback: ID da aba internação → ID global */
+      var obj={
+        carater:           gv('carater_internacao','carater'),
+        tipo_internacao:   gv('tipo_internacao'),
+        regime:            gv('regime_internacao','regime'),
+        acomodacao:        gv('acomodacao_internacao'),
+        diarias:           gv('diarias_previstas'),
+        previsao_uti:      gv('previsao_uti'),
+        data_internacao:   gv('data_internacao','data_cirurgia'),
+        hospital:          gv('hospital_internacao','hospital'),
+        cid_principal:     gv('cid_internacao','cid_principal'),
+        cid_secundario:    gv('cid_secundario_internacao','cid2'),
+        indicacao_clinica: gv('indicacao_clinica_internacao','indicacao_clinica'),
+        tuss:              gv('tuss_internacao','cod_tuss'),
+        opme_previsto:     gv('opme_previsto_internacao'),
+        descricao:         gv('descricao_cirurgica','procedimento'),
+        procs_sec:         gv('procs_secundarios'),
+      };
+      var byFields=!!(obj.carater||obj.tipo_internacao||obj.acomodacao||obj.cid_principal||obj.indicacao_clinica||obj.descricao||obj.diarias);
+      return (byTipo||byFields)?obj:null;
     })(),
     sadt_dados: (g('tipo_guia')||'').toLowerCase().includes('sadt') ? {
       tuss:       g('cod_tuss_sadt'),
@@ -3515,6 +3517,8 @@ function doReset(){
    HELPERS
 ────────────────────────────────────────────── */
 function g(id){return document.getElementById(id)?.value||''}
+/* gv: busca valor com fallback por múltiplos IDs */
+function gv(){for(var i=0;i<arguments.length;i++){var v=(document.getElementById(arguments[i])?.value||'').trim();if(v)return v;}return '';}
 function sv(id,val){const el=document.getElementById(id);if(el)el.value=val}
 function openModal(id){document.getElementById(id).classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
