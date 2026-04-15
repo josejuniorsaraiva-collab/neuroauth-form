@@ -1614,10 +1614,10 @@ function prevTab(){goTab(cur-1)}
 
 /* ── naToggleTipoGuia — controla bloco internação vs SADT ── */
 function naToggleTipoGuia() {
-  const tipo = (document.getElementById('tipo_guia')?.value || '').toLowerCase();
-  const isInt  = tipo.includes('internação') || tipo.includes('internacao') || tipo.includes('cirúrgico');
+  const tipo = (document.getElementById('tipo_guia')?.value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const isInt  = tipo.includes('internacao') || tipo.includes('cirurgico');
   const isSADT = tipo.includes('sadt');
-  const isOPME = tipo.includes('opme') || tipo.includes('cirúrgico');
+  const isOPME = tipo.includes('opme') || tipo.includes('cirurgico');
 
   // Formulário: mostrar bloco correto na tab 4
   const cInt  = document.getElementById('card-internacao');
@@ -1796,23 +1796,28 @@ function collect(){
     carater:caratText[g('carater')]||g('carater'),
     carater_cod:g('carater'),
     tipo_guia:g('tipo_guia'),
-    internacao: ((g('tipo_guia')||'').toLowerCase().includes('internação') || (g('tipo_guia')||'').toLowerCase().includes('cirúrgico')) ? {
-      carater:           g('carater_internacao'),
-      tipo_internacao:   g('tipo_internacao'),
-      regime:            g('regime_internacao'),
-      acomodacao:        g('acomodacao_internacao'),
-      diarias:           g('diarias_previstas'),
-      previsao_uti:      g('previsao_uti'),
-      data_internacao:   g('data_internacao'),
-      hospital:          g('hospital_internacao') || g('hospital'),
-      cid_principal:     g('cid_internacao'),
-      cid_secundario:    g('cid_secundario_internacao'),
-      indicacao_clinica: g('indicacao_clinica_internacao'),
-      tuss:              g('tuss_internacao'),
-      opme_previsto:     g('opme_previsto_internacao'),
-      descricao:         g('descricao_cirurgica'),
-      procs_sec:         g('procs_secundarios'),
-    } : null,
+    internacao: (function(){
+      var tg=String(g('tipo_guia')||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      var byTipo=tg.includes('internacao')||tg.includes('cirurgico');
+      var byFields=!!(g('carater_internacao')||g('tipo_internacao')||g('acomodacao_internacao')||g('cid_internacao')||g('indicacao_clinica_internacao')||g('descricao_cirurgica'));
+      return (byTipo||byFields)?{
+        carater:           g('carater_internacao'),
+        tipo_internacao:   g('tipo_internacao'),
+        regime:            g('regime_internacao'),
+        acomodacao:        g('acomodacao_internacao'),
+        diarias:           g('diarias_previstas'),
+        previsao_uti:      g('previsao_uti'),
+        data_internacao:   g('data_internacao'),
+        hospital:          g('hospital_internacao') || g('hospital'),
+        cid_principal:     g('cid_internacao'),
+        cid_secundario:    g('cid_secundario_internacao'),
+        indicacao_clinica: g('indicacao_clinica_internacao'),
+        tuss:              g('tuss_internacao'),
+        opme_previsto:     g('opme_previsto_internacao'),
+        descricao:         g('descricao_cirurgica'),
+        procs_sec:         g('procs_secundarios'),
+      }:null;
+    })(),
     sadt_dados: (g('tipo_guia')||'').toLowerCase().includes('sadt') ? {
       tuss:       g('cod_tuss_sadt'),
       qtd:        g('qtd_sadt'),
@@ -1896,8 +1901,8 @@ function validate(){
   if(!d.crm.trim()){errs.push('CRM / conselho');mark('crm')}
 
   // Conditional: Internação — validação anti-glosa
-  const tipoGuia = (d.tipo_guia||'').toLowerCase();
-  const isInternacao = tipoGuia.includes('internação') || tipoGuia.includes('cirúrgico');
+  const tipoGuia = (d.tipo_guia||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const isInternacao = tipoGuia.includes('internacao') || tipoGuia.includes('cirurgico') || !!d.internacao;
   if(isInternacao && d.internacao){
     if(!d.internacao.carater){errs.push('Caráter da internação');mark('carater_internacao')}
     if(!d.internacao.tipo_internacao){errs.push('Tipo de internação (clínica/cirúrgica)');mark('tipo_internacao')}
