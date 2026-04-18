@@ -1028,9 +1028,7 @@ async function naHandleLogin(response){
     <p style="color:#fff">Carregando perfil de <strong>${name}</strong>…</p>
   </div>`;
   try{
-    window._na_pending_credential = response.credential || null; // expõe para DEV BYPASS
     const perfil=await naFetchPerfil(email);
-    window._na_pending_credential = null; // limpa após uso
     const sess={email,name,picture:picture||'',perfil,expires:Date.now()+NA_SESSION_TTL};
     sessionStorage.setItem('na_session',JSON.stringify(sess));
     naRenderPresala(perfil,sess);
@@ -1056,37 +1054,17 @@ async function naFetchPerfil(email){
   const DEV_BYPASS_USERS = ['josejuniorsaraiva@gmail.com'];
   if(DEV_BYPASS_USERS.indexOf(_emailNorm) !== -1){
     console.log('[NEUROAUTH] ✅ CAMADA 1 — DEV BYPASS acionado para:', _emailNorm);
-    // ── Obter JWT real do hub mesmo no bypass ──────────────────────
-    const _cred = window._na_pending_credential;
-    if(_cred){
-      try{
-        const _resp = await fetch('https://neuroauth-auth.onrender.com/auth/google',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({credential:_cred})
-        });
-        const _data = await _resp.json();
-        if(_data && _data.access_token){
-          localStorage.setItem('na_hub_jwt', _data.access_token); // chave legada
-          localStorage.setItem('na_jwt', _data.access_token);      // chave usada no control_hub
-          console.log('[NEUROAUTH] ✅ DEV BYPASS — JWT real do hub salvo em localStorage (na_jwt + na_hub_jwt)');
-        }
-      }catch(_e){
-        console.warn('[NEUROAUTH] DEV BYPASS — falha ao obter JWT do hub (não crítico):', _e.message);
-      }
-    }
-    // ──────────────────────────────────────────────────────────────
     return {
       user_email:            _emailNorm,
       email:                 _emailNorm,
       ativo:                 true,
       plano:                 'dev',
       role:                  'founder',
-      medico_nome:           'Dr. José Correia Jr.',
+      medico_nome:           'Jose Jr (Dev)',
       perfil_tipo:           'cirurgiao',
-      crm:                   'CRM/CE 18227',
+      crm:                   'DEV-000',
       cbo:                   '225135',
-      hospital_padrao:       'Hospital Santo Antônio — Barbalha',
+      hospital_padrao:       'Hospital Dev',
       convenios_habilitados: 'Unimed',
       bypass:                true
     };
