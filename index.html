@@ -3983,21 +3983,28 @@ function _nrProjectScore(score, nCrits, nWarns){
 
 /* ── Semantic grouping: replaces translate+dedup ── */
 function _nrGroupIssues(rawItems){
-  // Define semantic categories with keywords and clean labels
+  // Categorias semânticas com labels em linguagem humana
   var categories = [
-    { key:'imagem',       label:'Falta exame de imagem com laudo (RM ou TC)',
+    { key:'imagem',
+      label:'Falta exame de imagem com laudo para comprovar a indica\u00E7\u00E3o cir\u00FArgica',
       kw:['imagem','rm ','ressonancia','tomografia','tc ','achado','evidencia','evidência','correlacao','correlação'] },
-    { key:'conservador',  label:'Tratamento conservador insuficiente',
+    { key:'conservador',
+      label:'O tempo de tratamento conservador ainda n\u00E3o atinge o m\u00EDnimo exigido',
       kw:['conservador','semanas','tratamento prvio','tratamento prévio'] },
-    { key:'dut_ans',      label:'N\u00E3o cumpre crit\u00E9rio regulat\u00F3rio ANS/DUT',
+    { key:'dut_ans',
+      label:'O caso ainda n\u00E3o atende aos crit\u00E9rios m\u00EDnimos da ANS para este procedimento',
       kw:['dut','diretriz','ans_dut','regulat'] },
-    { key:'justificativa',label:'Relat\u00F3rio cl\u00EDnico insuficiente',
+    { key:'justificativa',
+      label:'A justificativa cl\u00EDnica est\u00E1 incompleta ou muito curta para a operadora',
       kw:['justificativa','relatorio','relatório','texto insuficiente','curto','caracteres'] },
-    { key:'opme',         label:'OPME sem justificativa cl\u00EDnica individualizada',
+    { key:'opme',
+      label:'Os materiais OPME precisam de justificativa cl\u00EDnica individualizada',
       kw:['opme','material','implante'] },
-    { key:'convenio',     label:'Dados do conv\u00EAnio incompletos ou inv\u00E1lidos',
+    { key:'convenio',
+      label:'Os dados do conv\u00EAnio est\u00E3o incompletos ou inv\u00E1lidos',
       kw:['convenio','convênio','operadora','plano'] },
-    { key:'cid',          label:'CID ausente ou incompat\u00EDvel',
+    { key:'cid',
+      label:'O diagn\u00F3stico (CID) est\u00E1 ausente ou n\u00E3o corresponde ao procedimento',
       kw:['cid','diagnostico','diagnóstico'] }
   ];
 
@@ -4057,19 +4064,19 @@ function _nrGroupIssues(rawItems){
 function _nrBuildReasonSentence(crits, warns){
   if(crits.length === 0 && warns.length === 0) return '';
   var parts = [];
-  // Pick top 2 critical labels (already clean)
   var src = crits.length > 0 ? crits : warns;
   for(var i=0; i<Math.min(2,src.length); i++){
     var t = src[i].txt.toLowerCase();
-    // Shorten for the reason line
     if(t.indexOf('imagem')!==-1) parts.push('falta exame de imagem com laudo');
-    else if(t.indexOf('conservador')!==-1) parts.push('tratamento conservador insuficiente');
-    else if(t.indexOf('ans')!==-1 || t.indexOf('dut')!==-1) parts.push('bloqueio regulat\u00F3rio ANS/DUT');
-    else if(t.indexOf('relat\u00f3rio')!==-1 || t.indexOf('justificativa')!==-1) parts.push('documenta\u00E7\u00E3o cl\u00EDnica insuficiente');
-    else if(t.indexOf('opme')!==-1) parts.push('OPME sem justificativa');
+    else if(t.indexOf('conservador')!==-1) parts.push('o tempo de tratamento conservador \u00E9 insuficiente');
+    else if(t.indexOf('ans')!==-1 || t.indexOf('crit\u00e9rios')!==-1) parts.push('o caso n\u00E3o cumpre os crit\u00E9rios m\u00EDnimos exigidos pela ANS');
+    else if(t.indexOf('justificativa')!==-1 || t.indexOf('cl\u00ednica')!==-1) parts.push('a justificativa cl\u00EDnica est\u00E1 incompleta');
+    else if(t.indexOf('opme')!==-1) parts.push('os materiais OPME precisam de justificativa');
+    else if(t.indexOf('conv\u00eanio')!==-1) parts.push('dados do conv\u00EAnio incompletos');
+    else if(t.indexOf('diagn\u00f3stico')!==-1 || t.indexOf('cid')!==-1) parts.push('o diagn\u00F3stico n\u00E3o foi informado');
     else parts.push(src[i].txt.split(' \u2014 ')[0].toLowerCase());
   }
-  if(parts.length === 0) return 'Ajustes necess\u00E1rios antes do envio';
+  if(parts.length === 0) return 'Ajustes necess\u00E1rios antes do envio.';
   return 'Motivo principal: ' + parts.join(' e ') + '.';
 }
 
@@ -4084,17 +4091,19 @@ function _nrBuildChecklist(crits, warns, data){
   var checks = [];
   var allTxt = crits.concat(warns).map(function(i){return i.txt.toLowerCase();}).join('|');
   if(allTxt.indexOf('imagem')!==-1 || allTxt.indexOf('rm')!==-1 || allTxt.indexOf('tc')!==-1)
-    checks.push('Anexar RM ou TC com laudo');
+    checks.push('Anexar RM ou TC com laudo para comprovar a indica\u00E7\u00E3o cir\u00FArgica');
   if(allTxt.indexOf('conservador')!==-1)
-    checks.push('Documentar \u22656 semanas de tratamento conservador');
-  if(allTxt.indexOf('relat\u00f3rio')!==-1 || allTxt.indexOf('justificativa')!==-1)
-    checks.push('Ampliar justificativa cl\u00EDnica (m\u00EDnimo 200 caracteres)');
+    checks.push('Documentar pelo menos 6 semanas de tratamento conservador');
+  if(allTxt.indexOf('justificativa')!==-1 || allTxt.indexOf('cl\u00ednica')!==-1)
+    checks.push('Ampliar a justificativa cl\u00EDnica descrevendo falha do tratamento e impacto funcional');
   if(allTxt.indexOf('opme')!==-1)
-    checks.push('Revisar indica\u00E7\u00E3o e justificativa da OPME');
-  if(allTxt.indexOf('dut')!==-1 || allTxt.indexOf('ans')!==-1)
-    checks.push('Verificar crit\u00E9rios DUT/ANS para o procedimento');
+    checks.push('Incluir justificativa cl\u00EDnica individual para cada material OPME solicitado');
+  if(allTxt.indexOf('ans')!==-1 || allTxt.indexOf('crit\u00e9rios')!==-1)
+    checks.push('Revisar se o caso atende aos crit\u00E9rios m\u00EDnimos da ANS para este tipo de cirurgia');
   if(allTxt.indexOf('conv\u00eanio')!==-1 || allTxt.indexOf('operadora')!==-1)
-    checks.push('Confirmar dados do conv\u00EAnio/operadora');
+    checks.push('Conferir se os dados do conv\u00EAnio est\u00E3o completos e corretos');
+  if(allTxt.indexOf('diagn\u00f3stico')!==-1 || allTxt.indexOf('cid')!==-1)
+    checks.push('Informar o CID correto que corresponda ao procedimento solicitado');
   if(checks.length===0 && data.proximos_passos)
     checks = data.proximos_passos.slice(0,4);
   return checks;
