@@ -450,20 +450,41 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 .nr-nogo .nr-score-bar{background:var(--rp);color:var(--r1)}
 .nr-nogo .nr-badge{background:var(--rp);color:var(--r1)}
 
-.nr-score-bar{padding:10px 24px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+/* Reason line */
+.nr-reason{padding:10px 24px;font-size:13px;font-weight:600;border-bottom:1px solid var(--s2)}
+.nr-go .nr-reason{background:var(--gp);color:var(--g1)}
+.nr-ressalvas .nr-reason{background:var(--ap);color:var(--a1)}
+.nr-nogo .nr-reason{background:var(--rp);color:var(--r1)}
+
+.nr-score-bar{padding:12px 24px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px}
 .nr-score-bar .nr-score-num{font-size:22px;font-weight:900}
+.nr-score-label{font-size:12px;font-weight:600;margin-top:2px}
+.nr-score-proj{font-size:11px;opacity:.7;width:100%;margin-top:2px}
 
 .nr-body{padding:18px 24px}
 .nr-section{margin-bottom:16px}
 .nr-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--s4);margin-bottom:8px}
-.nr-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin:0 4px 4px 0}
+/* Critical vs warning sections */
+.nr-sec-crit{background:var(--rp);border-radius:8px;padding:12px 14px;border-left:4px solid var(--r1)}
+.nr-title-crit{color:var(--r1)}
+.nr-sec-warn{background:var(--ap);border-radius:8px;padding:12px 14px;border-left:4px solid var(--a1)}
+.nr-title-warn{color:var(--a1)}
 .nr-list{list-style:none;padding:0;margin:0}
-.nr-list li{padding:6px 0;border-bottom:1px solid var(--s2);font-size:13px;line-height:1.5;display:flex;align-items:flex-start;gap:8px}
+.nr-list li{padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06);font-size:13px;line-height:1.5;display:flex;align-items:flex-start;gap:8px}
 .nr-list li:last-child{border-bottom:none}
 .nr-list li::before{content:'';display:none}
 .nr-list .nr-icon{flex-shrink:0;width:18px;text-align:center}
-.nr-just{background:var(--s1);border-radius:8px;padding:12px 14px;font-size:12px;line-height:1.6;
-  color:var(--s5);border-left:3px solid var(--b2);margin-top:4px;white-space:pre-wrap}
+.nr-list .nr-rule-code{font-size:10px;color:var(--s4);display:block;margin-top:1px}
+/* Checklist */
+.nr-checklist li{font-weight:600;color:var(--g1)}
+/* Justificativa collapsible */
+.nr-just-toggle{cursor:pointer;user-select:none}
+.nr-just-toggle:hover{color:var(--b2)}
+.nr-chevron{font-size:10px;transition:transform .2s;display:inline-block}
+.nr-just-open .nr-chevron{transform:rotate(90deg)}
+.nr-just-body{max-height:0;overflow:hidden;transition:max-height .3s ease;background:var(--s1);border-radius:8px;
+  font-size:12px;line-height:1.6;color:var(--s5);border-left:3px solid var(--b2);white-space:pre-wrap}
+.nr-just-open .nr-just-body{max-height:500px;padding:12px 14px;margin-top:4px}
 
 /* Summary footer */
 .nr-summary{background:var(--bp);border-top:2px solid var(--b3);padding:16px 24px;border-radius:0 0 14px 14px}
@@ -618,11 +639,10 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
   </div>
 </div>
 
-<!-- ═══════ RESULT SCREEN — Classificação Clínica ═══════ -->
+<!-- ═══════ RESULT SCREEN — Classificação Clínica v2 ═══════ -->
 <div class="nr-overlay" id="naResultModal">
   <div class="nr-card" id="naResultCard">
     <button class="nr-close" onclick="closeResultScreen()">&times;</button>
-    <!-- Header — tier class set by JS (nr-go | nr-ressalvas | nr-nogo) -->
     <div class="nr-header">
       <div class="nr-header-icon" id="nrIcon"></div>
       <div class="nr-header-txt">
@@ -630,46 +650,42 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
         <p id="nrSubtitle"></p>
       </div>
     </div>
+    <!-- Motivo principal (1 linha) -->
+    <div class="nr-reason" id="nrReason" style="display:none"></div>
     <!-- Score bar -->
     <div class="nr-score-bar">
-      <span id="nrScoreLabel">Score de conformidade</span>
+      <span>Chance de aprovação</span>
       <span class="nr-score-num" id="nrScore"></span>
     </div>
-    <!-- Body -->
     <div class="nr-body">
-      <!-- Riscos / Pontos Frágeis -->
-      <div class="nr-section" id="nrRiskSection" style="display:none">
-        <div class="nr-section-title">Riscos identificados</div>
-        <ul class="nr-list" id="nrRiskList"></ul>
+      <!-- CRÍTICOS (bloqueiam envio) -->
+      <div class="nr-section nr-sec-crit" id="nrCritSection" style="display:none">
+        <div class="nr-section-title nr-title-crit">Problemas críticos — bloqueiam envio</div>
+        <ul class="nr-list" id="nrCritList"></ul>
       </div>
-      <!-- Pendências -->
-      <div class="nr-section" id="nrPendSection" style="display:none">
-        <div class="nr-section-title">Pendências</div>
-        <ul class="nr-list" id="nrPendList"></ul>
+      <!-- AJUSTES (melhoram, não bloqueiam) -->
+      <div class="nr-section nr-sec-warn" id="nrWarnSection" style="display:none">
+        <div class="nr-section-title nr-title-warn">Ajustes recomendados</div>
+        <ul class="nr-list" id="nrWarnList"></ul>
       </div>
-      <!-- Bloqueios -->
-      <div class="nr-section" id="nrBlockSection" style="display:none">
-        <div class="nr-section-title">Bloqueios</div>
-        <ul class="nr-list" id="nrBlockList"></ul>
+      <!-- CHECKLIST: O que fazer agora -->
+      <div class="nr-section" id="nrCheckSection" style="display:none">
+        <div class="nr-section-title">O que fazer agora</div>
+        <ul class="nr-list nr-checklist" id="nrCheckList"></ul>
       </div>
-      <!-- Próximos passos -->
-      <div class="nr-section" id="nrStepsSection" style="display:none">
-        <div class="nr-section-title">Ações recomendadas</div>
-        <ul class="nr-list" id="nrStepsList"></ul>
-      </div>
-      <!-- Justificativa -->
+      <!-- Justificativa (colapsada) -->
       <div class="nr-section" id="nrJustSection" style="display:none">
-        <div class="nr-section-title">Justificativa gerada</div>
-        <div class="nr-just" id="nrJustText"></div>
+        <div class="nr-section-title nr-just-toggle" onclick="this.parentElement.classList.toggle('nr-just-open')">Justificativa gerada <span class="nr-chevron">&#9654;</span></div>
+        <div class="nr-just nr-just-body" id="nrJustText"></div>
       </div>
     </div>
-    <!-- Summary footer -->
+    <!-- Summary -->
     <div class="nr-summary">
       <div class="nr-summary-grid">
-        <div class="nr-summary-item"><strong>Classificação</strong><span id="nrSumClass"></span></div>
+        <div class="nr-summary-item"><strong>Situação</strong><span id="nrSumClass"></span></div>
         <div class="nr-summary-item"><strong>Risco de glosa</strong><span id="nrSumRisco"></span></div>
         <div class="nr-summary-item"><strong>Motor</strong><span id="nrSumMotor"></span></div>
-        <div class="nr-summary-item"><strong>Trace ID</strong><span id="nrSumTrace"></span></div>
+        <div class="nr-summary-item"><strong>Trace</strong><span id="nrSumTrace" style="font-size:11px"></span></div>
       </div>
       <div class="nr-actions" id="nrActions"></div>
     </div>
@@ -3789,157 +3805,265 @@ function showResultScreen(decideData, shadowV2){
   var card  = document.getElementById('naResultCard');
   if(!modal || !card) return;
 
-  // Determine tier from classification
+  // ── Determine tier ──
   var cls = (decideData.classification||'').toUpperCase();
-  var tier = 'nogo'; // default
+  var tier = 'nogo';
   if(cls==='GO'||cls==='APROVADO') tier = 'go';
   else if(cls==='GO_COM_RESSALVAS'||cls==='AUTORIZADO_COM_RESSALVAS') tier = 'ressalvas';
 
-  // Remove old tier, apply new
   card.classList.remove('nr-go','nr-ressalvas','nr-nogo');
   card.classList.add('nr-'+tier);
 
-  // Header config per tier
+  // ── Header ──
   var tierCfg = {
-    go: {
-      icon: '\u2705',
-      title: 'GO — Aprovado',
-      subtitle: 'Caso dentro dos critérios. Pronto para envio.'
-    },
-    ressalvas: {
-      icon: '\u26A0\uFE0F',
-      title: 'GO COM RESSALVAS',
-      subtitle: 'Caso aprovável, mas com pontos que exigem atenção antes do envio.'
-    },
-    nogo: {
-      icon: '\u26D4',
-      title: 'NO GO — Não aprovado',
-      subtitle: 'Caso com pendências críticas. Corrija antes de enviar.'
-    }
+    go:        { icon:'\u2705', title:'APROVADO',       subtitle:'Pronto para envio.' },
+    ressalvas: { icon:'\u26A0\uFE0F', title:'APROVADO COM RESSALVAS', subtitle:'Pode enviar, mas revise os ajustes abaixo.' },
+    nogo:      { icon:'\u26D4', title:'N\u00C3O ENVIAR',          subtitle:'Corrija os problemas cr\u00EDticos antes de enviar.' }
   };
   var cfg = tierCfg[tier];
   document.getElementById('nrIcon').textContent = cfg.icon;
   document.getElementById('nrTitle').textContent = cfg.title;
   document.getElementById('nrSubtitle').textContent = cfg.subtitle;
 
-  // Score
-  var score = decideData.score;
-  if(score===null||score===undefined) score = '—';
-  document.getElementById('nrScore').textContent = score;
-
-  // Risco de glosa
-  var risco = decideData.risco_glosa || decideData.camada3_risco || 'indeterminado';
-
-  // ── Populate sections ──
-  // Risks (pontos_frageis)
-  var risks = decideData.pontos_frageis || [];
-  var riskSec = document.getElementById('nrRiskSection');
-  var riskList = document.getElementById('nrRiskList');
-  riskList.innerHTML = '';
-  if(risks.length > 0){
-    riskSec.style.display = '';
-    for(var i=0;i<risks.length;i++){
-      var li = document.createElement('li');
-      li.innerHTML = '<span class="nr-icon">\u26A0\uFE0F</span><span>'+_nrEsc(risks[i])+'</span>';
-      riskList.appendChild(li);
-    }
-  } else { riskSec.style.display = 'none'; }
-
-  // Pendências
-  var pends = decideData.pendencias || [];
-  var pendSec = document.getElementById('nrPendSection');
-  var pendList = document.getElementById('nrPendList');
-  pendList.innerHTML = '';
-  if(pends.length > 0){
-    pendSec.style.display = '';
-    for(var i=0;i<pends.length;i++){
-      var li = document.createElement('li');
-      li.innerHTML = '<span class="nr-icon">\uD83D\uDD34</span><span>'+_nrEsc(pends[i])+'</span>';
-      pendList.appendChild(li);
-    }
-  } else { pendSec.style.display = 'none'; }
-
-  // Bloqueios
-  var blocks = decideData.bloqueios || [];
-  var blockSec = document.getElementById('nrBlockSection');
-  var blockList = document.getElementById('nrBlockList');
-  blockList.innerHTML = '';
-  if(blocks.length > 0){
-    blockSec.style.display = '';
-    for(var i=0;i<blocks.length;i++){
-      var li = document.createElement('li');
-      li.innerHTML = '<span class="nr-icon">\u274C</span><span>'+_nrEsc(blocks[i])+'</span>';
-      blockList.appendChild(li);
-    }
-  } else { blockSec.style.display = 'none'; }
-
-  // Próximos passos / ações recomendadas
-  var steps = decideData.proximos_passos || [];
-  // Also include v2 shadow recommended_action if available
-  if(shadowV2 && shadowV2.recommended_action && steps.indexOf(shadowV2.recommended_action)===-1){
-    steps = steps.concat([shadowV2.recommended_action]);
+  // ── Collect ALL issues from motor ──
+  var allRaw = [].concat(
+    (decideData.bloqueios||[]).map(function(t){return {txt:t,sev:'crit'};}),
+    (decideData.pendencias||[]).map(function(t){return {txt:t,sev:'crit'};}),
+    (decideData.pontos_frageis||[]).map(function(t){return {txt:t,sev:'warn'};})
+  );
+  // Add v2 shadow pending items if available
+  if(shadowV2 && shadowV2.pending_items){
+    shadowV2.pending_items.forEach(function(t){
+      allRaw.push({txt:t,sev:'crit'});
+    });
   }
-  var stepsSec = document.getElementById('nrStepsSection');
-  var stepsList = document.getElementById('nrStepsList');
-  stepsList.innerHTML = '';
-  if(steps.length > 0){
-    stepsSec.style.display = '';
-    for(var i=0;i<steps.length;i++){
-      var li = document.createElement('li');
-      li.innerHTML = '<span class="nr-icon">\u27A1\uFE0F</span><span>'+_nrEsc(steps[i])+'</span>';
-      stepsList.appendChild(li);
-    }
-  } else { stepsSec.style.display = 'none'; }
 
-  // Justificativa
+  // ── Translate rule codes to human language ──
+  allRaw.forEach(function(item){
+    item.txt = _nrTranslate(item.txt);
+  });
+
+  // ── Deduplicate by semantic similarity ──
+  var deduped = _nrDedup(allRaw);
+  var crits = deduped.filter(function(i){return i.sev==='crit';});
+  var warns = deduped.filter(function(i){return i.sev==='warn';});
+
+  // ── Reason line (1 sentence summary) ──
+  var reasonEl = document.getElementById('nrReason');
+  if(tier==='go'){
+    reasonEl.style.display = 'none';
+  } else {
+    reasonEl.style.display = '';
+    if(crits.length>0){
+      var reasons = crits.slice(0,2).map(function(c){return c.txt.split(' — ')[0];});
+      reasonEl.textContent = 'Motivo: ' + reasons.join(' + ');
+    } else if(warns.length>0){
+      reasonEl.textContent = 'Pequenos ajustes recomendados antes do envio';
+    }
+  }
+
+  // ── Score with human label + projected score ──
+  var score = typeof decideData.score==='number' ? decideData.score : null;
+  var scoreEl = document.getElementById('nrScore');
+  if(score!==null){
+    var scoreFaixa = _nrScoreFaixa(score);
+    scoreEl.innerHTML = score + '<span class="nr-score-label">/100 — ' + _nrEsc(scoreFaixa.label) + '</span>';
+    // Projected score after fixes
+    var projected = Math.min(100, score + crits.length * 15 + warns.length * 5);
+    if(projected > score && tier!=='go'){
+      scoreEl.innerHTML += '<div class="nr-score-proj">Corrigindo os itens acima \u2192 score estimado: ~' + projected + '</div>';
+    }
+  } else {
+    scoreEl.textContent = '\u2014';
+  }
+
+  // ── Critical section ──
+  var critSec = document.getElementById('nrCritSection');
+  var critList = document.getElementById('nrCritList');
+  critList.innerHTML = '';
+  if(crits.length > 0){
+    critSec.style.display = '';
+    crits.forEach(function(item){
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="nr-icon">\u274C</span><span>' + _nrEsc(item.txt) + '</span>';
+      critList.appendChild(li);
+    });
+  } else { critSec.style.display = 'none'; }
+
+  // ── Warning section ──
+  var warnSec = document.getElementById('nrWarnSection');
+  var warnList = document.getElementById('nrWarnList');
+  warnList.innerHTML = '';
+  if(warns.length > 0){
+    warnSec.style.display = '';
+    warns.forEach(function(item){
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="nr-icon">\u26A0\uFE0F</span><span>' + _nrEsc(item.txt) + '</span>';
+      warnList.appendChild(li);
+    });
+  } else { warnSec.style.display = 'none'; }
+
+  // ── Checklist: concrete actions ──
+  var checks = _nrBuildChecklist(crits, warns, decideData);
+  var checkSec = document.getElementById('nrCheckSection');
+  var checkList = document.getElementById('nrCheckList');
+  checkList.innerHTML = '';
+  if(checks.length > 0){
+    checkSec.style.display = '';
+    checks.forEach(function(txt){
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="nr-icon">\u2610</span><span>' + _nrEsc(txt) + '</span>';
+      checkList.appendChild(li);
+    });
+  } else { checkSec.style.display = 'none'; }
+
+  // ── Justificativa (collapsed by default) ──
   var just = decideData.justificativa || '';
   var justSec = document.getElementById('nrJustSection');
   var justText = document.getElementById('nrJustText');
+  justSec.classList.remove('nr-just-open');
   if(just.length > 0){
     justSec.style.display = '';
     justText.textContent = just;
   } else { justSec.style.display = 'none'; }
 
-  // Summary footer
-  document.getElementById('nrSumClass').textContent = cls || '—';
-  document.getElementById('nrSumRisco').textContent = risco;
+  // ── Summary footer — fix contradiction: match tier ──
+  var risco = decideData.risco_glosa || decideData.camada3_risco || 'indeterminado';
+  var situacaoMap = {
+    go: 'Pronto para envio',
+    ressalvas: 'Enviar com aten\u00E7\u00E3o',
+    nogo: 'N\u00E3o enviar'
+  };
+  document.getElementById('nrSumClass').textContent = situacaoMap[tier];
+  document.getElementById('nrSumRisco').textContent = _nrTranslateRisco(risco);
   document.getElementById('nrSumMotor').textContent = 'v'+(decideData.motor_version||'1.3');
-  document.getElementById('nrSumTrace').textContent = decideData.trace_id || '—';
+  document.getElementById('nrSumTrace').textContent = decideData.trace_id || '\u2014';
 
-  // ── Action buttons (vary by tier) ──
+  // ── Action buttons ──
   var actDiv = document.getElementById('nrActions');
   actDiv.innerHTML = '';
-
   if(tier==='go'){
-    actDiv.innerHTML =
-      '<button class="nr-btn nr-btn-primary" onclick="closeResultScreen()">Fechar</button>';
+    actDiv.innerHTML = '<button class="nr-btn nr-btn-primary" onclick="closeResultScreen()">Fechar</button>';
   } else if(tier==='ressalvas'){
     actDiv.innerHTML =
-      '<button class="nr-btn nr-btn-primary" onclick="nrActionEdit()">Editar manualmente</button>'+
+      '<button class="nr-btn nr-btn-primary" onclick="nrActionEdit()">Revisar e ajustar</button>'+
       '<button class="nr-btn nr-btn-warn" onclick="closeResultScreen()">Enviar mesmo assim</button>'+
-      '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar para revisão</button>';
+      '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>';
   } else {
-    // nogo
     actDiv.innerHTML =
-      '<button class="nr-btn nr-btn-danger" onclick="nrActionEdit()">Corrigir e reenviar</button>'+
-      '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar para revisão</button>';
+      '<button class="nr-btn nr-btn-danger" onclick="nrActionEdit()">Corrigir agora</button>'+
+      '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>';
   }
 
-  // Show modal
   modal.classList.add('open');
 
-  // Log
   if(typeof naLog==='function'){
     naLog('result_screen_shown', {
-      tier: tier,
-      classification: cls,
-      score: score,
-      risco: risco,
-      risks_count: risks.length,
-      pends_count: pends.length,
-      blocks_count: blocks.length
+      tier:tier, classification:cls, score:score, risco:risco,
+      crits:crits.length, warns:warns.length, checks:checks.length
     });
   }
+}
+
+/* ── Score faixa labels ── */
+function _nrScoreFaixa(score){
+  if(score >= 90) return {label:'Alta conformidade',color:'g1'};
+  if(score >= 75) return {label:'Bom com ressalvas',color:'a1'};
+  if(score >= 50) return {label:'Risco moderado',color:'a1'};
+  return {label:'Cr\u00EDtico \u2014 alta chance de negativa',color:'r1'};
+}
+
+/* ── Translate rule codes + technical terms ── */
+function _nrTranslate(txt){
+  // Strip rule codes like ANS_DUT_COLUNA_001, ANS_005 etc
+  var ruleMatch = txt.match(/^(ANS_\w+|EVID_\w+|OP_\w+)[\s:\-]*/);
+  var code = ruleMatch ? ruleMatch[1] : '';
+  var clean = txt.replace(/^(ANS_\w+|EVID_\w+|OP_\w+)[\s:\-]*/,'');
+  // Common translations
+  var translations = {
+    'sem achado de imagem': 'Aus\u00EAncia de exame de imagem (RM/TC com laudo)',
+    'sem evid\u00eancia': 'Aus\u00EAncia de exame de imagem (RM/TC com laudo)',
+    'rm obrigat\u00f3ria': 'Aus\u00EAncia de exame de imagem (RM/TC com laudo)',
+    'correla\u00e7\u00e3o imposs\u00edvel': 'Aus\u00EAncia de exame de imagem (RM/TC com laudo)',
+    'tratamento conservador insuficiente': 'Tratamento conservador insuficiente',
+    'conservador = 0': 'Tratamento conservador insuficiente (0 semanas \u2014 m\u00EDnimo 6)',
+    'conservador insuficiente': 'Tratamento conservador insuficiente',
+    'sem tratamento conservador': 'Tratamento conservador insuficiente (0 semanas \u2014 m\u00EDnimo 6)',
+    'justificativa curta': 'Relat\u00F3rio cl\u00EDnico muito curto',
+    'texto insuficiente': 'Relat\u00F3rio cl\u00EDnico muito curto'
+  };
+  var lower = clean.toLowerCase().trim();
+  for(var key in translations){
+    if(lower.indexOf(key) !== -1){
+      clean = translations[key];
+      break;
+    }
+  }
+  // If there was a rule code, append it small
+  if(code) clean += ' \u2014 ' + code;
+  return clean;
+}
+
+/* ── Translate risco de glosa ── */
+function _nrTranslateRisco(r){
+  var map = {
+    'critico':'Cr\u00EDtico','alto':'Alto','moderado':'Moderado',
+    'baixo':'Baixo','indeterminado':'Indeterminado'
+  };
+  return map[(r||'').toLowerCase()] || r;
+}
+
+/* ── Deduplicate items by semantic key ── */
+function _nrDedup(items){
+  var seen = {};
+  var result = [];
+  items.forEach(function(item){
+    // Normalize for dedup: lowercase, strip code suffix
+    var key = item.txt.toLowerCase().replace(/\s*\u2014\s*\w+$/,'').trim();
+    if(!seen[key]){
+      seen[key] = true;
+      result.push(item);
+    } else {
+      // If duplicate but higher severity, upgrade
+      for(var i=0;i<result.length;i++){
+        var rk = result[i].txt.toLowerCase().replace(/\s*\u2014\s*\w+$/,'').trim();
+        if(rk===key && item.sev==='crit' && result[i].sev==='warn'){
+          result[i].sev = 'crit';
+          break;
+        }
+      }
+    }
+  });
+  return result;
+}
+
+/* ── Build actionable checklist from issues ── */
+function _nrBuildChecklist(crits, warns, data){
+  var checks = [];
+  var allTxt = crits.concat(warns).map(function(i){return i.txt.toLowerCase();}).join('|');
+  if(allTxt.indexOf('imagem')!==-1 || allTxt.indexOf('rm')!==-1 || allTxt.indexOf('tc')!==-1){
+    checks.push('Anexar RM ou TC com laudo');
+  }
+  if(allTxt.indexOf('conservador')!==-1 || allTxt.indexOf('semanas')!==-1){
+    checks.push('Documentar \u22656 semanas de tratamento conservador');
+  }
+  if(allTxt.indexOf('justificativa')!==-1 || allTxt.indexOf('relat\u00f3rio')!==-1 || allTxt.indexOf('curto')!==-1){
+    checks.push('Ampliar justificativa cl\u00EDnica (m\u00EDnimo 200 caracteres)');
+  }
+  if(allTxt.indexOf('opme')!==-1){
+    checks.push('Revisar indica\u00E7\u00E3o e justificativa da OPME');
+  }
+  if(allTxt.indexOf('dut')!==-1 || allTxt.indexOf('ans')!==-1){
+    checks.push('Verificar crit\u00E9rios DUT/ANS para o procedimento');
+  }
+  if(allTxt.indexOf('conv\u00eanio')!==-1 || allTxt.indexOf('operadora')!==-1){
+    checks.push('Confirmar dados do conv\u00EAnio/operadora');
+  }
+  // Fallback: if no specific checks generated, use proximos_passos
+  if(checks.length===0 && data.proximos_passos){
+    checks = data.proximos_passos.slice(0,4);
+  }
+  return checks;
 }
 
 function closeResultScreen(){
