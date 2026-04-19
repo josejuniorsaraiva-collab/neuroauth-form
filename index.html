@@ -3434,6 +3434,43 @@ async function confirmedSend(){
     // Armazenar resultado clínico para acesso posterior (hub, auditoria)
     window.__NA_LAST_DECIDE__ = decideData;
 
+    // ── SHADOW MODE: v2.3.1 em paralelo (fire-and-forget) ──
+    // Não bloqueia, não afeta UI, não afeta relay. Apenas loga comparação.
+    if(!isReplay){
+      (async function(){
+        try{
+          const v2Resp=await fetch(NA_BACKEND_URL + '/v2/decide',{
+            method:'POST',
+            headers:decideHeaders,
+            body:JSON.stringify(payload)
+          });
+          if(v2Resp.ok){
+            const v2Data=await v2Resp.json();
+            console.log('%c[SHADOW v2.3.1] gate='+v2Data.final_gate+' score='+v2Data.final_score+' risco='+v2Data.final_risk,'color:#1F4E79;font-weight:bold');
+            console.log('[SHADOW v2.3.1] pendencias:',v2Data.pending_items);
+            console.log('[SHADOW v2.3.1] resumo:',v2Data.summary);
+            console.log('[SHADOW v2.3.1] comparação v1='+decideData.classification+' vs v2='+v2Data.final_gate);
+            window.__NA_LAST_SHADOW_V2__ = v2Data;
+            naLog('shadow_v2_ok',{
+              trace_id_v1:traceId,
+              trace_id_v2:v2Data.trace_id,
+              v1_gate:decideData.classification,
+              v2_gate:v2Data.final_gate,
+              v2_score:v2Data.final_score,
+              v2_risk:v2Data.final_risk,
+              v2_pending_count:v2Data.pending_items?.length||0
+            });
+          } else {
+            console.warn('[SHADOW v2.3.1] HTTP',v2Resp.status,'— shadow ignorado');
+            naLog('shadow_v2_error',{status:v2Resp.status,trace_id:traceId});
+          }
+        }catch(shadowErr){
+          console.warn('[SHADOW v2.3.1] falha (ignorada):',shadowErr.message);
+          naLog('shadow_v2_error',{message:shadowErr.message,trace_id:traceId});
+        }
+      })();
+    }
+
     // ── FASE 3: Relay documental (posterior, não-bloqueante) ──
     // Pular relay se for replay idempotente (já foi relayado na primeira vez)
     if(!isReplay){
