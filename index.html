@@ -3346,33 +3346,111 @@ async function confirmedSend(){
     timestamp:new Date().toISOString()
   };
   try{
-    // Gate C: envia para backend autenticado — Make.com chamado internamente pelo Render
+    // ── FASE 1: Validar JWT ──
     const _jwt = naGetSessionField('_jwt') || '';
-    const r=await fetch(NA_BACKEND_URL + '/relay/notify',{
+    if(!_jwt){
+      sp.classList.remove('on');btn.disabled=false;
+      toast('🔒 Erro: autenticação ausente. Faça login antes de enviar.','er');
+      naLog('send_blocked_no_jwt');
+      console.error('[NEUROAUTH] erro: JWT ausente, envio clínico bloqueado');
+      return;
+    }
+    console.log('[NEUROAUTH] JWT detectado, iniciando /decide');
+    naLog('decide_start');
+
+    // ── FASE 2: Motor clínico /decide (obrigatório) ──
+    const decideHeaders={'Content-Type':'application/json','Authorization':'Bearer '+_jwt};
+    const decideResp=await fetch(NA_BACKEND_URL + '/decide',{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_jwt},
+      headers:decideHeaders,
       body:JSON.stringify(payload)
     });
-    sp.classList.remove('on');btn.disabled=false;
-    if(r.ok){
-      closeModal('pvModal');
-      toast('🎉 Enviado! Motor de decisão executado.','ok');
-      clearCaseData('submit_success');
-      guiaRegistrada    = true;
-      envioConfirmadoEm = new Date().toISOString();
-      envioUserEmail    = naGetSessionField('email') || '';
-      // Limpar SSoT após envio confirmado — próxima guia começa fresh
-      window.__NA_STATE__ = {payload: null, compliance: null, ts: null, dirty: true};
-      window.__NA_LAST_COMPLIANCE__ = null;
-      naUpdateAuditUI();
-      naLog('send_ok', {ts: envioConfirmadoEm});
-    } else {
-      throw new Error('HTTP '+r.status);
+
+    if(!decideResp.ok){
+      const errText=await decideResp.text().catch(()=>'');
+      sp.classList.remove('on');btn.disabled=false;
+      toast('❌ Motor clínico falhou (HTTP '+decideResp.status+'). Relay cancelado.','er');
+      naLog('decide_error', {status:decideResp.status, detail:errText.substring(0,200)});
+      console.error('[NEUROAUTH] falha no /decide, relay cancelado. HTTP',decideResp.status);
+      return;
     }
+
+    const decideData=await decideResp.json();
+    const traceId=decideData.trace_id||'';
+    const cv1=decideData.v2_trace?.clinical_v1||null;
+    console.log('[NEUROAUTH] /decide retornou 200');
+    console.log('[NEUROAUTH] trace_id recebido:',traceId);
+    if(cv1){
+      console.log('[NEUROAUTH] clinical_v1 recebido — glosa_probability:',cv1.glosa_probability);
+    } else {
+      console.warn('[NEUROAUTH] clinical_v1 ausente na resposta');
+    }
+    naLog('decide_ok', {
+      trace_id:traceId,
+      classification:decideData.classification||'',
+      decision_status:decideData.decision_status||'',
+      has_clinical_v1:!!cv1,
+      glosa_probability:cv1?.glosa_probability||null,
+      decision_run_id:decideData.decision_run_id||''
+    });
+
+    // Armazenar resultado clínico para acesso posterior (hub, auditoria)
+    window.__NA_LAST_DECIDE__ = decideData;
+
+    // ── FASE 3: Relay documental (posterior, não-bloqueante) ──
+    console.log('[NEUROAUTH] iniciando relay documental');
+    naLog('relay_start', {trace_id:traceId});
+    try{
+      // Propagar trace_id e dados clínicos no payload do relay
+      payload._decide_trace_id    = traceId;
+      payload._decide_run_id      = decideData.decision_run_id||'';
+      payload._decide_classification = decideData.classification||'';
+      payload._decide_status      = decideData.decision_status||'';
+
+      const relayResp=await fetch(NA_BACKEND_URL + '/relay/notify',{
+        method:'POST',
+        headers:decideHeaders,
+        body:JSON.stringify(payload)
+      });
+      if(relayResp.ok){
+        console.log('[NEUROAUTH] relay documental concluído');
+        naLog('relay_ok', {trace_id:traceId});
+      } else {
+        console.warn('[NEUROAUTH] sucesso clínico, mas falha documental. HTTP',relayResp.status);
+        naLog('relay_error', {status:relayResp.status, trace_id:traceId});
+      }
+    } catch(relayErr){
+      console.warn('[NEUROAUTH] sucesso clínico, mas falha documental:',relayErr.message);
+      naLog('relay_error', {message:relayErr.message, trace_id:traceId});
+    }
+
+    // ── FASE 4: Sucesso — atualizar UI ──
+    sp.classList.remove('on');btn.disabled=false;
+    closeModal('pvModal');
+    const toastMsg = '🎉 Motor clínico executado! '
+      + (decideData.classification||'')
+      + (traceId ? ' ['+traceId+']' : '');
+    toast(toastMsg,'ok');
+    clearCaseData('submit_success');
+    guiaRegistrada    = true;
+    envioConfirmadoEm = new Date().toISOString();
+    envioUserEmail    = naGetSessionField('email') || '';
+    // Limpar SSoT após envio confirmado — próxima guia começa fresh
+    window.__NA_STATE__ = {payload: null, compliance: null, ts: null, dirty: true};
+    window.__NA_LAST_COMPLIANCE__ = null;
+    naUpdateAuditUI();
+    naLog('send_ok', {
+      ts: envioConfirmadoEm,
+      trace_id: traceId,
+      decision_run_id: decideData.decision_run_id||'',
+      classification: decideData.classification||'',
+      motor_path: '/decide'
+    });
   } catch(e){
     sp.classList.remove('on');btn.disabled=false;
     toast('❌ Erro: '+e.message,'er');
     naLog('send_error', {message: e.message});
+    console.error('[NEUROAUTH] erro geral no envio:',e.message);
   } finally {
     clearTimeout(_watchdog);
     window.__NA_SENDING__ = false;
