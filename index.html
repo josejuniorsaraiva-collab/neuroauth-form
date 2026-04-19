@@ -3920,17 +3920,18 @@ function showResultScreen(decideData, shadowV2){
 
   // ── Action buttons ──
   var actDiv = document.getElementById('nrActions');
+  var newCaseBtn = '<button class="nr-btn nr-btn-secondary" onclick="resetForNewCase()" style="margin-top:6px">＋ Novo caso</button>';
   if(tier==='go'){
-    actDiv.innerHTML = '<button class="nr-btn nr-btn-primary" onclick="closeResultScreen()">Fechar</button>';
+    actDiv.innerHTML = '<button class="nr-btn nr-btn-primary" onclick="closeResultScreen()">Fechar</button>' + newCaseBtn;
   } else if(tier==='ressalvas'){
     actDiv.innerHTML =
       '<button class="nr-btn nr-btn-primary" onclick="nrActionEdit()">Revisar e ajustar</button>'+
       '<button class="nr-btn nr-btn-warn" onclick="closeResultScreen()">Enviar mesmo assim</button>'+
-      '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>';
+      '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>' + newCaseBtn;
   } else {
     actDiv.innerHTML =
       '<button class="nr-btn nr-btn-danger" onclick="nrActionEdit()">Corrigir agora</button>'+
-      '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>';
+      '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>' + newCaseBtn;
   }
 
   modal.classList.add('open');
@@ -4112,6 +4113,41 @@ function _nrBuildChecklist(crits, warns, data){
 function closeResultScreen(){
   var m = document.getElementById('naResultModal');
   if(m) m.classList.remove('open');
+  // Se o caso já foi enviado (guiaRegistrada=true), resetar para novo caso
+  if(guiaRegistrada){
+    guiaRegistrada    = false;
+    envioConfirmadoEm = '';
+    envioUserEmail    = '';
+    envioBillingId    = '';
+    window.__NA_STATE__ = {payload:null, compliance:null, ts:null, dirty:true};
+    window.__NA_LAST_COMPLIANCE__ = null;
+    window.__NA_LAST_SHADOW_V2__ = null;
+    window.__NA_SENDING__ = false;
+    naUpdateAuditUI();
+    goTab(0);
+  }
+}
+
+/* ── resetForNewCase — limpa tudo para permitir novo caso sem reload ── */
+function resetForNewCase(){
+  closeResultScreen();
+  // Reset form fields + OPME rows
+  doReset();
+  // Reset state flags
+  guiaRegistrada    = false;
+  envioConfirmadoEm = '';
+  envioUserEmail    = '';
+  envioBillingId    = '';
+  window.__NA_STATE__ = {payload:null, compliance:null, ts:null, dirty:true};
+  window.__NA_LAST_COMPLIANCE__ = null;
+  window.__NA_LAST_SHADOW_V2__ = null;
+  window.__NA_SENDING__ = false;
+  // Reset audit strip
+  naUpdateAuditUI();
+  // Go to step 1
+  goTab(0);
+  toast('Pronto para novo caso.','ok');
+  naLog('new_case_reset');
 }
 
 function nrActionEdit(){
