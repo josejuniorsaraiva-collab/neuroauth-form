@@ -3460,6 +3460,33 @@ async function confirmedSend(){
               v2_risk:v2Data.final_risk,
               v2_pending_count:v2Data.pending_items?.length||0
             });
+            // Persistir comparação no Sheets via /v2/shadow-log (fire-and-forget)
+            fetch(NA_BACKEND_URL + '/v2/shadow-log',{
+              method:'POST',
+              headers:decideHeaders,
+              body:JSON.stringify({
+                trace_id_v1:traceId,
+                trace_id_v2:v2Data.trace_id,
+                v1_gate:decideData.classification||'',
+                v1_classification:decideData.classification||'',
+                v1_score:decideData.score||null,
+                v1_glosa_probability:decideData.v2_trace?.clinical_v1?.glosa_probability||null,
+                v2_gate:v2Data.final_gate,
+                v2_score:v2Data.final_score,
+                v2_risk:v2Data.final_risk,
+                v2_pending_count:v2Data.pending_items?.length||0,
+                v2_pending_items:v2Data.pending_items||[],
+                v2_summary:v2Data.summary||'',
+                procedimento:payload.procedimento||'',
+                convenio:payload.convenio||'',
+                cid:payload.cid_principal||payload.cid||''
+              })
+            }).then(function(r){
+              if(r.ok) console.log('[SHADOW v2.3.1] comparação salva no Sheets');
+              else console.warn('[SHADOW v2.3.1] shadow-log HTTP',r.status);
+            }).catch(function(e){
+              console.warn('[SHADOW v2.3.1] shadow-log falhou (ignorado):',e.message);
+            });
           } else {
             console.warn('[SHADOW v2.3.1] HTTP',v2Resp.status,'— shadow ignorado');
             naLog('shadow_v2_error',{status:v2Resp.status,trace_id:traceId});
