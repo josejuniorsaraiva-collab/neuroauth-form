@@ -243,7 +243,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 .sh{background:#d8d8d8;font-weight:700;font-size:8.5px;padding:2px 4px;font-style:normal}
 .logo-cell{padding:4px 6px;vertical-align:middle;width:140px}
 .logo-uni{display:flex;align-items:center;gap:5px}
-.logo-u{width:48px;height:22px;background:var(--b2);color:#fff;display:flex;align-items:center;
+.logo-u{width:48px;height:22px;color:#fff;display:flex;align-items:center;
   justify-content:center;font-size:11px;font-weight:900;font-style:italic;border-radius:2px}
 .logo-cariri{font-size:9px;font-weight:700;color:#000}
 .guia-title-cell{text-align:center;font-weight:700;font-size:11px;padding:4px}
@@ -1667,6 +1667,21 @@ const ANS={
   "Amil":"326305","Hapvida":"368253","NotreDame Intermédica":"359017","Particular":"N/A"
 };
 
+/* ── OPERADORAS_THEME — identidade visual por convênio ── */
+const OPERADORAS_THEME={
+  'Unimed':       {nome:'Unimed',       sub:'Cariri',     cor1:'#1a6b1a', cor2:'#c8dfc8', borda:'#5a8f5a', logo:'Unimed',       txtCor:'#fff'},
+  'Bradesco Saúde':{nome:'Bradesco',    sub:'Saúde',      cor1:'#cc0000', cor2:'#fde8e8', borda:'#cc4444', logo:'Bradesco',      txtCor:'#fff'},
+  'SulAmérica':   {nome:'SulAmérica',   sub:'Saúde',      cor1:'#003d7a', cor2:'#dce8f5', borda:'#336699', logo:'SulAmérica',    txtCor:'#fff'},
+  'Amil':         {nome:'Amil',         sub:'',           cor1:'#0066b3', cor2:'#ddeaf7', borda:'#4488bb', logo:'Amil',          txtCor:'#fff'},
+  'Hapvida':      {nome:'Hapvida',      sub:'',           cor1:'#f28c00', cor2:'#fef3d5', borda:'#d9a044', logo:'Hapvida',       txtCor:'#fff'},
+  'NotreDame Intermédica':{nome:'NotreDame',sub:'Intermédica',cor1:'#00529b',cor2:'#dde8f4',borda:'#4477aa',logo:'NotreDame',   txtCor:'#fff'},
+  'Particular':   {nome:'Particular',   sub:'',           cor1:'#444444', cor2:'#eeeeee', borda:'#999999', logo:'Particular',    txtCor:'#fff'},
+  '_default':     {nome:'Convênio',     sub:'',           cor1:'#1a6b1a', cor2:'#c8dfc8', borda:'#5a8f5a', logo:'—',             txtCor:'#fff'}
+};
+function _getOpTheme(conv){
+  return OPERADORAS_THEME[conv] || OPERADORAS_THEME['_default'];
+}
+
 const QC={
   PROC001:{nome_paciente:"Carlos Eduardo Hernia",data_nascimento:"1972-05-18",
     sexo:"Masculino",cpf:"321.654.987-00",telefone:"(88) 99801-2345",
@@ -2259,9 +2274,10 @@ function renderInternacao(d) {
   const crm = d.crm || '';
   const cbo = d.cbo || '';
   const dataSolic = d.data_solicitacao || new Date().toLocaleDateString('pt-BR');
-  // CSS inline para modelo verde Unimed
-  const B='border:1px solid #5a8f5a;'; const P='padding:2px 4px;'; const VT='vertical-align:top;';
-  const SH='background:#c8dfc8;font-weight:700;font-size:7.5px;'+P;
+  // CSS inline — cores dinâmicas pelo convênio selecionado
+  const _opT = _getOpTheme(convenio);
+  const B='border:1px solid '+_opT.borda+';'; const P='padding:2px 4px;'; const VT='vertical-align:top;';
+  const SH='background:'+_opT.cor2+';font-weight:700;font-size:7.5px;'+P;
   const FN='font-size:6.5px;color:#333;display:block;margin-bottom:1px;';
   const FV='font-size:9px;font-weight:600;min-height:13px;display:block;color:#000;';
 
@@ -2281,12 +2297,12 @@ function renderInternacao(d) {
 
   return `
 <div class="guia-wrap guia-internacao-a4" style="font-family:Arial,Helvetica,sans-serif;font-size:8px;color:#000;background:#fff">
-<table style="width:100%;border-collapse:collapse;border:2px solid #5a8f5a">
-<!-- CABEÇALHO — fiel ao modelo Unimed verde -->
+<table style="width:100%;border-collapse:collapse;border:2px solid ${_opT.borda}">
+<!-- CABEÇALHO — tema dinâmico por convênio -->
 <tr>
-  <td rowspan="2" style="${B}${P}${VT}width:110px;background:#c8dfc8">
-    <div style="background:#1a6b1a;color:#fff;padding:3px 8px;font-size:11px;font-weight:900;font-style:italic;border-radius:2px;display:inline-block">Unimed</div>
-    <div style="font-size:7px;margin-top:2px;color:#333">${convenio||'Norte de Minas'}</div>
+  <td rowspan="2" style="${B}${P}${VT}width:110px;background:${_opT.cor2}">
+    <div style="background:${_opT.cor1};color:${_opT.txtCor};padding:3px 8px;font-size:11px;font-weight:900;font-style:italic;border-radius:2px;display:inline-block">${_opT.logo}</div>
+    <div style="font-size:7px;margin-top:2px;color:#333">${_opT.sub||convenio}</div>
   </td>
   <td rowspan="2" style="${B}text-align:center;font-weight:700;font-size:11px;padding:6px;letter-spacing:.5px">
     GUIA DE SOLICITAÇÃO<br>DE INTERNAÇÃO
@@ -2443,6 +2459,7 @@ function renderSADT(d,procs){
   const proc=d.procedimento||'PROCEDIMENTO';
   const carLabel={E:'E – Eletivo',U:'U – Urgência',X:'X – Emergência'};
   const car=carLabel[d.carater_cod]||d.carater||'';
+  const _sT = _getOpTheme(d.convenio||'');
   const src=(procs&&procs.length)?procs:[{codigo:d.cod_cbhpm||'',descricao:d.procedimento||'',qtd:1}];
   const pages=chunkItems(src,ITENS_POR_PAGINA_SADT);
   return pages.map((pg,pi)=>{
@@ -2460,9 +2477,9 @@ function renderSADT(d,procs){
 <div class="guia-wrap">
 <table class="guia-table">
 <tr>
-  <td class="logo-cell" rowspan="2">
-    <div class="logo-uni"><div class="logo-u">Unimed</div></div>
-    <div class="logo-cariri" style="margin-top:3px">Cariri</div>
+  <td class="logo-cell" rowspan="2" style="background:${_sT.cor2}">
+    <div class="logo-uni"><div class="logo-u" style="background:${_sT.cor1}">${_sT.logo}</div></div>
+    <div class="logo-cariri" style="margin-top:3px">${_sT.sub}</div>
   </td>
   <td class="guia-title-cell" rowspan="2" style="font-size:11px;font-weight:700;text-align:center">
     GUIA DE SERVIÇO PROFISSIONAL / SERVIÇO AUXILIAR DE<br>DIAGNÓSTICO E TERAPIA – SP/SADT
@@ -2748,6 +2765,7 @@ function renderSADT(d,procs){
 function renderOPME(d){
   const opmeItems=d.opme_items||[];
   const src=opmeItems.length?opmeItems:[null];
+  const _oT = _getOpTheme(d.convenio||'');
   const pages=chunkItems(src,ITENS_POR_PAGINA_OPME);
   return pages.map((pg,pi)=>{
   const rowsHtml=Array.from({length:ITENS_POR_PAGINA_OPME},(_,i)=>{
@@ -2776,9 +2794,9 @@ function renderOPME(d){
 <div class="guia-wrap" style="margin-top:10px">
 <table class="guia-table">
 <tr>
-  <td class="logo-cell" rowspan="2">
-    <div class="logo-uni"><div class="logo-u">Unimed</div></div>
-    <div class="logo-cariri" style="margin-top:3px">Cariri</div>
+  <td class="logo-cell" rowspan="2" style="background:${_oT.cor2}">
+    <div class="logo-uni"><div class="logo-u" style="background:${_oT.cor1}">${_oT.logo}</div></div>
+    <div class="logo-cariri" style="margin-top:3px">${_oT.sub}</div>
   </td>
   <td class="guia-title-cell" rowspan="2" style="font-size:11px;font-weight:700;text-align:center">
     ANEXO DE SOLICITAÇÃO DE ÓRTESES, PRÓTESES E<br>MATERIAIS ESPECIAIS – OPME
@@ -3385,7 +3403,7 @@ function printGuia(which){
       /* Logo */
       .logo-cell{padding:4px 6px;vertical-align:middle;width:140px}
       .logo-uni{display:flex;align-items:center;gap:5px}
-      .logo-u{width:48px;height:22px;background:#1f4e79;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;font-style:italic;border-radius:2px}
+      .logo-u{width:48px;height:22px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;font-style:italic;border-radius:2px}
       .logo-cariri{font-size:9px;font-weight:700;color:#000}
       .guia-title-cell{text-align:center;font-weight:700;font-size:11px;padding:4px}
       /* Assinatura */
@@ -3816,94 +3834,60 @@ function showResultScreen(decideData, shadowV2){
 
   // ── Header ──
   var tierCfg = {
-    go:        { icon:'\u2705', title:'APROVADO',       subtitle:'Pronto para envio.' },
+    go:        { icon:'\u2705', title:'APROVADO',                  subtitle:'Pronto para envio.' },
     ressalvas: { icon:'\u26A0\uFE0F', title:'APROVADO COM RESSALVAS', subtitle:'Pode enviar, mas revise os ajustes abaixo.' },
-    nogo:      { icon:'\u26D4', title:'N\u00C3O ENVIAR',          subtitle:'Corrija os problemas cr\u00EDticos antes de enviar.' }
+    nogo:      { icon:'\u26D4', title:'N\u00C3O ENVIAR',           subtitle:'Corrija os problemas cr\u00EDticos antes de enviar.' }
   };
   var cfg = tierCfg[tier];
   document.getElementById('nrIcon').textContent = cfg.icon;
   document.getElementById('nrTitle').textContent = cfg.title;
   document.getElementById('nrSubtitle').textContent = cfg.subtitle;
 
-  // ── Collect ALL issues from motor ──
+  // ── Collect ALL raw issues ──
   var allRaw = [].concat(
     (decideData.bloqueios||[]).map(function(t){return {txt:t,sev:'crit'};}),
     (decideData.pendencias||[]).map(function(t){return {txt:t,sev:'crit'};}),
     (decideData.pontos_frageis||[]).map(function(t){return {txt:t,sev:'warn'};})
   );
-  // Add v2 shadow pending items if available
   if(shadowV2 && shadowV2.pending_items){
-    shadowV2.pending_items.forEach(function(t){
-      allRaw.push({txt:t,sev:'crit'});
-    });
+    shadowV2.pending_items.forEach(function(t){ allRaw.push({txt:t,sev:'crit'}); });
   }
 
-  // ── Translate rule codes to human language ──
-  allRaw.forEach(function(item){
-    item.txt = _nrTranslate(item.txt);
-  });
+  // ── Categorize into semantic groups, then pick best label ──
+  var grouped = _nrGroupIssues(allRaw);
+  var crits = grouped.filter(function(i){return i.sev==='crit';});
+  var warns = grouped.filter(function(i){return i.sev==='warn';});
 
-  // ── Deduplicate by semantic similarity ──
-  var deduped = _nrDedup(allRaw);
-  var crits = deduped.filter(function(i){return i.sev==='crit';});
-  var warns = deduped.filter(function(i){return i.sev==='warn';});
-
-  // ── Reason line (1 sentence summary) ──
+  // ── Reason line: natural sentence, no codes ──
   var reasonEl = document.getElementById('nrReason');
   if(tier==='go'){
     reasonEl.style.display = 'none';
   } else {
     reasonEl.style.display = '';
-    if(crits.length>0){
-      var reasons = crits.slice(0,2).map(function(c){return c.txt.split(' — ')[0];});
-      reasonEl.textContent = 'Motivo: ' + reasons.join(' + ');
-    } else if(warns.length>0){
-      reasonEl.textContent = 'Pequenos ajustes recomendados antes do envio';
-    }
+    reasonEl.textContent = _nrBuildReasonSentence(crits, warns);
   }
 
-  // ── Score with human label + projected score ──
+  // ── Score with faixa label + prudent projection ──
   var score = typeof decideData.score==='number' ? decideData.score : null;
   var scoreEl = document.getElementById('nrScore');
   if(score!==null){
-    var scoreFaixa = _nrScoreFaixa(score);
-    scoreEl.innerHTML = score + '<span class="nr-score-label">/100 — ' + _nrEsc(scoreFaixa.label) + '</span>';
-    // Projected score after fixes
-    var projected = Math.min(100, score + crits.length * 15 + warns.length * 5);
-    if(projected > score && tier!=='go'){
-      scoreEl.innerHTML += '<div class="nr-score-proj">Corrigindo os itens acima \u2192 score estimado: ~' + projected + '</div>';
+    var faixa = _nrScoreFaixa(score);
+    scoreEl.innerHTML = score + '<span class="nr-score-label">/100 \u2014 ' + _nrEsc(faixa.label) + '</span>';
+    if(tier!=='go'){
+      var proj = _nrProjectScore(score, crits.length, warns.length);
+      scoreEl.innerHTML += '<div class="nr-score-proj">' + _nrEsc(proj) + '</div>';
     }
   } else {
     scoreEl.textContent = '\u2014';
   }
 
   // ── Critical section ──
-  var critSec = document.getElementById('nrCritSection');
-  var critList = document.getElementById('nrCritList');
-  critList.innerHTML = '';
-  if(crits.length > 0){
-    critSec.style.display = '';
-    crits.forEach(function(item){
-      var li = document.createElement('li');
-      li.innerHTML = '<span class="nr-icon">\u274C</span><span>' + _nrEsc(item.txt) + '</span>';
-      critList.appendChild(li);
-    });
-  } else { critSec.style.display = 'none'; }
+  _nrFillSection('nrCritSection','nrCritList', crits, '\u274C');
 
   // ── Warning section ──
-  var warnSec = document.getElementById('nrWarnSection');
-  var warnList = document.getElementById('nrWarnList');
-  warnList.innerHTML = '';
-  if(warns.length > 0){
-    warnSec.style.display = '';
-    warns.forEach(function(item){
-      var li = document.createElement('li');
-      li.innerHTML = '<span class="nr-icon">\u26A0\uFE0F</span><span>' + _nrEsc(item.txt) + '</span>';
-      warnList.appendChild(li);
-    });
-  } else { warnSec.style.display = 'none'; }
+  _nrFillSection('nrWarnSection','nrWarnList', warns, '\u26A0\uFE0F');
 
-  // ── Checklist: concrete actions ──
+  // ── Checklist ──
   var checks = _nrBuildChecklist(crits, warns, decideData);
   var checkSec = document.getElementById('nrCheckSection');
   var checkList = document.getElementById('nrCheckList');
@@ -3917,23 +3901,18 @@ function showResultScreen(decideData, shadowV2){
     });
   } else { checkSec.style.display = 'none'; }
 
-  // ── Justificativa (collapsed by default) ──
+  // ── Justificativa (collapsed) ──
   var just = decideData.justificativa || '';
   var justSec = document.getElementById('nrJustSection');
-  var justText = document.getElementById('nrJustText');
   justSec.classList.remove('nr-just-open');
   if(just.length > 0){
     justSec.style.display = '';
-    justText.textContent = just;
+    document.getElementById('nrJustText').textContent = just;
   } else { justSec.style.display = 'none'; }
 
-  // ── Summary footer — fix contradiction: match tier ──
+  // ── Summary — always matches tier ──
   var risco = decideData.risco_glosa || decideData.camada3_risco || 'indeterminado';
-  var situacaoMap = {
-    go: 'Pronto para envio',
-    ressalvas: 'Enviar com aten\u00E7\u00E3o',
-    nogo: 'N\u00E3o enviar'
-  };
+  var situacaoMap = { go:'Pronto para envio', ressalvas:'Enviar com aten\u00E7\u00E3o', nogo:'N\u00E3o enviar' };
   document.getElementById('nrSumClass').textContent = situacaoMap[tier];
   document.getElementById('nrSumRisco').textContent = _nrTranslateRisco(risco);
   document.getElementById('nrSumMotor').textContent = 'v'+(decideData.motor_version||'1.3');
@@ -3941,7 +3920,6 @@ function showResultScreen(decideData, shadowV2){
 
   // ── Action buttons ──
   var actDiv = document.getElementById('nrActions');
-  actDiv.innerHTML = '';
   if(tier==='go'){
     actDiv.innerHTML = '<button class="nr-btn nr-btn-primary" onclick="closeResultScreen()">Fechar</button>';
   } else if(tier==='ressalvas'){
@@ -3956,113 +3934,169 @@ function showResultScreen(decideData, shadowV2){
   }
 
   modal.classList.add('open');
-
   if(typeof naLog==='function'){
-    naLog('result_screen_shown', {
-      tier:tier, classification:cls, score:score, risco:risco,
-      crits:crits.length, warns:warns.length, checks:checks.length
+    naLog('result_screen_shown',{tier:tier,classification:cls,score:score,risco:risco,crits:crits.length,warns:warns.length});
+  }
+}
+
+/* ── Helper: fill a section list ── */
+function _nrFillSection(secId, listId, items, icon){
+  var sec = document.getElementById(secId);
+  var ul  = document.getElementById(listId);
+  ul.innerHTML = '';
+  if(items.length > 0){
+    sec.style.display = '';
+    items.forEach(function(item){
+      var li = document.createElement('li');
+      var codePart = item.code ? '<span class="nr-rule-code">C\u00F3digo: '+_nrEsc(item.code)+'</span>' : '';
+      li.innerHTML = '<span class="nr-icon">'+icon+'</span><span>'+_nrEsc(item.txt)+codePart+'</span>';
+      ul.appendChild(li);
     });
+  } else { sec.style.display = 'none'; }
+}
+
+/* ── Score faixa ── */
+function _nrScoreFaixa(s){
+  if(s >= 90) return {label:'Alta conformidade'};
+  if(s >= 75) return {label:'Bom com ressalvas'};
+  if(s >= 50) return {label:'Risco moderado'};
+  return {label:'Cr\u00EDtico \u2014 alta chance de negativa'};
+}
+
+/* ── Prudent score projection ── */
+function _nrProjectScore(score, nCrits, nWarns){
+  // Each critical fix adds 10-12 pts, each warning fix adds 3-5 pts
+  // Cap at realistic ceiling, never promise 100
+  var critBoost = Math.min(nCrits * 11, 45);
+  var warnBoost = Math.min(nWarns * 4, 15);
+  var lo = Math.min(92, score + critBoost + warnBoost - 5);
+  var hi = Math.min(95, lo + 8);
+  if(lo < score + 5) lo = score + 5;
+  if(hi <= lo) hi = lo + 5;
+  if(lo > 92) lo = 88;
+  if(hi > 95) hi = 92;
+  if(nCrits > 0){
+    return 'Ap\u00F3s corrigir bloqueios: score estimado ~' + lo + '\u2013' + hi;
   }
+  return 'Ap\u00F3s ajustes: pode subir para faixa aprov\u00E1vel (~' + lo + '+)';
 }
 
-/* ── Score faixa labels ── */
-function _nrScoreFaixa(score){
-  if(score >= 90) return {label:'Alta conformidade',color:'g1'};
-  if(score >= 75) return {label:'Bom com ressalvas',color:'a1'};
-  if(score >= 50) return {label:'Risco moderado',color:'a1'};
-  return {label:'Cr\u00EDtico \u2014 alta chance de negativa',color:'r1'};
-}
+/* ── Semantic grouping: replaces translate+dedup ── */
+function _nrGroupIssues(rawItems){
+  // Define semantic categories with keywords and clean labels
+  var categories = [
+    { key:'imagem',       label:'Falta exame de imagem com laudo (RM ou TC)',
+      kw:['imagem','rm ','ressonancia','tomografia','tc ','achado','evidencia','evidência','correlacao','correlação'] },
+    { key:'conservador',  label:'Tratamento conservador insuficiente',
+      kw:['conservador','semanas','tratamento prvio','tratamento prévio'] },
+    { key:'dut_ans',      label:'N\u00E3o cumpre crit\u00E9rio regulat\u00F3rio ANS/DUT',
+      kw:['dut','diretriz','ans_dut','regulat'] },
+    { key:'justificativa',label:'Relat\u00F3rio cl\u00EDnico insuficiente',
+      kw:['justificativa','relatorio','relatório','texto insuficiente','curto','caracteres'] },
+    { key:'opme',         label:'OPME sem justificativa cl\u00EDnica individualizada',
+      kw:['opme','material','implante'] },
+    { key:'convenio',     label:'Dados do conv\u00EAnio incompletos ou inv\u00E1lidos',
+      kw:['convenio','convênio','operadora','plano'] },
+    { key:'cid',          label:'CID ausente ou incompat\u00EDvel',
+      kw:['cid','diagnostico','diagnóstico'] }
+  ];
 
-/* ── Translate rule codes + technical terms ── */
-function _nrTranslate(txt){
-  // Strip rule codes like ANS_DUT_COLUNA_001, ANS_005 etc
-  var ruleMatch = txt.match(/^(ANS_\w+|EVID_\w+|OP_\w+)[\s:\-]*/);
-  var code = ruleMatch ? ruleMatch[1] : '';
-  var clean = txt.replace(/^(ANS_\w+|EVID_\w+|OP_\w+)[\s:\-]*/,'');
-  // Common translations
-  var translations = {
-    'sem achado de imagem': 'Aus\u00EAncia de exame de imagem (RM/TC com laudo)',
-    'sem evid\u00eancia': 'Aus\u00EAncia de exame de imagem (RM/TC com laudo)',
-    'rm obrigat\u00f3ria': 'Aus\u00EAncia de exame de imagem (RM/TC com laudo)',
-    'correla\u00e7\u00e3o imposs\u00edvel': 'Aus\u00EAncia de exame de imagem (RM/TC com laudo)',
-    'tratamento conservador insuficiente': 'Tratamento conservador insuficiente',
-    'conservador = 0': 'Tratamento conservador insuficiente (0 semanas \u2014 m\u00EDnimo 6)',
-    'conservador insuficiente': 'Tratamento conservador insuficiente',
-    'sem tratamento conservador': 'Tratamento conservador insuficiente (0 semanas \u2014 m\u00EDnimo 6)',
-    'justificativa curta': 'Relat\u00F3rio cl\u00EDnico muito curto',
-    'texto insuficiente': 'Relat\u00F3rio cl\u00EDnico muito curto'
-  };
-  var lower = clean.toLowerCase().trim();
-  for(var key in translations){
-    if(lower.indexOf(key) !== -1){
-      clean = translations[key];
-      break;
-    }
-  }
-  // If there was a rule code, append it small
-  if(code) clean += ' \u2014 ' + code;
-  return clean;
-}
+  var grouped = {};   // key -> {txt, sev, code, count}
+  var uncategorized = [];
 
-/* ── Translate risco de glosa ── */
-function _nrTranslateRisco(r){
-  var map = {
-    'critico':'Cr\u00EDtico','alto':'Alto','moderado':'Moderado',
-    'baixo':'Baixo','indeterminado':'Indeterminado'
-  };
-  return map[(r||'').toLowerCase()] || r;
-}
-
-/* ── Deduplicate items by semantic key ── */
-function _nrDedup(items){
-  var seen = {};
-  var result = [];
-  items.forEach(function(item){
-    // Normalize for dedup: lowercase, strip code suffix
-    var key = item.txt.toLowerCase().replace(/\s*\u2014\s*\w+$/,'').trim();
-    if(!seen[key]){
-      seen[key] = true;
-      result.push(item);
-    } else {
-      // If duplicate but higher severity, upgrade
-      for(var i=0;i<result.length;i++){
-        var rk = result[i].txt.toLowerCase().replace(/\s*\u2014\s*\w+$/,'').trim();
-        if(rk===key && item.sev==='crit' && result[i].sev==='warn'){
-          result[i].sev = 'crit';
+  rawItems.forEach(function(item){
+    var raw = item.txt;
+    var lower = raw.toLowerCase();
+    // Extract rule code if present (ANS_xxx, EVID_xxx, OP_xxx)
+    var codeMatch = raw.match(/(ANS_\w+|EVID_\w+|OP_\w+)/);
+    var code = codeMatch ? codeMatch[1] : '';
+    // Try to match a category
+    var matched = false;
+    for(var c=0; c<categories.length; c++){
+      var cat = categories[c];
+      for(var k=0; k<cat.kw.length; k++){
+        if(lower.indexOf(cat.kw[k]) !== -1){
+          if(!grouped[cat.key]){
+            grouped[cat.key] = {txt:cat.label, sev:item.sev, code:code, count:1};
+          } else {
+            grouped[cat.key].count++;
+            if(item.sev==='crit') grouped[cat.key].sev = 'crit';
+            if(code && !grouped[cat.key].code) grouped[cat.key].code = code;
+          }
+          matched = true;
           break;
         }
       }
+      if(matched) break;
     }
+    // Uncategorized: clean up prefix tags like [EVIDENCIA]
+    if(!matched){
+      var clean = raw.replace(/^\[?\w+\]?\s*[:–—-]\s*/,'').trim();
+      if(clean.length < 3) clean = raw;
+      // Strip leading rule code
+      clean = clean.replace(/^(ANS_\w+|EVID_\w+|OP_\w+)\s*[:–—-]?\s*/,'');
+      if(clean.length > 0){
+        uncategorized.push({txt:clean, sev:item.sev, code:code, count:1});
+      }
+    }
+  });
+
+  // Build final list: grouped first, then unique uncategorized
+  var result = [];
+  for(var key in grouped) result.push(grouped[key]);
+  // Dedup uncategorized
+  var seenUn = {};
+  uncategorized.forEach(function(u){
+    var k = u.txt.toLowerCase().substring(0,40);
+    if(!seenUn[k]){ seenUn[k]=true; result.push(u); }
   });
   return result;
 }
 
-/* ── Build actionable checklist from issues ── */
+/* ── Build reason sentence: natural language, no codes ── */
+function _nrBuildReasonSentence(crits, warns){
+  if(crits.length === 0 && warns.length === 0) return '';
+  var parts = [];
+  // Pick top 2 critical labels (already clean)
+  var src = crits.length > 0 ? crits : warns;
+  for(var i=0; i<Math.min(2,src.length); i++){
+    var t = src[i].txt.toLowerCase();
+    // Shorten for the reason line
+    if(t.indexOf('imagem')!==-1) parts.push('falta exame de imagem com laudo');
+    else if(t.indexOf('conservador')!==-1) parts.push('tratamento conservador insuficiente');
+    else if(t.indexOf('ans')!==-1 || t.indexOf('dut')!==-1) parts.push('bloqueio regulat\u00F3rio ANS/DUT');
+    else if(t.indexOf('relat\u00f3rio')!==-1 || t.indexOf('justificativa')!==-1) parts.push('documenta\u00E7\u00E3o cl\u00EDnica insuficiente');
+    else if(t.indexOf('opme')!==-1) parts.push('OPME sem justificativa');
+    else parts.push(src[i].txt.split(' \u2014 ')[0].toLowerCase());
+  }
+  if(parts.length === 0) return 'Ajustes necess\u00E1rios antes do envio';
+  return 'Motivo principal: ' + parts.join(' e ') + '.';
+}
+
+/* ── Translate risco de glosa ── */
+function _nrTranslateRisco(r){
+  var map = {'critico':'Cr\u00EDtico','alto':'Alto','moderado':'Moderado','baixo':'Baixo','indeterminado':'Indeterminado'};
+  return map[(r||'').toLowerCase()] || r;
+}
+
+/* ── Build actionable checklist ── */
 function _nrBuildChecklist(crits, warns, data){
   var checks = [];
   var allTxt = crits.concat(warns).map(function(i){return i.txt.toLowerCase();}).join('|');
-  if(allTxt.indexOf('imagem')!==-1 || allTxt.indexOf('rm')!==-1 || allTxt.indexOf('tc')!==-1){
+  if(allTxt.indexOf('imagem')!==-1 || allTxt.indexOf('rm')!==-1 || allTxt.indexOf('tc')!==-1)
     checks.push('Anexar RM ou TC com laudo');
-  }
-  if(allTxt.indexOf('conservador')!==-1 || allTxt.indexOf('semanas')!==-1){
+  if(allTxt.indexOf('conservador')!==-1)
     checks.push('Documentar \u22656 semanas de tratamento conservador');
-  }
-  if(allTxt.indexOf('justificativa')!==-1 || allTxt.indexOf('relat\u00f3rio')!==-1 || allTxt.indexOf('curto')!==-1){
+  if(allTxt.indexOf('relat\u00f3rio')!==-1 || allTxt.indexOf('justificativa')!==-1)
     checks.push('Ampliar justificativa cl\u00EDnica (m\u00EDnimo 200 caracteres)');
-  }
-  if(allTxt.indexOf('opme')!==-1){
+  if(allTxt.indexOf('opme')!==-1)
     checks.push('Revisar indica\u00E7\u00E3o e justificativa da OPME');
-  }
-  if(allTxt.indexOf('dut')!==-1 || allTxt.indexOf('ans')!==-1){
+  if(allTxt.indexOf('dut')!==-1 || allTxt.indexOf('ans')!==-1)
     checks.push('Verificar crit\u00E9rios DUT/ANS para o procedimento');
-  }
-  if(allTxt.indexOf('conv\u00eanio')!==-1 || allTxt.indexOf('operadora')!==-1){
+  if(allTxt.indexOf('conv\u00eanio')!==-1 || allTxt.indexOf('operadora')!==-1)
     checks.push('Confirmar dados do conv\u00EAnio/operadora');
-  }
-  // Fallback: if no specific checks generated, use proximos_passos
-  if(checks.length===0 && data.proximos_passos){
+  if(checks.length===0 && data.proximos_passos)
     checks = data.proximos_passos.slice(0,4);
-  }
   return checks;
 }
 
