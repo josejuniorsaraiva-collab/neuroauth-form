@@ -424,6 +424,76 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 .na-enter-btn:disabled{background:#d1d9e3;color:#8a97a8;cursor:not-allowed}
 .na-enter-btn:not(:disabled):hover{background:#1f4e79;transform:translateY(-1px)}
 .na-logout-link{background:none;border:none;color:#8a97a8;font-size:12px;cursor:pointer;text-decoration:underline}
+
+/* ═══════ RESULT SCREEN — Classificação Clínica ═══════ */
+.nr-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:250;
+  align-items:center;justify-content:center;padding:16px}
+.nr-overlay.open{display:flex}
+.nr-card{background:#fff;border-radius:14px;width:95%;max-width:680px;max-height:92vh;
+  overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.18);position:relative}
+.nr-header{padding:20px 24px 16px;border-radius:14px 14px 0 0;display:flex;align-items:center;gap:14px}
+.nr-header-icon{font-size:36px;line-height:1}
+.nr-header-txt h2{font-size:18px;font-weight:800;margin:0 0 2px}
+.nr-header-txt p{font-size:13px;margin:0;opacity:.85}
+.nr-close{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.25);border:none;
+  color:#fff;width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;line-height:30px;text-align:center}
+.nr-close:hover{background:rgba(255,255,255,.4)}
+
+/* Tier colors */
+.nr-go .nr-header{background:var(--g1);color:#fff}
+.nr-go .nr-score-bar{background:var(--gp);color:var(--g1)}
+.nr-go .nr-badge{background:var(--gp);color:var(--g1)}
+.nr-ressalvas .nr-header{background:var(--a1);color:#fff}
+.nr-ressalvas .nr-score-bar{background:var(--ap);color:var(--a1)}
+.nr-ressalvas .nr-badge{background:var(--ap);color:var(--a1)}
+.nr-nogo .nr-header{background:var(--r1);color:#fff}
+.nr-nogo .nr-score-bar{background:var(--rp);color:var(--r1)}
+.nr-nogo .nr-badge{background:var(--rp);color:var(--r1)}
+
+.nr-score-bar{padding:10px 24px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+.nr-score-bar .nr-score-num{font-size:22px;font-weight:900}
+
+.nr-body{padding:18px 24px}
+.nr-section{margin-bottom:16px}
+.nr-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--s4);margin-bottom:8px}
+.nr-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin:0 4px 4px 0}
+.nr-list{list-style:none;padding:0;margin:0}
+.nr-list li{padding:6px 0;border-bottom:1px solid var(--s2);font-size:13px;line-height:1.5;display:flex;align-items:flex-start;gap:8px}
+.nr-list li:last-child{border-bottom:none}
+.nr-list li::before{content:'';display:none}
+.nr-list .nr-icon{flex-shrink:0;width:18px;text-align:center}
+.nr-just{background:var(--s1);border-radius:8px;padding:12px 14px;font-size:12px;line-height:1.6;
+  color:var(--s5);border-left:3px solid var(--b2);margin-top:4px;white-space:pre-wrap}
+
+/* Summary footer */
+.nr-summary{background:var(--bp);border-top:2px solid var(--b3);padding:16px 24px;border-radius:0 0 14px 14px}
+.nr-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.nr-summary-item{font-size:12px}
+.nr-summary-item strong{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--s4);margin-bottom:2px}
+.nr-summary-item span{font-size:14px;font-weight:700;color:var(--tx)}
+
+/* Action buttons */
+.nr-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.nr-btn{padding:10px 18px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:all .16s}
+.nr-btn:hover{transform:translateY(-1px)}
+.nr-btn-primary{background:var(--b2);color:#fff}
+.nr-btn-primary:hover{background:var(--b1)}
+.nr-btn-secondary{background:var(--s2);color:var(--s5)}
+.nr-btn-secondary:hover{background:var(--s3)}
+.nr-btn-warn{background:var(--a1);color:#fff}
+.nr-btn-warn:hover{background:#9a4408}
+.nr-btn-danger{background:var(--r1);color:#fff}
+.nr-btn-danger:hover{background:#8b001a}
+
+.nr-footer-msg{text-align:center;font-size:11px;color:var(--s4);padding:10px 24px 16px;font-style:italic}
+
+/* Responsive */
+@media(max-width:600px){
+  .nr-card{width:100%;max-width:100%;border-radius:14px 14px 0 0;max-height:95vh}
+  .nr-summary-grid{grid-template-columns:1fr}
+  .nr-actions{flex-direction:column}
+  .nr-btn{width:100%;text-align:center}
+}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -545,6 +615,65 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
         <span class="spinner" id="sp"></span> ✅ Confirmar Envio
       </button>
     </div>
+  </div>
+</div>
+
+<!-- ═══════ RESULT SCREEN — Classificação Clínica ═══════ -->
+<div class="nr-overlay" id="naResultModal">
+  <div class="nr-card" id="naResultCard">
+    <button class="nr-close" onclick="closeResultScreen()">&times;</button>
+    <!-- Header — tier class set by JS (nr-go | nr-ressalvas | nr-nogo) -->
+    <div class="nr-header">
+      <div class="nr-header-icon" id="nrIcon"></div>
+      <div class="nr-header-txt">
+        <h2 id="nrTitle"></h2>
+        <p id="nrSubtitle"></p>
+      </div>
+    </div>
+    <!-- Score bar -->
+    <div class="nr-score-bar">
+      <span id="nrScoreLabel">Score de conformidade</span>
+      <span class="nr-score-num" id="nrScore"></span>
+    </div>
+    <!-- Body -->
+    <div class="nr-body">
+      <!-- Riscos / Pontos Frágeis -->
+      <div class="nr-section" id="nrRiskSection" style="display:none">
+        <div class="nr-section-title">Riscos identificados</div>
+        <ul class="nr-list" id="nrRiskList"></ul>
+      </div>
+      <!-- Pendências -->
+      <div class="nr-section" id="nrPendSection" style="display:none">
+        <div class="nr-section-title">Pendências</div>
+        <ul class="nr-list" id="nrPendList"></ul>
+      </div>
+      <!-- Bloqueios -->
+      <div class="nr-section" id="nrBlockSection" style="display:none">
+        <div class="nr-section-title">Bloqueios</div>
+        <ul class="nr-list" id="nrBlockList"></ul>
+      </div>
+      <!-- Próximos passos -->
+      <div class="nr-section" id="nrStepsSection" style="display:none">
+        <div class="nr-section-title">Ações recomendadas</div>
+        <ul class="nr-list" id="nrStepsList"></ul>
+      </div>
+      <!-- Justificativa -->
+      <div class="nr-section" id="nrJustSection" style="display:none">
+        <div class="nr-section-title">Justificativa gerada</div>
+        <div class="nr-just" id="nrJustText"></div>
+      </div>
+    </div>
+    <!-- Summary footer -->
+    <div class="nr-summary">
+      <div class="nr-summary-grid">
+        <div class="nr-summary-item"><strong>Classificação</strong><span id="nrSumClass"></span></div>
+        <div class="nr-summary-item"><strong>Risco de glosa</strong><span id="nrSumRisco"></span></div>
+        <div class="nr-summary-item"><strong>Motor</strong><span id="nrSumMotor"></span></div>
+        <div class="nr-summary-item"><strong>Trace ID</strong><span id="nrSumTrace"></span></div>
+      </div>
+      <div class="nr-actions" id="nrActions"></div>
+    </div>
+    <div class="nr-footer-msg">O sistema não decide por você — ele elimina o risco invisível.</div>
   </div>
 </div>
 
@@ -3532,15 +3661,14 @@ async function confirmedSend(){
       naLog('relay_skipped_replay', {trace_id:traceId});
     }
 
-    // ── FASE 4: Sucesso — atualizar UI ──
+    // ── FASE 4: Sucesso — atualizar UI com Result Screen ──
     setBtnState('success');
     closeModal('pvModal');
+    // Mostrar tela de resultado clínico completa
+    showResultScreen(decideData, window.__NA_LAST_SHADOW_V2__||null);
+    // Toast resumido como backup visual
     const replayTag = isReplay ? ' (replay)' : '';
-    const toastMsg = '🎉 Motor clínico executado! '
-      + (decideData.classification||'')
-      + (traceId ? ' ['+traceId+']' : '')
-      + replayTag;
-    toast(toastMsg,'ok');
+    toast((decideData.classification||'OK')+' — veja o resultado detalhado','ok');
     clearCaseData('submit_success');
     guiaRegistrada    = true;
     envioConfirmadoEm = new Date().toISOString();
@@ -3651,6 +3779,190 @@ function toast(msg,type=''){
   const t=document.createElement('div');
   t.className='toast '+(type||'');t.textContent=msg;c.appendChild(t);
   setTimeout(()=>t.remove(),3800);
+}
+
+/* ──────────────────────────────────────────────
+   RESULT SCREEN — Classificação Clínica
+────────────────────────────────────────────── */
+function showResultScreen(decideData, shadowV2){
+  var modal = document.getElementById('naResultModal');
+  var card  = document.getElementById('naResultCard');
+  if(!modal || !card) return;
+
+  // Determine tier from classification
+  var cls = (decideData.classification||'').toUpperCase();
+  var tier = 'nogo'; // default
+  if(cls==='GO'||cls==='APROVADO') tier = 'go';
+  else if(cls==='GO_COM_RESSALVAS'||cls==='AUTORIZADO_COM_RESSALVAS') tier = 'ressalvas';
+
+  // Remove old tier, apply new
+  card.classList.remove('nr-go','nr-ressalvas','nr-nogo');
+  card.classList.add('nr-'+tier);
+
+  // Header config per tier
+  var tierCfg = {
+    go: {
+      icon: '\u2705',
+      title: 'GO — Aprovado',
+      subtitle: 'Caso dentro dos critérios. Pronto para envio.'
+    },
+    ressalvas: {
+      icon: '\u26A0\uFE0F',
+      title: 'GO COM RESSALVAS',
+      subtitle: 'Caso aprovável, mas com pontos que exigem atenção antes do envio.'
+    },
+    nogo: {
+      icon: '\u26D4',
+      title: 'NO GO — Não aprovado',
+      subtitle: 'Caso com pendências críticas. Corrija antes de enviar.'
+    }
+  };
+  var cfg = tierCfg[tier];
+  document.getElementById('nrIcon').textContent = cfg.icon;
+  document.getElementById('nrTitle').textContent = cfg.title;
+  document.getElementById('nrSubtitle').textContent = cfg.subtitle;
+
+  // Score
+  var score = decideData.score;
+  if(score===null||score===undefined) score = '—';
+  document.getElementById('nrScore').textContent = score;
+
+  // Risco de glosa
+  var risco = decideData.risco_glosa || decideData.camada3_risco || 'indeterminado';
+
+  // ── Populate sections ──
+  // Risks (pontos_frageis)
+  var risks = decideData.pontos_frageis || [];
+  var riskSec = document.getElementById('nrRiskSection');
+  var riskList = document.getElementById('nrRiskList');
+  riskList.innerHTML = '';
+  if(risks.length > 0){
+    riskSec.style.display = '';
+    for(var i=0;i<risks.length;i++){
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="nr-icon">\u26A0\uFE0F</span><span>'+_nrEsc(risks[i])+'</span>';
+      riskList.appendChild(li);
+    }
+  } else { riskSec.style.display = 'none'; }
+
+  // Pendências
+  var pends = decideData.pendencias || [];
+  var pendSec = document.getElementById('nrPendSection');
+  var pendList = document.getElementById('nrPendList');
+  pendList.innerHTML = '';
+  if(pends.length > 0){
+    pendSec.style.display = '';
+    for(var i=0;i<pends.length;i++){
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="nr-icon">\uD83D\uDD34</span><span>'+_nrEsc(pends[i])+'</span>';
+      pendList.appendChild(li);
+    }
+  } else { pendSec.style.display = 'none'; }
+
+  // Bloqueios
+  var blocks = decideData.bloqueios || [];
+  var blockSec = document.getElementById('nrBlockSection');
+  var blockList = document.getElementById('nrBlockList');
+  blockList.innerHTML = '';
+  if(blocks.length > 0){
+    blockSec.style.display = '';
+    for(var i=0;i<blocks.length;i++){
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="nr-icon">\u274C</span><span>'+_nrEsc(blocks[i])+'</span>';
+      blockList.appendChild(li);
+    }
+  } else { blockSec.style.display = 'none'; }
+
+  // Próximos passos / ações recomendadas
+  var steps = decideData.proximos_passos || [];
+  // Also include v2 shadow recommended_action if available
+  if(shadowV2 && shadowV2.recommended_action && steps.indexOf(shadowV2.recommended_action)===-1){
+    steps = steps.concat([shadowV2.recommended_action]);
+  }
+  var stepsSec = document.getElementById('nrStepsSection');
+  var stepsList = document.getElementById('nrStepsList');
+  stepsList.innerHTML = '';
+  if(steps.length > 0){
+    stepsSec.style.display = '';
+    for(var i=0;i<steps.length;i++){
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="nr-icon">\u27A1\uFE0F</span><span>'+_nrEsc(steps[i])+'</span>';
+      stepsList.appendChild(li);
+    }
+  } else { stepsSec.style.display = 'none'; }
+
+  // Justificativa
+  var just = decideData.justificativa || '';
+  var justSec = document.getElementById('nrJustSection');
+  var justText = document.getElementById('nrJustText');
+  if(just.length > 0){
+    justSec.style.display = '';
+    justText.textContent = just;
+  } else { justSec.style.display = 'none'; }
+
+  // Summary footer
+  document.getElementById('nrSumClass').textContent = cls || '—';
+  document.getElementById('nrSumRisco').textContent = risco;
+  document.getElementById('nrSumMotor').textContent = 'v'+(decideData.motor_version||'1.3');
+  document.getElementById('nrSumTrace').textContent = decideData.trace_id || '—';
+
+  // ── Action buttons (vary by tier) ──
+  var actDiv = document.getElementById('nrActions');
+  actDiv.innerHTML = '';
+
+  if(tier==='go'){
+    actDiv.innerHTML =
+      '<button class="nr-btn nr-btn-primary" onclick="closeResultScreen()">Fechar</button>';
+  } else if(tier==='ressalvas'){
+    actDiv.innerHTML =
+      '<button class="nr-btn nr-btn-primary" onclick="nrActionEdit()">Editar manualmente</button>'+
+      '<button class="nr-btn nr-btn-warn" onclick="closeResultScreen()">Enviar mesmo assim</button>'+
+      '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar para revisão</button>';
+  } else {
+    // nogo
+    actDiv.innerHTML =
+      '<button class="nr-btn nr-btn-danger" onclick="nrActionEdit()">Corrigir e reenviar</button>'+
+      '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar para revisão</button>';
+  }
+
+  // Show modal
+  modal.classList.add('open');
+
+  // Log
+  if(typeof naLog==='function'){
+    naLog('result_screen_shown', {
+      tier: tier,
+      classification: cls,
+      score: score,
+      risco: risco,
+      risks_count: risks.length,
+      pends_count: pends.length,
+      blocks_count: blocks.length
+    });
+  }
+}
+
+function closeResultScreen(){
+  var m = document.getElementById('naResultModal');
+  if(m) m.classList.remove('open');
+}
+
+function nrActionEdit(){
+  closeResultScreen();
+  // Reopen the wizard at the review tab for manual editing
+  if(typeof goTab==='function') goTab(6);
+  toast('Revise os campos e reenvie.','');
+}
+
+function nrActionSave(){
+  closeResultScreen();
+  // Draft is already in localStorage from saveDraft
+  if(typeof saveDraft==='function') saveDraft();
+  toast('Rascunho salvo para revisão posterior.','ok');
+}
+
+function _nrEsc(s){
+  var d=document.createElement('div');d.textContent=s;return d.innerHTML;
 }
 
 function mCPF(el){
