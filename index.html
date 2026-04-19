@@ -425,6 +425,84 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 .na-enter-btn:not(:disabled):hover{background:#1f4e79;transform:translateY(-1px)}
 .na-logout-link{background:none;border:none;color:#8a97a8;font-size:12px;cursor:pointer;text-decoration:underline}
 
+/* ═══════ MINHA ÁREA — Overlay do Usuário ═══════ */
+.ma-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:240;
+  align-items:center;justify-content:center;padding:16px}
+.ma-overlay.open{display:flex}
+.ma-panel{background:#fff;border-radius:14px;width:96%;max-width:860px;max-height:92vh;
+  display:flex;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.18);position:relative}
+.ma-close{position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;
+  cursor:pointer;color:#666;z-index:10}
+.ma-close:hover{color:#000}
+
+/* Menu lateral */
+.ma-menu{width:180px;min-width:180px;background:#f5f7fa;border-right:1px solid #e0e4ea;
+  padding:20px 0;display:flex;flex-direction:column;gap:2px}
+.ma-menu-item{padding:10px 20px;font-size:13px;font-weight:600;color:#4a5568;cursor:pointer;
+  border:none;background:none;text-align:left;transition:all .15s;border-left:3px solid transparent}
+.ma-menu-item:hover{background:#e8edf3;color:#1a3f6f}
+.ma-menu-item.active{background:#e0e8f5;color:#1a3f6f;border-left-color:#1a3f6f}
+
+/* Conteúdo */
+.ma-content{flex:1;padding:24px;overflow-y:auto;max-height:92vh}
+.ma-title{font-size:18px;font-weight:700;color:#1a3f6f;margin-bottom:16px}
+.ma-subtitle{font-size:12px;color:#888;margin-bottom:16px}
+
+/* Cards de rascunho */
+.ma-draft-card{background:#f9fafb;border:1px solid #e0e4ea;border-radius:10px;padding:14px 16px;
+  margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;
+  transition:all .15s;cursor:pointer}
+.ma-draft-card:hover{border-color:#1a3f6f;box-shadow:0 2px 8px rgba(26,63,111,.08)}
+.ma-draft-info{flex:1;min-width:0}
+.ma-draft-nome{font-size:14px;font-weight:600;color:#1a3f6f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ma-draft-meta{font-size:11px;color:#888;margin-top:3px}
+.ma-draft-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap}
+.ma-draft-status.incompleto{background:#fef3cd;color:#856404}
+.ma-draft-status.pronto{background:#d4edda;color:#155724}
+.ma-draft-actions{display:flex;gap:6px;margin-left:10px}
+.ma-draft-btn{background:none;border:1px solid #d0d5dd;border-radius:6px;padding:4px 10px;
+  font-size:11px;cursor:pointer;color:#4a5568;transition:all .12s}
+.ma-draft-btn:hover{background:#1a3f6f;color:#fff;border-color:#1a3f6f}
+.ma-draft-btn.del{color:#c0392b}
+.ma-draft-btn.del:hover{background:#c0392b;color:#fff;border-color:#c0392b}
+
+/* Empty state */
+.ma-empty{text-align:center;padding:40px 20px;color:#aaa;font-size:13px}
+.ma-empty-icon{font-size:36px;margin-bottom:10px}
+
+/* Favoritos */
+.ma-fav-section{margin-bottom:20px}
+.ma-fav-label{font-size:12px;font-weight:700;color:#1a3f6f;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.ma-fav-list{display:flex;flex-wrap:wrap;gap:8px}
+.ma-fav-chip{background:#e8edf5;border:1px solid #c8d4e8;border-radius:8px;padding:6px 14px;
+  font-size:12px;color:#1a3f6f;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:6px}
+.ma-fav-chip:hover{background:#1a3f6f;color:#fff}
+.ma-fav-chip .ma-fav-x{font-size:10px;opacity:.5;cursor:pointer}
+.ma-fav-chip .ma-fav-x:hover{opacity:1}
+.ma-fav-add{background:#fff;border:1px dashed #c8d4e8;color:#888}
+.ma-fav-add:hover{border-color:#1a3f6f;color:#1a3f6f;background:#f5f8ff}
+
+/* Perfil */
+.ma-profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ma-profile-field{display:flex;flex-direction:column;gap:3px}
+.ma-profile-field label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.3px}
+.ma-profile-field .val{font-size:14px;color:#1a3f6f;font-weight:600}
+
+/* Botão topbar */
+.tb-btn-user{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;
+  padding:6px 12px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.tb-btn-user:hover{background:rgba(255,255,255,.25)}
+
+/* Mobile */
+@media(max-width:640px){
+  .ma-panel{flex-direction:column;max-height:95vh}
+  .ma-menu{width:100%;min-width:100%;flex-direction:row;overflow-x:auto;padding:10px;gap:4px;
+    border-right:none;border-bottom:1px solid #e0e4ea}
+  .ma-menu-item{padding:8px 14px;white-space:nowrap;border-left:none;border-bottom:3px solid transparent}
+  .ma-menu-item.active{border-left-color:transparent;border-bottom-color:#1a3f6f}
+  .ma-profile-grid{grid-template-columns:1fr}
+}
+
 /* ═══════ RESULT SCREEN — Classificação Clínica ═══════ */
 .nr-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:250;
   align-items:center;justify-content:center;padding:16px}
@@ -547,6 +625,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
     <span id="wh-lbl" style="font-size:12px;opacity:.8">Webhook</span>
     <button class="tb-btn" onclick="testWebhook()">⚡ Testar webhook</button>
     <button class="tb-btn" onclick="saveDraft()">💾 Rascunho</button>
+    <button class="tb-btn-user" onclick="openMinhaArea()">👤 Minha Área</button>
     <span class="badge">Dr. José Correia Jr.</span>
   </div>
 </div>
@@ -640,6 +719,21 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 </div>
 
 <!-- ═══════ RESULT SCREEN — Classificação Clínica v2 ═══════ -->
+<!-- ═══════ MINHA ÁREA OVERLAY ═══════ -->
+<div class="ma-overlay" id="maOverlay">
+  <div class="ma-panel">
+    <button class="ma-close" onclick="closeMinhaArea()">&times;</button>
+    <aside class="ma-menu">
+      <button class="ma-menu-item active" onclick="maTab('drafts',this)">📄 Rascunhos</button>
+      <button class="ma-menu-item" onclick="maTab('favs',this)">⭐ Favoritos</button>
+      <button class="ma-menu-item" onclick="maTab('profile',this)">👤 Perfil</button>
+    </aside>
+    <main class="ma-content" id="maContent">
+      <!-- conteúdo dinâmico via JS -->
+    </main>
+  </div>
+</div>
+
 <div class="nr-overlay" id="naResultModal">
   <div class="nr-card" id="naResultCard">
     <button class="nr-close" onclick="closeResultScreen()">&times;</button>
@@ -1440,6 +1534,8 @@ function naEnterForm(){
   goTab(0);
   // Attach live invalidation: qualquer mudança de campo invalida cache de compliance
   naAttachLiveValidation();
+  // Inicializar Minha Área (migrar legado + auto-save)
+  if(typeof maInit==='function') maInit();
 }
 
 function naAttachLiveValidation() {
@@ -3760,8 +3856,15 @@ async function testWebhook(){
    DRAFT
 ────────────────────────────────────────────── */
 function saveDraft(){
-  // Gate B: rascunho em sessionStorage (volátil) — não persiste entre sessões
-  try{sessionStorage.setItem('neuroauth_draft',JSON.stringify(collect()));toast('💾 Rascunho salvo');}catch(e){}
+  // Multi-draft: salvar no sistema Minha Área (localStorage persistente)
+  try{
+    maSaveCurrentDraft();
+    toast('Rascunho salvo');
+  }catch(e){
+    // Fallback legado
+    try{sessionStorage.setItem('neuroauth_draft',JSON.stringify(collect()));}catch(e2){}
+    toast('Rascunho salvo (sessão)');
+  }
 }
 
 function restoreDraft(){
@@ -4110,6 +4213,403 @@ function _nrBuildChecklist(crits, warns, data){
   return checks;
 }
 
+/* ═══════════════════════════════════════════════════
+   MINHA ÁREA — Rascunhos, Favoritos, Perfil (Fase 1)
+   ═══════════════════════════════════════════════════ */
+
+/* ── Storage keys ── */
+var MA_DRAFTS_KEY  = 'na_drafts';
+var MA_FAVS_KEY    = 'na_favorites';
+var MA_DRAFT_LIMIT = 20;
+var MA_CURRENT_TAB = 'drafts';
+var MA_ACTIVE_DRAFT_ID = null; // ID do rascunho sendo editado atualmente
+
+/* ── Helpers de storage ── */
+function _maGetDrafts(){
+  try{ return JSON.parse(localStorage.getItem(MA_DRAFTS_KEY)) || []; }catch(e){ return []; }
+}
+function _maSaveDrafts(list){
+  try{ localStorage.setItem(MA_DRAFTS_KEY, JSON.stringify(list.slice(0, MA_DRAFT_LIMIT))); }catch(e){}
+}
+function _maGetFavs(){
+  try{ return JSON.parse(localStorage.getItem(MA_FAVS_KEY)) || {procedimentos:[],opme:[],convenios:[]}; }catch(e){ return {procedimentos:[],opme:[],convenios:[]}; }
+}
+function _maSaveFavs(favs){
+  try{ localStorage.setItem(MA_FAVS_KEY, JSON.stringify(favs)); }catch(e){}
+}
+function _maGenId(){
+  return 'draft_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2,4);
+}
+
+/* ── Calcular progresso do rascunho (%) ── */
+function _maDraftProgress(data){
+  if(!data) return 0;
+  var campos = ['nome_paciente','convenio','procedimento','indicacao_clinica','cid_principal',
+    'tipo_guia','hospital','medico_solicitante','crm'];
+  var filled = 0;
+  campos.forEach(function(c){ if(data[c] && String(data[c]).trim()) filled++; });
+  return Math.round((filled / campos.length) * 100);
+}
+
+/* ── Determinar status do rascunho ── */
+function _maDraftStatus(data){
+  var pct = _maDraftProgress(data);
+  if(pct >= 90) return {label:'Pronto para envio', cls:'pronto'};
+  return {label:'Incompleto ('+pct+'%)', cls:'incompleto'};
+}
+
+/* ── Salvar rascunho atual (multi-draft) ── */
+function maSaveCurrentDraft(){
+  var data = collect();
+  if(!data.nome_paciente && !data.procedimento && !data.convenio) return; // vazio, não salva
+  var drafts = _maGetDrafts();
+  var now = new Date().toISOString();
+
+  if(MA_ACTIVE_DRAFT_ID){
+    // Atualizar draft existente
+    var found = false;
+    drafts = drafts.map(function(d){
+      if(d.id === MA_ACTIVE_DRAFT_ID){
+        found = true;
+        return Object.assign({}, d, {data: data, updated_at: now, version: '1.0'});
+      }
+      return d;
+    });
+    if(!found){
+      // ID não encontrado, criar novo
+      drafts.unshift({id: MA_ACTIVE_DRAFT_ID, nome: _maDraftNome(data), created_at: now, updated_at: now, version: '1.0', data: data});
+    }
+  } else {
+    // Criar novo draft
+    MA_ACTIVE_DRAFT_ID = _maGenId();
+    drafts.unshift({id: MA_ACTIVE_DRAFT_ID, nome: _maDraftNome(data), created_at: now, updated_at: now, version: '1.0', data: data});
+  }
+
+  // Atualizar nome automaticamente
+  drafts = drafts.map(function(d){
+    if(d.id === MA_ACTIVE_DRAFT_ID) d.nome = _maDraftNome(d.data);
+    return d;
+  });
+
+  _maSaveDrafts(drafts);
+}
+
+function _maDraftNome(data){
+  var nome = (data.nome_paciente||'').trim();
+  var proc = (data.procedimento||'').trim();
+  if(nome && proc) return nome + ' — ' + proc;
+  if(nome) return nome;
+  if(proc) return proc;
+  return 'Rascunho sem nome';
+}
+
+/* ── Carregar rascunho no formulário ── */
+function maLoadDraft(id){
+  var drafts = _maGetDrafts();
+  var draft = drafts.find(function(d){ return d.id === id; });
+  if(!draft || !draft.data) { toast('Rascunho não encontrado.','er'); return; }
+
+  // Reset form primeiro
+  document.getElementById('nf').reset();
+  document.getElementById('opmeRows').innerHTML='';
+
+  // Restaurar campos
+  var d = draft.data;
+  var flds=['nome_paciente','data_nascimento','sexo','cpf','telefone','email','cns','comorbidades',
+    'convenio','numero_carteira','validade_carteira','carater','tipo_guia','hospital','regime','obs_convenio',
+    'procedimento','cid2','cod_tuss','regiao','lateralidade','qtd_niveis','niveis_anatomicos',
+    'via_acesso','data_cirurgia','prioridade','deficit_neuro','dor_refrataria','tto_conservador',
+    'duracao_tto','exame_principal','achados_resumo','indicacao_clinica','achados_exame',
+    'medico_solicitante','crm','cbo','tel_medico','necessita_opme','necessita_sadt',
+    'empresa_opme','justificativa_opme','sadt_solicitado','status_inicial','obs_finais'];
+  flds.forEach(function(fid){ if(d[fid]!==undefined) sv(fid, d[fid]); });
+  if(d.cid_principal) sv('cid_principal', d.cid_principal);
+  if(d.codigo_proc) sv('codigo_proc', d.codigo_proc);
+  if(d.cod_cbhpm) sv('cod_cbhpm', d.cod_cbhpm);
+
+  // OPME items
+  if(d.opme_items && d.opme_items.length){
+    d.opme_items.forEach(function(o){ addOpme(o.descricao||'', o.qtd||1, o.un||'un', o.empresa||''); });
+  } else {
+    addOpme();
+  }
+
+  calcAge(); fillANS();
+  MA_ACTIVE_DRAFT_ID = id;
+  guiaRegistrada = false;
+  window.__NA_STATE__ = {payload:null, compliance:null, ts:null, dirty:true};
+
+  closeMinhaArea();
+  goTab(0);
+  toast('Rascunho carregado: ' + draft.nome, 'ok');
+  naLog('draft_loaded', {id: id});
+}
+
+/* ── Duplicar rascunho ── */
+function maDuplicateDraft(id){
+  var drafts = _maGetDrafts();
+  var draft = drafts.find(function(d){ return d.id === id; });
+  if(!draft) return;
+  var now = new Date().toISOString();
+  var newDraft = {
+    id: _maGenId(),
+    nome: draft.nome + ' (cópia)',
+    created_at: now,
+    updated_at: now,
+    version: '1.0',
+    data: JSON.parse(JSON.stringify(draft.data))
+  };
+  drafts.unshift(newDraft);
+  _maSaveDrafts(drafts);
+  maRenderDrafts();
+  toast('Rascunho duplicado.','ok');
+}
+
+/* ── Excluir rascunho ── */
+function maDeleteDraft(id){
+  var drafts = _maGetDrafts().filter(function(d){ return d.id !== id; });
+  _maSaveDrafts(drafts);
+  if(MA_ACTIVE_DRAFT_ID === id) MA_ACTIVE_DRAFT_ID = null;
+  maRenderDrafts();
+  toast('Rascunho excluído.','wa');
+}
+
+/* ── Favoritos: adicionar/remover ── */
+function maAddFav(type, value){
+  if(!value || !value.trim()) return;
+  var favs = _maGetFavs();
+  if(!favs[type]) favs[type] = [];
+  value = value.trim();
+  if(favs[type].indexOf(value) === -1){
+    favs[type].push(value);
+    _maSaveFavs(favs);
+    toast('Favoritado: ' + value, 'ok');
+  }
+}
+
+function maRemoveFav(type, value){
+  var favs = _maGetFavs();
+  if(!favs[type]) return;
+  favs[type] = favs[type].filter(function(v){ return v !== value; });
+  _maSaveFavs(favs);
+  maRenderFavs();
+}
+
+/* ── Usar favorito: preenche campo no form ── */
+function maUseFav(type, value){
+  if(type === 'procedimentos') sv('procedimento', value);
+  if(type === 'opme') addOpme(value, 1, 'un', '');
+  if(type === 'convenios') sv('convenio', value);
+  closeMinhaArea();
+  goTab(type==='convenios'?1 : type==='procedimentos'?2 : 5);
+  toast('Favorito aplicado: ' + value, 'ok');
+}
+
+/* ── Render: Rascunhos ── */
+function maRenderDrafts(){
+  var c = document.getElementById('maContent');
+  var drafts = _maGetDrafts();
+  var h = '<div class="ma-title">Rascunhos</div>';
+  h += '<div class="ma-subtitle">Casos iniciados e não enviados</div>';
+
+  // Botão novo caso
+  h += '<div style="margin-bottom:16px"><button class="ma-draft-btn" style="padding:8px 16px;font-size:13px;font-weight:600;background:#1a3f6f;color:#fff;border-color:#1a3f6f" onclick="maNewCase()">＋ Novo caso</button></div>';
+
+  if(!drafts.length){
+    h += '<div class="ma-empty"><div class="ma-empty-icon">📄</div>Nenhum rascunho salvo.<br>Comece preenchendo um caso e ele será salvo automaticamente.</div>';
+  } else {
+    drafts.forEach(function(d){
+      var st = _maDraftStatus(d.data);
+      var dt = d.updated_at ? new Date(d.updated_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+      var conv = (d.data && d.data.convenio) || '';
+      var isActive = (d.id === MA_ACTIVE_DRAFT_ID) ? ' style="border-color:#1a3f6f;background:#f0f4ff"' : '';
+      h += '<div class="ma-draft-card"'+isActive+' onclick="maLoadDraft(\''+d.id+'\')">';
+      h += '<div class="ma-draft-info">';
+      h += '<div class="ma-draft-nome">'+ _maEsc(d.nome) +'</div>';
+      h += '<div class="ma-draft-meta">'+ (conv?_maEsc(conv)+' · ':'') + dt +'</div>';
+      h += '</div>';
+      h += '<span class="ma-draft-status '+st.cls+'">'+ st.label +'</span>';
+      h += '<div class="ma-draft-actions">';
+      h += '<button class="ma-draft-btn" onclick="event.stopPropagation();maDuplicateDraft(\''+d.id+'\')">Duplicar</button>';
+      h += '<button class="ma-draft-btn del" onclick="event.stopPropagation();maDeleteDraft(\''+d.id+'\')">Excluir</button>';
+      h += '</div></div>';
+    });
+  }
+  c.innerHTML = h;
+}
+
+/* ── Render: Favoritos ── */
+function maRenderFavs(){
+  var c = document.getElementById('maContent');
+  var favs = _maGetFavs();
+  var h = '<div class="ma-title">Favoritos</div>';
+  h += '<div class="ma-subtitle">Atalhos para o que você mais usa</div>';
+
+  var sections = [
+    {key:'procedimentos', label:'Procedimentos', icon:'🔬'},
+    {key:'opme',          label:'Kits OPME',     icon:'🔩'},
+    {key:'convenios',     label:'Convênios',      icon:'🏥'}
+  ];
+
+  sections.forEach(function(sec){
+    h += '<div class="ma-fav-section">';
+    h += '<div class="ma-fav-label">'+ sec.icon +' '+ sec.label +'</div>';
+    h += '<div class="ma-fav-list">';
+    var items = favs[sec.key] || [];
+    items.forEach(function(v){
+      h += '<div class="ma-fav-chip" onclick="maUseFav(\''+sec.key+'\',\''+_maEsc(v)+'\')">';
+      h += _maEsc(v);
+      h += ' <span class="ma-fav-x" onclick="event.stopPropagation();maRemoveFav(\''+sec.key+'\',\''+_maEsc(v)+'\')">✕</span>';
+      h += '</div>';
+    });
+    h += '<div class="ma-fav-chip ma-fav-add" onclick="maPromptAddFav(\''+sec.key+'\',\''+sec.label+'\')">+ Adicionar</div>';
+    h += '</div></div>';
+  });
+
+  // Botão salvar atuais como favorito
+  h += '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #e0e4ea">';
+  h += '<div class="ma-fav-label">Salvar do caso atual</div>';
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  h += '<button class="ma-draft-btn" onclick="maFavFromCurrent(\'procedimentos\')">⭐ Procedimento atual</button>';
+  h += '<button class="ma-draft-btn" onclick="maFavFromCurrent(\'convenios\')">⭐ Convênio atual</button>';
+  h += '</div></div>';
+
+  c.innerHTML = h;
+}
+
+function maPromptAddFav(type, label){
+  var val = prompt('Digite o nome do(a) ' + label.toLowerCase() + ' para adicionar aos favoritos:');
+  if(val && val.trim()){
+    maAddFav(type, val.trim());
+    maRenderFavs();
+  }
+}
+
+function maFavFromCurrent(type){
+  var val = '';
+  if(type === 'procedimentos') val = g('procedimento');
+  if(type === 'convenios') val = g('convenio');
+  if(!val || !val.trim()){ toast('Preencha o campo primeiro.','wa'); return; }
+  maAddFav(type, val);
+  maRenderFavs();
+}
+
+/* ── Render: Perfil ── */
+function maRenderProfile(){
+  var c = document.getElementById('maContent');
+  var sess = {};
+  try{ sess = JSON.parse(sessionStorage.getItem('na_session')||'{}'); }catch(e){}
+  var perfil = (sess.perfil) || window._naSelectedProfile || {};
+
+  var h = '<div class="ma-title">Meu Perfil</div>';
+  h += '<div class="ma-subtitle">Dados usados nos documentos e autenticação</div>';
+  h += '<div class="ma-profile-grid">';
+
+  var fields = [
+    {label:'Nome', val: perfil.medico_nome || sess.name || ''},
+    {label:'Email', val: sess.email || ''},
+    {label:'CRM', val: perfil.crm || g('crm') || ''},
+    {label:'CBO', val: perfil.cbo || g('cbo') || ''},
+    {label:'Especialidade', val: perfil.especialidade || 'Neurocirurgia'},
+    {label:'Hospital padrão', val: perfil.hospital || g('hospital') || ''},
+    {label:'Tipo de perfil', val: perfil.perfil_tipo || ''},
+    {label:'Sessão', val: sess.sub ? 'Autenticado' : 'Não autenticado'}
+  ];
+
+  fields.forEach(function(f){
+    h += '<div class="ma-profile-field"><label>'+ f.label +'</label><div class="val">'+ (_maEsc(f.val) || '—') +'</div></div>';
+  });
+  h += '</div>';
+
+  c.innerHTML = h;
+}
+
+/* ── Navegação de tabs ── */
+function maTab(tab, btn){
+  MA_CURRENT_TAB = tab;
+  document.querySelectorAll('.ma-menu-item').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  if(tab === 'drafts') maRenderDrafts();
+  else if(tab === 'favs') maRenderFavs();
+  else if(tab === 'profile') maRenderProfile();
+}
+
+/* ── Abrir/fechar ── */
+function openMinhaArea(){
+  var m = document.getElementById('maOverlay');
+  if(m){ m.classList.add('open'); maTab(MA_CURRENT_TAB); }
+  // Highlight botão ativo no menu
+  document.querySelectorAll('.ma-menu-item').forEach(function(b,i){
+    var tabs = ['drafts','favs','profile'];
+    b.classList.toggle('active', tabs[i] === MA_CURRENT_TAB);
+  });
+}
+
+function closeMinhaArea(){
+  var m = document.getElementById('maOverlay');
+  if(m) m.classList.remove('open');
+}
+
+/* ── Novo caso (da Minha Área) ── */
+function maNewCase(){
+  closeMinhaArea();
+  resetForNewCase();
+  MA_ACTIVE_DRAFT_ID = null;
+}
+
+/* ── Escape HTML ── */
+function _maEsc(s){
+  if(!s) return '';
+  var d=document.createElement('div');d.textContent=String(s);return d.innerHTML;
+}
+
+/* ── Auto-save com debounce ── */
+var _maAutoSaveTimer = null;
+function maAutoSave(){
+  clearTimeout(_maAutoSaveTimer);
+  _maAutoSaveTimer = setTimeout(function(){
+    maSaveCurrentDraft();
+  }, 3000); // 3 segundos de inatividade
+}
+
+/* ── Attach auto-save ao formulário ── */
+function maAttachAutoSave(){
+  var form = document.getElementById('nf');
+  if(!form || window.__MA_AUTOSAVE_ATTACHED__) return;
+  form.addEventListener('input', maAutoSave, {passive:true});
+  form.addEventListener('change', maAutoSave, {passive:true});
+  window.__MA_AUTOSAVE_ATTACHED__ = true;
+}
+
+/* ── Migrar rascunho legado (sessionStorage único → multi-draft) ── */
+function maMigrateLegacy(){
+  try{
+    var raw = sessionStorage.getItem('neuroauth_draft') || localStorage.getItem('neuroauth_draft');
+    if(!raw) return;
+    var d = JSON.parse(raw);
+    if(!d || (!d.nome_paciente && !d.procedimento)) return;
+    var drafts = _maGetDrafts();
+    // Verificar se já existe draft com mesmo nome
+    var nome = _maDraftNome(d);
+    var exists = drafts.some(function(dr){ return dr.nome === nome; });
+    if(!exists){
+      var now = new Date().toISOString();
+      drafts.unshift({id:_maGenId(), nome:nome, created_at:now, updated_at:now, version:'1.0', data:d});
+      _maSaveDrafts(drafts);
+    }
+    sessionStorage.removeItem('neuroauth_draft');
+    localStorage.removeItem('neuroauth_draft');
+  }catch(e){}
+}
+
+/* ── Init Minha Área (chamar na entrada) ── */
+function maInit(){
+  maMigrateLegacy();
+  maAttachAutoSave();
+}
+
+/* ═══════ END MINHA ÁREA ═══════ */
+
 function closeResultScreen(){
   var m = document.getElementById('naResultModal');
   if(m) m.classList.remove('open');
@@ -4142,6 +4642,7 @@ function resetForNewCase(){
   window.__NA_LAST_COMPLIANCE__ = null;
   window.__NA_LAST_SHADOW_V2__ = null;
   window.__NA_SENDING__ = false;
+  MA_ACTIVE_DRAFT_ID = null; // Novo caso = novo draft
   // Reset audit strip
   naUpdateAuditUI();
   // Go to step 1
