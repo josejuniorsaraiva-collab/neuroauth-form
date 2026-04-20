@@ -3959,7 +3959,11 @@ function showResultScreen(decideData, shadowV2){
     (decideData.pontos_frageis||[]).map(function(t){return {txt:t,sev:'warn'};})
   );
   if(shadowV2 && shadowV2.pending_items){
-    shadowV2.pending_items.forEach(function(t){ allRaw.push({txt:t,sev:'crit'}); });
+    shadowV2.pending_items.forEach(function(t){
+      var txt = (typeof t === 'string') ? t : (t.descricao || t.mensagem || JSON.stringify(t));
+      var sev = (t.severidade === 'CRITICA') ? 'crit' : 'warn';
+      allRaw.push({txt:txt, sev:sev});
+    });
   }
 
   // ── Categorize into semantic groups, then pick best label ──
@@ -4122,7 +4126,7 @@ function _nrGroupIssues(rawItems){
   var uncategorized = [];
 
   rawItems.forEach(function(item){
-    var raw = item.txt;
+    var raw = (typeof item.txt === 'string') ? item.txt : (item.txt == null ? '' : String(item.txt));
     var lower = raw.toLowerCase();
     // Extract rule code if present (ANS_xxx, EVID_xxx, OP_xxx)
     var codeMatch = raw.match(/(ANS_\w+|EVID_\w+|OP_\w+)/);
@@ -4164,7 +4168,7 @@ function _nrGroupIssues(rawItems){
   // Dedup uncategorized
   var seenUn = {};
   uncategorized.forEach(function(u){
-    var k = u.txt.toLowerCase().substring(0,40);
+    var k = String(u.txt||'').toLowerCase().substring(0,40);
     if(!seenUn[k]){ seenUn[k]=true; result.push(u); }
   });
   return result;
