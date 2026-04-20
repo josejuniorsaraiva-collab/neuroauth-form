@@ -3583,14 +3583,19 @@ async function confirmedSend(){
   // ── ATIVAR LOCK TRANSACIONAL ──
   window.__NA_SENDING__ = true;
   setBtnState('sending');
+  // Aviso neutro aos 20s (servidor acordando), timeout real aos 45s
+  var _watchdogWarn = setTimeout(function() {
+    setBtnState('processing');
+    toast('Aguardando resposta do servidor...','wa');
+    naLog('send_watchdog_warn');
+  }, 20000);
   var _watchdog = setTimeout(function() {
     window.__NA_SENDING__ = false;
     setBtnState('error');
     naLog('send_watchdog_reset');
-    toast('⏱ O envio demorou mais que o esperado. Tente novamente.','er');
-    // Reset botão após 3s
+    toast('O envio demorou mais que o esperado. Tente novamente.','er');
     setTimeout(function(){ setBtnState('reset'); }, 3000);
-  }, 20000);
+  }, 45000);
 
   // ── GERAR external_trace_id (idempotência explícita) ──
   const externalTraceId = 'TR-' + crypto.randomUUID().substring(0,12).toUpperCase();
@@ -3825,6 +3830,7 @@ async function confirmedSend(){
     console.error('[NEUROAUTH] erro geral no envio:',e.message);
     setTimeout(function(){ setBtnState('reset'); }, 3000);
   } finally {
+    clearTimeout(_watchdogWarn);
     clearTimeout(_watchdog);
     window.__NA_SENDING__ = false;
   }
