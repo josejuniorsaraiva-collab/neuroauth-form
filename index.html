@@ -3652,13 +3652,57 @@ async function confirmedSend(){
     naLog('decide_start', {external_trace_id: externalTraceId});
 
     // ── FASE 2: Motor clínico /decide (obrigatório) ──
+    // Retry resiliente: timeout 20s + 1 retry automático com warmup
     setBtnState('processing');
     const decideHeaders={'Content-Type':'application/json','Authorization':'Bearer '+_jwt};
-    const decideResp=await fetch(NA_BACKEND_URL + '/decide',{
-      method:'POST',
-      headers:decideHeaders,
-      body:JSON.stringify(payload)
-    });
+    const NA_DECIDE_TIMEOUT = 20000; // 20s — Render free tier pode levar 15s+ em cold start
+    const NA_DECIDE_MAX_RETRIES = 1;
+
+    async function _naDecideFetch(attempt){
+      const ctrl = new AbortController();
+      const timer = setTimeout(function(){ ctrl.abort(); }, NA_DECIDE_TIMEOUT);
+      try{
+        const resp = await fetch(NA_BACKEND_URL + '/decide', {
+          method:'POST',
+          headers:decideHeaders,
+          body:JSON.stringify(payload),
+          signal:ctrl.signal
+        });
+        clearTimeout(timer);
+        return resp;
+      }catch(fetchErr){
+        clearTimeout(timer);
+        const isTimeout = fetchErr.name === 'AbortError';
+        const errType = isTimeout ? 'timeout_'+NA_DECIDE_TIMEOUT+'ms' : 'network_'+fetchErr.message;
+        console.warn('[NEUROAUTH] /decide tentativa '+(attempt+1)+' falhou:', errType);
+        naLog('decide_retry', {attempt:attempt+1, error:errType, external_trace_id:externalTraceId});
+
+        if(attempt < NA_DECIDE_MAX_RETRIES){
+          // Warmup: pingar /health antes de retry (acorda Render se dormiu)
+          toast('⏳ Reconectando ao servidor… tentativa '+(attempt+2),'warn');
+          try{ await fetch(NA_BACKEND_URL+'/health',{method:'GET'}); }catch(e){}
+          await new Promise(function(r){ setTimeout(r, 2000); }); // 2s cooldown
+          return _naDecideFetch(attempt+1);
+        }
+        throw fetchErr;
+      }
+    }
+
+    let decideResp;
+    try{
+      decideResp = await _naDecideFetch(0);
+    }catch(finalErr){
+      setBtnState('error');
+      const isTimeout = finalErr.name === 'AbortError';
+      const userMsg = isTimeout
+        ? '⏳ Servidor não respondeu a tempo. Tente novamente em 30 segundos.'
+        : '🌐 Falha de conexão com o servidor. Verifique sua internet e tente novamente.';
+      toast(userMsg,'er');
+      naLog('decide_network_fail', {error:finalErr.message, external_trace_id:externalTraceId});
+      console.error('[NEUROAUTH] /decide falhou após retries:', finalErr.message);
+      setTimeout(function(){ setBtnState('reset'); }, 4000);
+      return;
+    }
 
     if(!decideResp.ok){
       const errText=await decideResp.text().catch(()=>'');
@@ -3703,11 +3747,15 @@ async function confirmedSend(){
     if(!isReplay){
       (async function(){
         try{
+          const v2Ctrl=new AbortController();
+          const v2Timer=setTimeout(function(){v2Ctrl.abort();},25000); // 25s timeout shadow
           const v2Resp=await fetch(NA_BACKEND_URL + '/v2/decide',{
             method:'POST',
             headers:decideHeaders,
-            body:JSON.stringify(payload)
+            body:JSON.stringify(payload),
+            signal:v2Ctrl.signal
           });
+          clearTimeout(v2Timer);
           if(v2Resp.ok){
             const v2Data=await v2Resp.json();
             console.log('%c[SHADOW v2.3.1] gate='+v2Data.final_gate+' score='+v2Data.final_score+' risco='+v2Data.final_risk,'color:#1F4E79;font-weight:bold');
