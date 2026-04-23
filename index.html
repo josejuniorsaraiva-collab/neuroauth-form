@@ -4097,7 +4097,7 @@ function showResultScreen(decideData, shadowV2){
       '<button class="nr-btn nr-btn-danger" onclick="nrActionEdit()">Corrigir agora</button>'+
       '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>' + newCaseBtn;
   }
-  actDiv.innerHTML += '<button onclick="registrarDesfecho(window.__NA_LAST_TRACE_ID, window.__NA_LAST_PROCEDIMENTO, window.__NA_LAST_CONVENIO)" style="margin-top:8px;padding:10px 14px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-weight:600;cursor:pointer;width:100%;">Registrar desfecho</button>';
+  actDiv.innerHTML += '<button onclick="window.registrarDesfecho(window.__NA_LAST_TRACE_ID, window.__NA_LAST_PROCEDIMENTO, window.__NA_LAST_CONVENIO)" style="margin-top:8px;padding:10px 14px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-weight:600;cursor:pointer;width:100%;">Registrar desfecho</button>';
 
   modal.classList.add('open');
   if(typeof naLog==='function'){
@@ -5150,6 +5150,15 @@ function naBuildPrintData(payload) {
     return null;
   }
 }
+
+window.registrarDesfecho = function(traceId, procedimento, convenio) {
+  var base = 'https://docs.google.com/forms/d/e/1FAIpQLSdjhZqz4gDTboBnNR4LhTlAxjKXtFevLjtsAzsBHdB0BExfDg/viewform';
+  var url = base
+    + '?entry.1868641533=' + encodeURIComponent(traceId || '')
+    + '&entry.675146812=' + encodeURIComponent(procedimento || '')
+    + '&entry.123813451=' + encodeURIComponent(convenio || '');
+  window.open(url, '_blank');
+};
 </script>
 
 </body>
