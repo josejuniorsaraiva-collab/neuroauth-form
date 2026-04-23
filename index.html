@@ -5146,6 +5146,15 @@ function naBuildPrintData(payload) {
     return null;
   }
 }
+
+window.registrarDesfecho = function(traceId, procedimento, convenio) {
+  var base = 'https://script.google.com/macros/s/AKfycbyTaTIWpa_NHmTBPrWuJZoFsPASbm2HSdFCOUlIQahgdbmp7Xim81SGvpmdfGyNxVEZ/exec';
+  var url = base
+    + '?trace_id=' + encodeURIComponent(traceId || '')
+    + '&procedimento=' + encodeURIComponent(procedimento || '')
+    + '&convenio=' + encodeURIComponent(convenio || '');
+  window.open(url, '_blank');
+};
 </script>
 
 </body>
