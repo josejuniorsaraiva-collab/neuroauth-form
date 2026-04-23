@@ -3741,6 +3741,9 @@ async function confirmedSend(){
 
     // Armazenar resultado clínico para acesso posterior (hub, auditoria)
     window.__NA_LAST_DECIDE__ = decideData;
+    window.__NA_LAST_TRACE_ID = traceId;
+    window.__NA_LAST_PROCEDIMENTO = (decideData.procedimento || d.procedimento || '');
+    window.__NA_LAST_CONVENIO = (decideData.convenio || d.convenio || '');
 
     // ── SHADOW MODE: v2.3.1 em paralelo (fire-and-forget) ──
     // Não bloqueia, não afeta UI, não afeta relay. Apenas loga comparação.
@@ -4094,6 +4097,7 @@ function showResultScreen(decideData, shadowV2){
       '<button class="nr-btn nr-btn-danger" onclick="nrActionEdit()">Corrigir agora</button>'+
       '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>' + newCaseBtn;
   }
+  actDiv.innerHTML += '<button onclick="registrarDesfecho(window.__NA_LAST_TRACE_ID, window.__NA_LAST_PROCEDIMENTO, window.__NA_LAST_CONVENIO)" style="margin-top:8px;padding:10px 14px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-weight:600;cursor:pointer;width:100%;">Registrar desfecho</button>';
 
   modal.classList.add('open');
   if(typeof naLog==='function'){
