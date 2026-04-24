@@ -5152,11 +5152,11 @@ function naBuildPrintData(payload) {
 }
 
 window.registrarDesfecho = function(traceId, procedimento, convenio) {
-  var base = 'https://docs.google.com/forms/d/e/1FAIpQLSdjhZqz4gDTboBnNR4LhTlAxjKXtFevLjtsAzsBHdB0BExfDg/viewform';
+  var base = 'https://script.google.com/macros/s/AKfycbyTaTIWpa_NHmTBPrWuJZoFsPASbm2HSdFCOUlIQahgdbmp7Xim81SGvpmdfGyNxVEZ/exec';
   var url = base
-    + '?entry.1868641533=' + encodeURIComponent(traceId || '')
-    + '&entry.675146812=' + encodeURIComponent(procedimento || '')
-    + '&entry.123813451=' + encodeURIComponent(convenio || '');
+    + '?trace_id=' + encodeURIComponent(traceId || '')
+    + '&procedimento=' + encodeURIComponent(procedimento || '')
+    + '&convenio=' + encodeURIComponent(convenio || '');
   window.open(url, '_blank');
 };
 </script>
