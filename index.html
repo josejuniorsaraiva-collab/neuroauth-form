@@ -3741,9 +3741,6 @@ async function confirmedSend(){
 
     // Armazenar resultado clínico para acesso posterior (hub, auditoria)
     window.__NA_LAST_DECIDE__ = decideData;
-    window.__NA_LAST_TRACE_ID = traceId;
-    window.__NA_LAST_PROCEDIMENTO = (decideData.procedimento || d.procedimento || '');
-    window.__NA_LAST_CONVENIO = (decideData.convenio || d.convenio || '');
 
     // ── SHADOW MODE: v2.3.1 em paralelo (fire-and-forget) ──
     // Não bloqueia, não afeta UI, não afeta relay. Apenas loga comparação.
@@ -3855,13 +3852,22 @@ async function confirmedSend(){
     // Toast resumido como backup visual
     const replayTag = isReplay ? ' (replay)' : '';
     toast((decideData.classification||'OK')+' — veja o resultado detalhado','ok');
-    clearCaseData('submit_success');
-    guiaRegistrada    = true;
-    envioConfirmadoEm = new Date().toISOString();
-    envioUserEmail    = naGetSessionField('email') || '';
-    // Limpar SSoT após envio confirmado — próxima guia começa fresh
-    window.__NA_STATE__ = {payload: null, compliance: null, ts: null, dirty: true};
-    window.__NA_LAST_COMPLIANCE__ = null;
+    // Watermark: só registrar como oficial se decisão for GO ou GO_COM_RESSALVAS
+    var _cls = (decideData.classification||'').toUpperCase();
+    var _isApproved = (_cls==='GO'||_cls==='APROVADO'||_cls==='GO_COM_RESSALVAS'||_cls==='AUTORIZADO_COM_RESSALVAS');
+    if(_isApproved){
+      clearCaseData('submit_success');
+      guiaRegistrada    = true;
+      envioConfirmadoEm = new Date().toISOString();
+      envioUserEmail    = naGetSessionField('email') || '';
+      // Limpar SSoT — próxima guia começa fresh
+      window.__NA_STATE__ = {payload: null, compliance: null, ts: null, dirty: true};
+      window.__NA_LAST_COMPLIANCE__ = null;
+    } else {
+      // NO-GO: manter watermark, manter estado para permitir reauditoria
+      guiaRegistrada = false;
+      window.__NA_STATE__.dirty = true;
+    }
     naUpdateAuditUI();
     naLog('send_ok', {
       ts: envioConfirmadoEm,
@@ -3993,11 +3999,37 @@ function showResultScreen(decideData, shadowV2){
   card.classList.add('nr-'+tier);
 
   // ── Header ──
+  // ── Distinguir NO-GO clínico real de pendência documental ──
+  var isDocPendencia = false;
+  if(tier==='nogo'){
+    var _allIss = [].concat(decideData.bloqueios||[], decideData.pendencias||[]);
+    var _docKw = ['campo','ausente','faltando','preencha','obrigat\u00f3rio','incompleto','justificativa',
+      'indica\u00e7\u00e3o','imagem','laudo','carteirinha','di\u00e1ria','lateralidade','opme','crm','hospital',
+      'missing','required','empty'];
+    var _clinKw = ['contraindica\u00e7\u00e3o','risco','incompat\u00edvel','negado','vedado','n\u00e3o autorizado',
+      'regulat\u00f3rio','ans','cobertura','not covered'];
+    var _dc=0, _cc=0;
+    _allIss.forEach(function(txt){
+      var s = (typeof txt==='string'?txt:(txt.descricao||txt.mensagem||'')).toLowerCase();
+      _docKw.forEach(function(k){ if(s.indexOf(k)!==-1) _dc++; });
+      _clinKw.forEach(function(k){ if(s.indexOf(k)!==-1) _cc++; });
+    });
+    isDocPendencia = (_dc > _cc) || (_cc === 0);
+  }
+
   var tierCfg = {
     go:        { icon:'\u2705', title:'APROVADO',                  subtitle:'Pronto para envio.' },
     ressalvas: { icon:'\u26A0\uFE0F', title:'APROVADO COM RESSALVAS', subtitle:'Pode enviar, mas revise os ajustes abaixo.' },
     nogo:      { icon:'\u26D4', title:'N\u00C3O ENVIAR',           subtitle:'Corrija os problemas cr\u00EDticos antes de enviar.' }
   };
+  // Sobrescrever t\u00edtulo se for pend\u00eancia documental (n\u00e3o reprova\u00e7\u00e3o cl\u00ednica)
+  if(isDocPendencia){
+    tierCfg.nogo = {
+      icon:'\ud83d\udccb',
+      title:'PEND\u00caNCIA DE PREENCHIMENTO',
+      subtitle:'O caso n\u00e3o pode ser finalizado porque faltam dados. Preencha os campos indicados e clique em Reauditar.'
+    };
+  }
   var cfg = tierCfg[tier];
   document.getElementById('nrIcon').textContent = cfg.icon;
   document.getElementById('nrTitle').textContent = cfg.title;
@@ -4095,9 +4127,9 @@ function showResultScreen(decideData, shadowV2){
   } else {
     actDiv.innerHTML =
       '<button class="nr-btn nr-btn-danger" onclick="nrActionEdit()">Corrigir agora</button>'+
+      '<button class="nr-btn nr-btn-primary" onclick="nrReaudit()" style="margin-top:6px;background:#1e7a4a">\ud83d\udd04 Reauditar caso</button>'+
       '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>' + newCaseBtn;
   }
-  actDiv.innerHTML += '<button onclick="window.registrarDesfecho(window.__NA_LAST_TRACE_ID, window.__NA_LAST_PROCEDIMENTO, window.__NA_LAST_CONVENIO)" style="margin-top:8px;padding:10px 14px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-weight:600;cursor:pointer;width:100%;">Registrar desfecho</button>';
 
   modal.classList.add('open');
   if(typeof naLog==='function'){
@@ -4714,10 +4746,119 @@ function resetForNewCase(){
 }
 
 function nrActionEdit(){
+  // Guardar issues do último resultado para marcar no form
+  var lastDecide = window.__NA_LAST_DECIDE__;
   closeResultScreen();
-  // Reopen the wizard at the review tab for manual editing
+
+  // Marcar dirty para forçar revalidação no próximo envio
+  if(window.__NA_STATE__) window.__NA_STATE__.dirty = true;
+
+  // Coletar campos faltantes do resultado /decide
+  var fieldsToMark = _nrExtractMissingFields(lastDecide);
+
+  // Limpar erros anteriores e marcar novos
+  document.querySelectorAll('.err').forEach(function(el){el.classList.remove('err');});
+  fieldsToMark.forEach(function(fid){
+    var el = document.getElementById(fid);
+    if(el){ el.classList.add('err'); el.scrollIntoView && el.scrollIntoView({behavior:'smooth',block:'center'}); }
+  });
+
+  // Também rodar validate() para pegar campos obrigatórios do form
+  if(typeof validate==='function'){
+    var errs = validate();
+    if(errs.length > 0){
+      // Mostrar banner no topo com lista de campos faltantes
+      _nrShowMissingBanner(errs);
+    }
+  }
+
+  // Ir para a aba de revisão
   if(typeof goTab==='function') goTab(6);
-  toast('Revise os campos e reenvie.','');
+  toast('Campos com problema estão marcados em vermelho. Corrija e reenvie.','wa');
+}
+
+/* ── nrReaudit — fecha modal, marca dirty, chama confirmedSend de novo ── */
+function nrReaudit(){
+  // Fechar modal sem resetar caso
+  var m = document.getElementById('naResultModal');
+  if(m) m.classList.remove('open');
+  // Marcar dirty para forçar revalidação completa
+  if(window.__NA_STATE__) window.__NA_STATE__.dirty = true;
+  // Limpar decisão anterior
+  window.__NA_LAST_DECIDE__ = null;
+  guiaRegistrada = false;
+  naUpdateAuditUI();
+  // Remover banner antigo
+  var banner = document.getElementById('na-missing-banner');
+  if(banner) banner.remove();
+  // Rodar validate para checar se campos foram preenchidos
+  var errs = validate();
+  if(errs.length > 0){
+    _nrShowMissingBanner(errs);
+    toast('Ainda faltam '+errs.length+' campo'+(errs.length>1?'s':'')+'. Corrija e tente novamente.','wa');
+    if(typeof goTab==='function') goTab(6);
+    return;
+  }
+  // Tudo preenchido — chamar /decide novamente
+  toast('Reauditando caso...','');
+  setTimeout(function(){
+    if(typeof confirmedSend==='function') confirmedSend();
+  }, 300);
+  naLog('reaudit_triggered');
+}
+
+/* ── Extrai IDs de campos faltantes a partir da resposta /decide ── */
+function _nrExtractMissingFields(decideData){
+  if(!decideData) return [];
+  var ids = [];
+  var allIssues = [].concat(decideData.bloqueios||[], decideData.pendencias||[], decideData.pontos_frageis||[]);
+  // Mapeamento de keywords → IDs de campos no form
+  var kwMap = {
+    'imagem':['exame_imagem','laudo_imagem'],
+    'ressonância':['exame_imagem'], 'tomografia':['exame_imagem'], 'rm ':['exame_imagem'],
+    'justificativa':['indicacao_clinica','justificativa_opme','sb-justificativa'],
+    'indicação clínica':['indicacao_clinica'],
+    'opme':['justificativa_opme','opmeRows'],
+    'cid':['cid_principal','cid_internacao'],
+    'lateralidade':['lateralidade'],
+    'conservador':['tto_conservador','tempo_conservador'],
+    'diária':['diarias_previstas'],
+    'internação':['tipo_internacao','carater_internacao','acomodacao_internacao'],
+    'hospital':['hospital'],
+    'carteirinha':['numero_carteira','validade_carteira'],
+    'crm':['crm'],
+    'procedimento':['procedimento'],
+    'nome':['nome_paciente'],
+    'cpf':['cpf']
+  };
+  allIssues.forEach(function(txt){
+    if(typeof txt !== 'string') txt = txt.descricao || txt.mensagem || JSON.stringify(txt);
+    var lower = txt.toLowerCase();
+    Object.keys(kwMap).forEach(function(kw){
+      if(lower.indexOf(kw) !== -1){
+        kwMap[kw].forEach(function(fid){ if(ids.indexOf(fid)===-1) ids.push(fid); });
+      }
+    });
+  });
+  return ids;
+}
+
+/* ── Banner de campos faltantes no topo do form ── */
+function _nrShowMissingBanner(errs){
+  var existing = document.getElementById('na-missing-banner');
+  if(existing) existing.remove();
+  var banner = document.createElement('div');
+  banner.id = 'na-missing-banner';
+  banner.style.cssText = 'background:#fef2f2;border:2px solid #fca5a5;border-radius:10px;padding:14px 18px;margin:12px 0 16px;animation:fadeIn .3s';
+  banner.innerHTML = '<div style="font-weight:700;color:#dc2626;font-size:14px;margin-bottom:8px">⛔ Campos que precisam de correção:</div>'
+    + '<ul style="padding-left:18px;color:#991b1b;font-size:13px;margin:0">'
+    + errs.map(function(e){return '<li style="margin-bottom:3px">'+e+'</li>';}).join('')
+    + '</ul>'
+    + '<div style="margin-top:10px;font-size:12px;color:#6b7280">Corrija os campos acima e clique em <strong>"Reauditar caso"</strong> para atualizar a decisão.</div>';
+  var main = document.querySelector('.main');
+  if(main && main.firstChild) main.insertBefore(banner, main.firstChild);
+  // Auto-remove após 60s
+  setTimeout(function(){ var b=document.getElementById('na-missing-banner'); if(b) b.remove(); }, 60000);
 }
 
 function nrActionSave(){
@@ -4975,6 +5116,21 @@ window.__NA_STATE__ = window.__NA_STATE__ || {
   dirty:      true    // true = cache inválido, revalidar antes de enviar
 };
 
+/* ── AUTO DIRTY: qualquer edição no form invalida cache de compliance ── */
+document.addEventListener('DOMContentLoaded', function(){
+  var form = document.querySelector('.main');
+  if(!form) return;
+  form.addEventListener('input', function(){
+    if(window.__NA_STATE__) window.__NA_STATE__.dirty = true;
+    // Remover banner de campos faltantes quando usuário começa a corrigir
+    var banner = document.getElementById('na-missing-banner');
+    if(banner) banner.style.opacity = '0.5';
+  }, {passive:true});
+  form.addEventListener('change', function(){
+    if(window.__NA_STATE__) window.__NA_STATE__.dirty = true;
+  }, {passive:true});
+});
+
 /* ── naLog — log silencioso estruturado de produção ── */
 var __NA_VERSION__ = '3.0.0'; // versão canônica — única fonte de verdade para UI, payload e logs
 function naLog(event, data) {
@@ -5150,15 +5306,6 @@ function naBuildPrintData(payload) {
     return null;
   }
 }
-
-window.registrarDesfecho = function(traceId, procedimento, convenio) {
-  var base = 'https://script.google.com/macros/s/AKfycbyTaTIWpa_NHmTBPrWuJZoFsPASbm2HSdFCOUlIQahgdbmp7Xim81SGvpmdfGyNxVEZ/exec';
-  var url = base
-    + '?trace_id=' + encodeURIComponent(traceId || '')
-    + '&procedimento=' + encodeURIComponent(procedimento || '')
-    + '&convenio=' + encodeURIComponent(convenio || '');
-  window.open(url, '_blank');
-};
 </script>
 
 </body>
