@@ -93,6 +93,31 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--s1);color:var(--tx
 .step.active .step-lbl{color:var(--b2)}
 .step.done .step-lbl{color:var(--g1)}
 .step-sep{flex:1;height:1px;background:var(--s2);min-width:8px}
+.nr-pendencia{border-color:#f59e0b;background:linear-gradient(135deg,#fffbeb,#fef3c7)}
+.nr-pendencia .nr-icon-big{color:#b45309}
+
+/* Painel de correção guiada */
+.na-guided-panel{background:#fff;border-radius:12px;padding:0;margin:12px 0 16px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
+.na-gp-header{background:linear-gradient(135deg,#1a3f6f,#2d6fad);color:#fff;padding:14px 18px;font-weight:700;font-size:14px}
+.na-gp-tab{border-bottom:1px solid #e5e7eb;padding:12px 16px;transition:.15s ease}
+.na-gp-tab:last-child{border-bottom:none}
+.na-gp-tab-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.na-gp-tab-name{font-weight:700;font-size:13px;color:#1e2432}
+.na-gp-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px}
+.na-gp-badge.ok{background:#e6f5ed;color:#1e7a4a}
+.na-gp-badge.pending{background:#fef3c7;color:#92400e}
+.na-gp-badge.critical{background:#fce8eb;color:#b00020}
+.na-gp-items{margin-top:8px;padding-left:4px}
+.na-gp-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-top:1px solid #f3f4f6}
+.na-gp-item:first-child{border-top:none}
+.na-gp-item-icon{flex-shrink:0;font-size:14px;margin-top:1px}
+.na-gp-item-body{flex:1}
+.na-gp-item-what{font-size:12px;font-weight:600;color:#374151}
+.na-gp-item-how{font-size:11px;color:#6b7280;margin-top:2px}
+.na-gp-fix-btn{background:#1e7a4a;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;margin-top:4px;transition:.15s}
+.na-gp-fix-btn:hover{background:#166534}
+.na-gp-summary{padding:14px 18px;background:#f8fafc;font-size:12px;color:#4a5568;text-align:center;border-top:1px solid #e5e7eb}
+
 
 /* MAIN */
 .main{max-width:1020px;margin:20px auto;padding:0 14px 90px}
@@ -1640,6 +1665,7 @@ function naCheckSession(){
 
 /* ══ NEUROAUTH DRAFT CONTROL — estado global ══════════════════ */
 let guiaRegistrada   = false;
+let guiaPrintable    = false;   // v4: permite imprimir sem watermark mesmo sem GO
 let envioConfirmadoEm = '';
 let envioBillingId   = '';
 let envioUserEmail   = '';
@@ -1657,16 +1683,21 @@ function naUpdateAuditUI(){
       const ts  = envioConfirmadoEm
         ? new Date(envioConfirmadoEm).toLocaleString('pt-BR') : '';
       const usr = envioUserEmail || naGetSessionField('email') || '';
-      msg.textContent = '✅ Documento registrado'
+      msg.textContent = '\u2705 Documento registrado'
         + (ts  ? ' em ' + ts  : '')
-        + (usr ? ' · '  + usr : '');
+        + (usr ? ' \u00b7 '  + usr : '');
     }
+    if(wm) wm.style.display = 'none';
+  } else if(guiaPrintable){
+    strip.className = 'na-audit-strip oficial';
+    if(badge){ badge.className='na-badge-oficial'; badge.textContent='IMPRIM\u00cdVEL'; }
+    if(msg) msg.textContent = '\ud83d\udccb Caso com pend\u00eancias menores \u2014 impress\u00e3o liberada. Corrija e reaudite para registro oficial.';
     if(wm) wm.style.display = 'none';
   } else {
     strip.className = 'na-audit-strip draft';
     if(badge){ badge.className='na-badge-draft'; badge.textContent='RASCUNHO'; }
     if(msg) msg.textContent =
-      '⚠️ Documento não registrado — revise e confirme o envio para registrar oficialmente';
+      '\u26a0\ufe0f Documento n\u00e3o registrado \u2014 revise e confirme o envio para registrar oficialmente';
     if(wm) wm.style.display = '';
   }
 }
@@ -3680,7 +3711,7 @@ function printGuia(which){
     ? document.getElementById('sadt-render').innerHTML
     : document.getElementById('opme-render').innerHTML;
   // Adicionar carimbo de assinatura quando guia registrada
-  const sigBlock = guiaRegistrada ? naBuildSignatureBlock() : '';
+  const sigBlock = (guiaRegistrada || guiaPrintable) ? naBuildSignatureBlock() : '';
   const w=window.open('','_blank');
   w.document.write(`<html><head><title>Guia ${which.toUpperCase()} – NEUROAUTH</title>
     <style>
@@ -3722,7 +3753,7 @@ function printGuia(which){
         .na-print-header.oficial{background:#e6f5ed;color:#14532d;border-bottom:2px solid #1e7a4a}
       }
     </style>
-    </head><body>${naGetPrintHeader(which)}${guiaRegistrada?'':'<div class=\"na-print-wm\"></div>'}${html}${sigBlock}</body></html>`);
+    </head><body>${naGetPrintHeader(which)}${(guiaRegistrada||guiaPrintable)?'':'<div class=\"na-print-wm\"></div>'}${html}${sigBlock}</body></html>`);
   w.document.close();
   setTimeout(()=>w.print(),600);
 }
@@ -4054,22 +4085,31 @@ async function confirmedSend(){
     // Toast resumido como backup visual
     const replayTag = isReplay ? ' (replay)' : '';
     toast((decideData.classification||'OK')+' — veja o resultado detalhado','ok');
-    // Watermark: só registrar como oficial se decisão for GO ou GO_COM_RESSALVAS
+    // v4: Watermark inteligente — GO registra, PENDÊNCIA libera impressão, NO_GO crítico bloqueia
     var _cls = (decideData.classification||'').toUpperCase();
     var _isApproved = (_cls==='GO'||_cls==='APROVADO'||_cls==='GO_COM_RESSALVAS'||_cls==='AUTORIZADO_COM_RESSALVAS');
+    // Checar se tem dados mínimos para impressão (procedimento + paciente + indicação)
+    var _hasMinData = !!(document.getElementById('procedimento')?.value && document.getElementById('nome_paciente')?.value?.trim() && (document.getElementById('indicacao_clinica')?.value||'').trim().length >= 20);
     if(_isApproved){
       clearCaseData('submit_success');
       guiaRegistrada    = true;
+      guiaPrintable     = true;
       envioConfirmadoEm = new Date().toISOString();
       envioUserEmail    = naGetSessionField('email') || '';
-      // Salvar histórico operacional para sugestões futuras
       if(typeof naSaveCurrentToHistory==='function') naSaveCurrentToHistory();
-      // Limpar SSoT — próxima guia começa fresh
       window.__NA_STATE__ = {payload: null, compliance: null, ts: null, dirty: true};
       window.__NA_LAST_COMPLIANCE__ = null;
-    } else {
-      // NO-GO: manter watermark, manter estado para permitir reauditoria
+    } else if(_hasMinData){
+      // Pendência documental com dados mínimos: liberar impressão sem watermark
       guiaRegistrada = false;
+      guiaPrintable  = true;
+      envioConfirmadoEm = new Date().toISOString();
+      envioUserEmail    = naGetSessionField('email') || '';
+      window.__NA_STATE__.dirty = true;
+    } else {
+      // NO_GO real: sem dados mínimos, bloquear impressão
+      guiaRegistrada = false;
+      guiaPrintable  = false;
       window.__NA_STATE__.dirty = true;
     }
     naUpdateAuditUI();
@@ -4193,25 +4233,23 @@ function showResultScreen(decideData, shadowV2){
   var card  = document.getElementById('naResultCard');
   if(!modal || !card) return;
 
-  // ── Determine tier ──
+  // ── Determine tier (v4: NO_GO só para erro crítico real) ──
   var cls = (decideData.classification||'').toUpperCase();
   var tier = 'nogo';
   if(cls==='GO'||cls==='APROVADO') tier = 'go';
   else if(cls==='GO_COM_RESSALVAS'||cls==='AUTORIZADO_COM_RESSALVAS') tier = 'ressalvas';
 
-  card.classList.remove('nr-go','nr-ressalvas','nr-nogo');
-  card.classList.add('nr-'+tier);
-
-  // ── Header ──
-  // ── Distinguir NO-GO clínico real de pendência documental ──
+  // v4: Reclassificar NO_GO documental → pendencia
   var isDocPendencia = false;
+  var isCriticalNoGo = false;
   if(tier==='nogo'){
     var _allIss = [].concat(decideData.bloqueios||[], decideData.pendencias||[]);
-    var _docKw = ['campo','ausente','faltando','preencha','obrigat\u00f3rio','incompleto','justificativa',
-      'indica\u00e7\u00e3o','imagem','laudo','carteirinha','di\u00e1ria','lateralidade','opme','crm','hospital',
-      'missing','required','empty'];
-    var _clinKw = ['contraindica\u00e7\u00e3o','risco','incompat\u00edvel','negado','vedado','n\u00e3o autorizado',
-      'regulat\u00f3rio','ans','cobertura','not covered'];
+    var _docKw = ['campo','ausente','faltando','preencha','obrigatório','incompleto','justificativa',
+      'indicação','imagem','laudo','carteirinha','diária','lateralidade','opme','crm','hospital',
+      'missing','required','empty','quantidade','código acessório','complementar','documentação',
+      'dados insuficientes','preencher','informar','especificar'];
+    var _clinKw = ['contraindicação','risco grave','incompatível','negado','vedado','não autorizado',
+      'regulatório','cobertura negada','not covered','procedimento não listado'];
     var _dc=0, _cc=0;
     _allIss.forEach(function(txt){
       var s = (typeof txt==='string'?txt:(txt.descricao||txt.mensagem||'')).toLowerCase();
@@ -4219,21 +4257,23 @@ function showResultScreen(decideData, shadowV2){
       _clinKw.forEach(function(k){ if(s.indexOf(k)!==-1) _cc++; });
     });
     isDocPendencia = (_dc > _cc) || (_cc === 0);
+    isCriticalNoGo = !isDocPendencia;
+    // Checar dados mínimos: sem procedimento/paciente = NO_GO real
+    var _hasProcedure = !!(document.getElementById('procedimento')?.value);
+    var _hasPatient = !!(document.getElementById('nome_paciente')?.value?.trim());
+    if(!_hasProcedure || !_hasPatient) isCriticalNoGo = true;
+    if(isDocPendencia && !isCriticalNoGo) tier = 'pendencia';
   }
 
+  card.classList.remove('nr-go','nr-ressalvas','nr-nogo','nr-pendencia');
+  card.classList.add('nr-'+(tier==='pendencia'?'pendencia':tier));
+
   var tierCfg = {
-    go:        { icon:'\u2705', title:'APROVADO',                  subtitle:'Pronto para envio.' },
-    ressalvas: { icon:'\u26A0\uFE0F', title:'APROVADO COM RESSALVAS', subtitle:'Pode enviar, mas revise os ajustes abaixo.' },
-    nogo:      { icon:'\u26D4', title:'N\u00C3O ENVIAR',           subtitle:'Corrija os problemas cr\u00EDticos antes de enviar.' }
+    go:        { icon:'✅', title:'APROVADO', subtitle:'Pronto para envio. Impressão liberada.' },
+    ressalvas: { icon:'⚠️', title:'APROVADO COM RESSALVAS', subtitle:'Pode enviar e imprimir. Revise os ajustes abaixo.' },
+    pendencia: { icon:'📋', title:'PENDÊNCIA DE PREENCHIMENTO', subtitle:'Faltam dados para finalizar. Corrija os campos abaixo e clique em Reauditar. Impressão liberada.' },
+    nogo:      { icon:'⛔', title:'BLOQUEIO CRÍTICO', subtitle:'Erro grave que impede o envio. Corrija antes de continuar.' }
   };
-  // Sobrescrever t\u00edtulo se for pend\u00eancia documental (n\u00e3o reprova\u00e7\u00e3o cl\u00ednica)
-  if(isDocPendencia){
-    tierCfg.nogo = {
-      icon:'\ud83d\udccb',
-      title:'PEND\u00caNCIA DE PREENCHIMENTO',
-      subtitle:'O caso n\u00e3o pode ser finalizado porque faltam dados. Preencha os campos indicados e clique em Reauditar.'
-    };
-  }
   var cfg = tierCfg[tier];
   document.getElementById('nrIcon').textContent = cfg.icon;
   document.getElementById('nrTitle').textContent = cfg.title;
@@ -4312,25 +4352,31 @@ function showResultScreen(decideData, shadowV2){
 
   // ── Summary — always matches tier ──
   var risco = decideData.risco_glosa || decideData.camada3_risco || 'indeterminado';
-  var situacaoMap = { go:'Pronto para envio', ressalvas:'Enviar com aten\u00E7\u00E3o', nogo:'N\u00E3o enviar' };
+  var situacaoMap = { go:'Pronto para envio', ressalvas:'Enviar com aten\u00E7\u00E3o', pendencia:'Pend\u00EAncia de preenchimento', nogo:'Bloqueio cr\u00EDtico' };
   document.getElementById('nrSumClass').textContent = situacaoMap[tier];
   document.getElementById('nrSumRisco').textContent = _nrTranslateRisco(risco);
   document.getElementById('nrSumMotor').textContent = 'v'+(decideData.motor_version||'1.3');
   document.getElementById('nrSumTrace').textContent = decideData.trace_id || '\u2014';
 
-  // ── Action buttons ──
+  // ── Action buttons (v4: pendencia tem botões próprios) ──
   var actDiv = document.getElementById('nrActions');
-  var newCaseBtn = '<button class="nr-btn nr-btn-secondary" onclick="resetForNewCase()" style="margin-top:6px">＋ Novo caso</button>';
+  var newCaseBtn = '<button class="nr-btn nr-btn-secondary" onclick="resetForNewCase()" style="margin-top:6px">\uff0b Novo caso</button>';
   if(tier==='go'){
-    actDiv.innerHTML = '<button class="nr-btn nr-btn-primary" onclick="closeResultScreen()">Fechar</button>' + newCaseBtn;
+    actDiv.innerHTML = '<button class="nr-btn nr-btn-primary" onclick="closeResultScreen()">Fechar e imprimir</button>' + newCaseBtn;
   } else if(tier==='ressalvas'){
     actDiv.innerHTML =
       '<button class="nr-btn nr-btn-primary" onclick="nrActionEdit()">Revisar e ajustar</button>'+
-      '<button class="nr-btn nr-btn-warn" onclick="closeResultScreen()">Enviar mesmo assim</button>'+
+      '<button class="nr-btn nr-btn-warn" onclick="closeResultScreen()">Aceitar e imprimir</button>'+
+      '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>' + newCaseBtn;
+  } else if(tier==='pendencia'){
+    actDiv.innerHTML =
+      '<button class="nr-btn nr-btn-primary" onclick="nrShowGuidedPanel()" style="background:#b45309">\ud83d\udccb Ver o que falta corrigir</button>'+
+      '<button class="nr-btn nr-btn-primary" onclick="nrReaudit()" style="margin-top:6px;background:#1e7a4a">\ud83d\udd04 Reauditar caso</button>'+
+      '<button class="nr-btn nr-btn-warn" onclick="closeResultScreen()">Imprimir mesmo assim</button>'+
       '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>' + newCaseBtn;
   } else {
     actDiv.innerHTML =
-      '<button class="nr-btn nr-btn-danger" onclick="nrActionEdit()">Corrigir agora</button>'+
+      '<button class="nr-btn nr-btn-danger" onclick="nrShowGuidedPanel()">\u26D4 Ver bloqueios cr\u00edticos</button>'+
       '<button class="nr-btn nr-btn-primary" onclick="nrReaudit()" style="margin-top:6px;background:#1e7a4a">\ud83d\udd04 Reauditar caso</button>'+
       '<button class="nr-btn nr-btn-secondary" onclick="nrActionSave()">Salvar rascunho</button>' + newCaseBtn;
   }
@@ -4992,9 +5038,12 @@ function nrReaudit(){
   window.__NA_LAST_DECIDE__ = null;
   guiaRegistrada = false;
   naUpdateAuditUI();
-  // Remover banner antigo
+  // Remover banner antigo e painel guiado
   var banner = document.getElementById('na-missing-banner');
   if(banner) banner.remove();
+  var gPanel = document.getElementById('na-guided-panel');
+  if(gPanel) gPanel.remove();
+  guiaPrintable = false;
   // Rodar validate para checar se campos foram preenchidos
   var errs = validate();
   if(errs.length > 0){
@@ -5063,6 +5112,159 @@ function _nrShowMissingBanner(errs){
   if(main && main.firstChild) main.insertBefore(banner, main.firstChild);
   // Auto-remove após 60s
   setTimeout(function(){ var b=document.getElementById('na-missing-banner'); if(b) b.remove(); }, 60000);
+}
+
+
+/* ── PAINEL DE CORREÇÃO GUIADA (v4) ── */
+function nrShowGuidedPanel(){
+  closeResultScreen();
+  if(window.__NA_STATE__) window.__NA_STATE__.dirty = true;
+  // Remover painel anterior
+  var old = document.getElementById('na-guided-panel');
+  if(old) old.remove();
+  // Coletar dados e erros
+  var errs = (typeof validate==='function') ? validate() : [];
+  var lastDecide = window.__NA_LAST_DECIDE__;
+  var decideFields = _nrExtractMissingFields(lastDecide);
+  // Mapear campos → abas
+  var tabMap = {
+    0: {name:'\ud83e\uddd1\u200d\u2695\ufe0f Dados do Paciente', fields:['nome_paciente','cpf','data_nascimento','telefone','idade']},
+    1: {name:'\ud83c\udfe5 Conv\u00eanio', fields:['convenio','numero_carteira','validade_carteira','carater']},
+    2: {name:'\ud83d\udd2c Procedimento', fields:['procedimento','cid_principal','niveis_anatomicos','lateralidade']},
+    3: {name:'\ud83d\udccb Cl\u00ednica', fields:['indicacao_clinica','exame_imagem','laudo_imagem','tto_conservador','tempo_conservador']},
+    4: {name:'\ud83c\udfe5 Interna\u00e7\u00e3o / SADT', fields:['tipo_internacao','carater_internacao','acomodacao_internacao','diarias_previstas','cid_internacao','indicacao_clinica_internacao','descricao_cirurgica','hospital']},
+    5: {name:'\ud83d\udd29 OPME', fields:['justificativa_opme','opmeRows']},
+    6: {name:'\u2705 Revisar', fields:['medico_solicitante','crm']}
+  };
+  // Mapear erros de validate() → campo ID
+  var errFieldMap = {
+    'Nome do paciente':'nome_paciente', 'Operadora / conv\u00eanio':'convenio',
+    'Car\u00e1ter do atendimento':'carater', 'Hospital / cl\u00ednica':'hospital',
+    'Procedimento principal':'procedimento', 'CID-10 principal':'cid_principal',
+    'Indica\u00e7\u00e3o cl\u00ednica':'indicacao_clinica', 'Nome do m\u00e9dico solicitante':'medico_solicitante',
+    'CRM / conselho':'crm', 'Car\u00e1ter da interna\u00e7\u00e3o':'carater_internacao',
+    'Tipo de interna\u00e7\u00e3o':'tipo_internacao', 'Acomoda\u00e7\u00e3o':'acomodacao_internacao',
+    'Di\u00e1rias previstas':'diarias_previstas', 'CID principal da interna\u00e7\u00e3o':'cid_internacao',
+    'Indica\u00e7\u00e3o cl\u00ednica da interna\u00e7\u00e3o':'indicacao_clinica_internacao',
+    'Descri\u00e7\u00e3o do ato cir\u00fargico':'descricao_cirurgica',
+    'N\u00edveis anat\u00f4micos':'niveis_anatomicos', 'Justificativa da OPME':'justificativa_opme',
+    'Ao menos 1 item OPME':'opmeRows', 'Lateralidade':'lateralidade'
+  };
+  // Coletar todos os campos com problema
+  var problemFields = new Set(decideFields);
+  var errDetails = {};
+  errs.forEach(function(errMsg){
+    // Tentar match parcial
+    Object.keys(errFieldMap).forEach(function(key){
+      if(errMsg.indexOf(key)!==-1 || errMsg.toLowerCase().indexOf(key.toLowerCase())!==-1){
+        var fid = errFieldMap[key];
+        problemFields.add(fid);
+        errDetails[fid] = errMsg;
+      }
+    });
+  });
+  // Dicas de correção por campo
+  var fixHints = {
+    'nome_paciente':'Preencher com nome completo do paciente',
+    'cpf':'Informar CPF v\u00e1lido do paciente',
+    'convenio':'Selecionar operadora / conv\u00eanio',
+    'numero_carteira':'Informar n\u00famero da carteirinha',
+    'validade_carteira':'Informar validade da carteirinha',
+    'carater':'Selecionar car\u00e1ter do atendimento (eletivo/urg\u00eancia)',
+    'procedimento':'Selecionar procedimento principal',
+    'cid_principal':'Informar CID-10 principal (ex: M51.1)',
+    'indicacao_clinica':'Descrever diagn\u00f3stico, achado de imagem e objetivo do procedimento (m\u00ednimo 40 caracteres)',
+    'exame_imagem':'Informar exame de imagem realizado (RM, TC, etc.)',
+    'laudo_imagem':'Descrever achados do laudo de imagem',
+    'tto_conservador':'Informar tratamento conservador realizado',
+    'tempo_conservador':'Informar tempo de tratamento conservador',
+    'tipo_internacao':'Selecionar tipo (cl\u00ednica/cir\u00fargica)',
+    'carater_internacao':'Selecionar car\u00e1ter da interna\u00e7\u00e3o',
+    'acomodacao_internacao':'Selecionar acomoda\u00e7\u00e3o (enfermaria/apartamento/UTI)',
+    'diarias_previstas':'Informar n\u00famero de di\u00e1rias previstas (> 0)',
+    'cid_internacao':'Informar CID principal da interna\u00e7\u00e3o',
+    'indicacao_clinica_internacao':'Descrever indica\u00e7\u00e3o cl\u00ednica da interna\u00e7\u00e3o (m\u00ednimo 20 caracteres)',
+    'descricao_cirurgica':'Descrever o ato cir\u00fargico planejado',
+    'hospital':'Selecionar hospital / cl\u00ednica',
+    'justificativa_opme':'Justificar necessidade dos materiais OPME',
+    'opmeRows':'Adicionar pelo menos 1 item OPME com descri\u00e7\u00e3o',
+    'medico_solicitante':'Informar nome do m\u00e9dico solicitante',
+    'crm':'Informar CRM / conselho',
+    'niveis_anatomicos':'Informar n\u00edveis anat\u00f4micos (obrigat\u00f3rio para coluna)',
+    'lateralidade':'Informar lateralidade (direita/esquerda/bilateral)'
+  };
+  // Montar HTML do painel
+  var html = '<div id="na-guided-panel" class="na-guided-panel">';
+  html += '<div class="na-gp-header">\ud83d\udccb Painel de Corre\u00e7\u00e3o Guiada \u2014 corrija aba por aba</div>';
+  var totalPending = 0;
+  var totalOk = 0;
+  for(var tab=0; tab<=6; tab++){
+    var info = tabMap[tab];
+    var tabProblems = [];
+    info.fields.forEach(function(fid){
+      if(problemFields.has(fid)){
+        tabProblems.push({field:fid, desc:errDetails[fid]||fid, hint:fixHints[fid]||'Preencher este campo'});
+      }
+    });
+    var status = tabProblems.length > 0 ? 'pending' : 'ok';
+    if(status==='ok') totalOk++;
+    else totalPending++;
+    var badgeClass = status==='ok' ? 'ok' : 'pending';
+    var badgeText = status==='ok' ? '\u2705 Completo' : '\u26a0\ufe0f '+tabProblems.length+' pendente'+(tabProblems.length>1?'s':'');
+    html += '<div class="na-gp-tab">';
+    html += '<div class="na-gp-tab-header"><span class="na-gp-tab-name">Aba '+(tab+1)+': '+info.name+'</span>';
+    html += '<span class="na-gp-badge '+badgeClass+'">'+badgeText+'</span></div>';
+    if(tabProblems.length > 0){
+      html += '<div class="na-gp-items">';
+      tabProblems.forEach(function(p){
+        html += '<div class="na-gp-item">';
+        html += '<span class="na-gp-item-icon">\u274c</span>';
+        html += '<div class="na-gp-item-body">';
+        html += '<div class="na-gp-item-what">'+(p.desc||p.field)+'</div>';
+        html += '<div class="na-gp-item-how">\ud83d\udc49 '+p.hint+'</div>';
+        html += '<button class="na-gp-fix-btn" onclick="nrGoToField('+tab+',\''+p.field+'\')">Corrigir agora</button>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  html += '<div class="na-gp-summary">';
+  if(totalPending > 0){
+    html += '\ud83d\udcca '+totalOk+' aba'+(totalOk!==1?'s':'')+' completa'+(totalOk!==1?'s':'')+' \u00b7 '+totalPending+' com pend\u00eancia'+(totalPending>1?'s':'');
+    html += '<br><strong>Corrija os campos e clique em \ud83d\udd04 Reauditar caso</strong>';
+  } else {
+    html += '\u2705 Todas as abas completas! Clique em \ud83d\udd04 Reauditar caso para atualizar a decis\u00e3o.';
+  }
+  html += '</div></div>';
+  // Inserir no topo do form
+  var main = document.querySelector('.main');
+  if(main && main.firstChild) main.insertAdjacentHTML('afterbegin', html);
+  // Scroll para o painel
+  var panel = document.getElementById('na-guided-panel');
+  if(panel) panel.scrollIntoView({behavior:'smooth',block:'start'});
+  naLog('guided_panel_shown',{pending:totalPending,ok:totalOk});
+}
+
+/* ── Navegar para aba + campo específico ── */
+function nrGoToField(tabIdx, fieldId){
+  // Remover painel guiado
+  var panel = document.getElementById('na-guided-panel');
+  if(panel) panel.style.opacity = '0.4';
+  // Ir para a aba correta
+  if(typeof goTab==='function') goTab(tabIdx);
+  // Marcar e scrollar para o campo
+  setTimeout(function(){
+    var el = document.getElementById(fieldId);
+    if(el){
+      el.classList.add('err');
+      el.scrollIntoView({behavior:'smooth',block:'center'});
+      el.focus && el.focus();
+      // Efeito visual de destaque
+      el.style.boxShadow = '0 0 0 3px rgba(234,88,12,.5)';
+      setTimeout(function(){ el.style.boxShadow = ''; }, 3000);
+    }
+  }, 200);
 }
 
 function nrActionSave(){
