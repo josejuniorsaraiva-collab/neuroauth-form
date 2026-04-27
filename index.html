@@ -1883,8 +1883,177 @@ const SURGICAL_PROFILES = {
     ],
     regras:["não permitir material lombar"],
     justificativaBase:"Discopatia cervical com mielorradiculopatia refratária a tratamento conservador. RM cervical confirma compressão medular com alteração de sinal intramedular. ACDF indicada para descompressão neural, restauração da altura discal e estabilização anterior, prevenção de progressão da mielopatia."
+  },
+  "Laminectomia descompressiva lombar":{
+    sp_id:"SP004",regiao:"lombar",categoria:"estenose",
+    procedimentos:[
+      {codigo:"3.07.15.09-1",descricao:"Laminectomia / laminotomia",tipo:"essencial"},
+      {codigo:"3.07.15.36-9",descricao:"Descompressão radicular",tipo:"essencial"},
+      {codigo:"3.07.15.37-7",descricao:"Foraminotomia",tipo:"opcional"},
+      {codigo:"MICRO",descricao:"Uso de microscópio cirúrgico",tipo:"opcional"},
+      {codigo:"RADIO",descricao:"Radioscopia intraoperatória",tipo:"essencial"}
+    ],
+    opmes:[
+      {nome:"Sistema parafusos pediculares",tipo:"opcional",qtd:4},
+      {nome:"Hastes de conexão longitudinal",tipo:"opcional",qtd:2},
+      {nome:"Kit hemostático (Surgicel/Gelfoam)",tipo:"essencial",qtd:1},
+      {nome:"Brocas cirúrgicas de alta rotação",tipo:"essencial",qtd:1}
+    ],
+    regras:["parafuso pedicular só se instabilidade associada"],
+    justificativaBase:"Estenose lombar grave com claudicação neurogênica refratária a tratamento conservador por mais de 12 semanas. TC e RM confirmam estenose crítica do canal vertebral. Laminectomia descompressiva indicada para alívio da compressão neural e restauração funcional."
+  },
+  "Revisão artrodese lombar":{
+    sp_id:"SP005",regiao:"lombossacra",categoria:"revisao",
+    procedimentos:[
+      {codigo:"3.07.15.03-2",descricao:"Revisão de artrodese lombar",tipo:"essencial"},
+      {codigo:"3.07.15.36-9",descricao:"Descompressão neural",tipo:"essencial"},
+      {codigo:"INST",descricao:"Remoção e reimplante de instrumentação",tipo:"essencial"},
+      {codigo:"RADIO",descricao:"Radioscopia intraoperatória",tipo:"essencial"},
+      {codigo:"MICRO",descricao:"Uso de microscópio cirúrgico",tipo:"opcional"}
+    ],
+    opmes:[
+      {nome:"Sistema revisão implantes lombares",tipo:"essencial",qtd:1},
+      {nome:"Cage intersomático lombar (PLIF/TLIF)",tipo:"essencial",qtd:2},
+      {nome:"Parafusos pediculares transpediculares",tipo:"essencial",qtd:6},
+      {nome:"Hastes de conexão longitudinal",tipo:"essencial",qtd:2},
+      {nome:"Enxerto ósseo / substituto",tipo:"essencial",qtd:1}
+    ],
+    regras:[],
+    justificativaBase:"Pseudoartrose de artrodese lombar prévia com dor axial incapacitante e instabilidade segmentar confirmada em imagem dinâmica. Revisão cirúrgica com remoção de hardware, nova descompressão e reimplante de sistema de fixação para consolidação biológica."
+  },
+  "Artroplastia cervical anterior":{
+    sp_id:"SP006",regiao:"cervical",categoria:"cervical",
+    procedimentos:[
+      {codigo:"3.07.13.04-8",descricao:"Artroplastia cervical",tipo:"essencial"},
+      {codigo:"DESCOMP",descricao:"Descompressão cervical anterior",tipo:"essencial"},
+      {codigo:"RADIO",descricao:"Radioscopia intraoperatória",tipo:"essencial"}
+    ],
+    opmes:[
+      {nome:"Prótese discal cervical",tipo:"essencial",qtd:1},
+      {nome:"Kit hemostático (Surgicel/Gelfoam)",tipo:"essencial",qtd:1}
+    ],
+    regras:["não permitir cage cervical","não permitir placa cervical"],
+    justificativaBase:"Discopatia cervical com mielopatia em paciente jovem. Artroplastia cervical indicada para descompressão com preservação do movimento segmentar, evitando fusão e doença do nível adjacente."
+  },
+  "Craniotomia ressecção tumor cerebral":{
+    sp_id:"SP007",regiao:"craniana",categoria:"tumor",
+    procedimentos:[
+      {codigo:"4.01.01.03-0",descricao:"Craniotomia para ressecção tumoral",tipo:"essencial"},
+      {codigo:"4.01.01.42-1",descricao:"Neuronavegação intraoperatória",tipo:"essencial"},
+      {codigo:"MICRO",descricao:"Uso de microscópio cirúrgico",tipo:"essencial"},
+      {codigo:"4.01.01.44-8",descricao:"Monitorização neurofisiológica intraoperatória",tipo:"opcional"},
+      {codigo:"ANEST_GERAL",descricao:"Anestesia geral com intubação orotraqueal",tipo:"essencial"}
+    ],
+    opmes:[
+      {nome:"Sistema hemostasia cirúrgica (Surgicel/Floseal)",tipo:"essencial",qtd:2},
+      {nome:"Brocas craniotomia alta rotação (Midas Rex)",tipo:"essencial",qtd:1},
+      {nome:"Placa e parafusos craniofixação",tipo:"essencial",qtd:1},
+      {nome:"Tela de titânio para craniotomia",tipo:"opcional",qtd:1},
+      {nome:"Cola biológica (Tisseel/DuraSeal)",tipo:"opcional",qtd:1}
+    ],
+    regras:[],
+    justificativaBase:"Neoplasia cerebral com efeito de massa confirmado em RM, hipertensão intracraniana e deterioração neurológica progressiva. Ressecção microcirúrgica guiada por neuronavegação indicada para máxima ressecção segura, alívio da hipertensão intracraniana e diagnóstico histopatológico."
+  },
+  "Derivação ventriculoperitoneal":{
+    sp_id:"SP008",regiao:"craniana",categoria:"hidrocefalia",
+    procedimentos:[
+      {codigo:"4.01.01.05-7",descricao:"Derivação ventriculoperitoneal (DVP)",tipo:"essencial"},
+      {codigo:"4.01.01.06-5",descricao:"Posicionamento de cateter ventricular",tipo:"essencial"},
+      {codigo:"RADIO",descricao:"Radioscopia intraoperatória",tipo:"opcional"},
+      {codigo:"ANEST_GERAL",descricao:"Anestesia geral",tipo:"essencial"}
+    ],
+    opmes:[
+      {nome:"Sistema DVP com válvula programável",tipo:"essencial",qtd:1},
+      {nome:"Cateter ventricular proximal",tipo:"essencial",qtd:1},
+      {nome:"Cateter peritoneal distal",tipo:"essencial",qtd:1}
+    ],
+    regras:[],
+    justificativaBase:"Hidrocefalia progressiva com sintomas de hipertensão intracraniana refratária ao tratamento clínico. Derivação ventriculoperitoneal com válvula programável indicada para controle pressórico e prevenção de dano neurológico permanente."
+  },
+  "Angiografia cerebral diagnóstica":{
+    sp_id:"SP009",regiao:"vascular cerebral",categoria:"endovascular_diagnostico",
+    procedimentos:[
+      {codigo:"4.06.01.01-0",descricao:"Arteriografia cerebral (4 vasos)",tipo:"essencial"},
+      {codigo:"4.06.01.09-6",descricao:"Estudo complementar de vasos cervicais",tipo:"essencial"},
+      {codigo:"4.06.01.10-0",descricao:"Estudo seletivo de vasos extra e intracranianos",tipo:"essencial"},
+      {codigo:"4.06.01.15-0",descricao:"Cateterismo seletivo arterial adicional",tipo:"opcional"},
+      {codigo:"ANEST_GERAL",descricao:"Anestesia geral / sedação",tipo:"essencial"},
+      {codigo:"SALA_HEMO",descricao:"Uso de sala de hemodinâmica",tipo:"essencial"}
+    ],
+    opmes:[
+      {nome:"Introdutor valvulado 5Fr x 11cm",tipo:"essencial",qtd:1},
+      {nome:"Fio guia hidrofílico 0.035 x 180cm",tipo:"essencial",qtd:1},
+      {nome:"Cateter Simmons 2 - 5Fr",tipo:"essencial",qtd:1},
+      {nome:"Cateter vertebral - 5Fr",tipo:"essencial",qtd:1},
+      {nome:"Cateter Pig Tail 5Fr",tipo:"essencial",qtd:1},
+      {nome:"Seringa de pressão para contraste",tipo:"essencial",qtd:1},
+      {nome:"Contraste iodado não-iônico",tipo:"essencial",qtd:2}
+    ],
+    regras:[],
+    justificativaBase:"Investigação de alterações vasculares cerebrais incluindo aneurisma, estenoses arteriais, malformações arteriovenosas. Arteriografia cerebral de 4 vasos com estudo complementar dos vasos cervicais e seletivo extra e intracraniano indicada para diagnóstico preciso e planejamento terapêutico."
+  },
+  "Embolização endovascular de aneurisma":{
+    sp_id:"SP010",regiao:"vascular cerebral",categoria:"endovascular_terapeutico",
+    procedimentos:[
+      {codigo:"4.06.01.02-9",descricao:"Embolização endovascular de aneurisma",tipo:"essencial"},
+      {codigo:"4.06.01.01-0",descricao:"Arteriografia cerebral diagnóstica (controle)",tipo:"essencial"},
+      {codigo:"4.06.01.09-6",descricao:"Estudo complementar de vasos cervicais",tipo:"essencial"},
+      {codigo:"4.06.01.15-0",descricao:"Cateterismo seletivo adicional",tipo:"essencial"},
+      {codigo:"ANEST_GERAL",descricao:"Anestesia geral com intubação",tipo:"essencial"},
+      {codigo:"SALA_HEMO",descricao:"Uso de sala de hemodinâmica",tipo:"essencial"},
+      {codigo:"MONIT_NEURO",descricao:"Monitorização neurofisiológica",tipo:"opcional"}
+    ],
+    opmes:[
+      {nome:"Coils de embolização cerebral",tipo:"essencial",qtd:5},
+      {nome:"Microcateter para embolização cerebral",tipo:"essencial",qtd:1},
+      {nome:"Microguia hidrofílico 0.014",tipo:"essencial",qtd:1},
+      {nome:"Cateter guia 6Fr",tipo:"essencial",qtd:1},
+      {nome:"Introdutor valvulado 6Fr x 25cm",tipo:"essencial",qtd:1},
+      {nome:"Stent intracraniano (flow diverter)",tipo:"opcional",qtd:1},
+      {nome:"Balão de remodelagem",tipo:"opcional",qtd:1},
+      {nome:"Contraste iodado não-iônico",tipo:"essencial",qtd:3}
+    ],
+    regras:["stent só se colo largo ou morfologia desfavorável"],
+    justificativaBase:"Aneurisma cerebral com alto risco de rotura (diâmetro > 7mm, morfologia irregular). Embolização endovascular com coils indicada para oclusão segura do aneurisma, preservação do vaso parental e prevenção de hemorragia subaracnóidea."
   }
 };
+
+/* ──────────────────────────────────────────────
+   MEMÓRIA OPERACIONAL — histórico de uso por procedimento
+   Salva automaticamente ao enviar caso com sucesso.
+   Sugere códigos e OPME usados anteriormente.
+────────────────────────────────────────────── */
+var NA_HISTORY_KEY = 'NEUROAUTH_PROC_HISTORY';
+
+function naGetHistory(){
+  try{ return JSON.parse(localStorage.getItem(NA_HISTORY_KEY)) || {}; }catch(e){ return {}; }
+}
+function naSaveHistory(proc, procs, opmes){
+  if(!proc) return;
+  var h = naGetHistory();
+  h[proc] = {
+    procs: procs || [],
+    opmes: opmes || [],
+    lastUsed: new Date().toISOString(),
+    count: ((h[proc]||{}).count || 0) + 1
+  };
+  try{ localStorage.setItem(NA_HISTORY_KEY, JSON.stringify(h)); }catch(e){}
+}
+function naGetSuggestions(proc){
+  var h = naGetHistory();
+  return h[proc] || null;
+}
+/* Hook: salvar histórico após envio bem-sucedido */
+function naSaveCurrentToHistory(){
+  try{
+    var proc = document.getElementById('procedimento')?.value;
+    if(!proc) return;
+    var selProcs = typeof getSelectedProcs==='function' ? getSelectedProcs() : [];
+    var selOpmes = typeof getSelectedOpmesFull==='function' ? getSelectedOpmesFull() : [];
+    naSaveHistory(proc, selProcs, selOpmes);
+    naLog('history_saved', {proc:proc, procs:selProcs.length, opmes:selOpmes.length});
+  }catch(e){}
+}
 
 /* ──────────────────────────────────────────────
    NAVIGATION
@@ -3473,12 +3642,45 @@ function naGetPrintHeader(which){
   }
 }
 
+/* ── Carimbo de assinatura visual — gera bloco com dados do médico + hash ── */
+function naBuildSignatureBlock(){
+  var medico = document.getElementById('medico_solicitante')?.value || '';
+  var crm = document.getElementById('crm')?.value || '';
+  var email = naGetSessionField('email') || '';
+  var ts = new Date().toLocaleString('pt-BR');
+  // Hash simples do conteúdo para rastreabilidade
+  var traceId = window.__NA_LAST_TRACE_ID || '';
+  var hashInput = medico + crm + ts + traceId;
+  var hash = '';
+  for(var i=0;i<hashInput.length;i++) hash = ((hash<<5)-hash+hashInput.charCodeAt(i))|0;
+  hash = Math.abs(hash).toString(16).toUpperCase().padStart(8,'0');
+
+  return '<div style="margin-top:20px;border-top:2px solid #000;padding-top:10px">'
+    + '<table style="width:100%;border:none;font-size:9px"><tr>'
+    + '<td style="border:none;width:50%;vertical-align:bottom;padding-right:20px">'
+    + '<div style="border-bottom:1px solid #000;min-height:40px;margin-bottom:4px"></div>'
+    + '<div style="font-weight:700;font-size:10px">' + medico + '</div>'
+    + '<div>' + crm + '</div>'
+    + '</td>'
+    + '<td style="border:none;width:50%;vertical-align:top;font-size:8px;color:#333">'
+    + '<div><strong>Assinatura eletrônica NEUROAUTH</strong></div>'
+    + '<div>Data/hora: ' + ts + '</div>'
+    + '<div>Trace: ' + traceId + '</div>'
+    + '<div>Hash: ' + hash + '</div>'
+    + '<div>Usuário: ' + email + '</div>'
+    + '<div style="margin-top:4px;font-size:7px;color:#666">Documento gerado eletronicamente pelo sistema NEUROAUTH. '
+    + 'A autenticidade pode ser verificada pelo trace ID.</div>'
+    + '</td></tr></table></div>';
+}
+
 function printGuia(which){
   const html = which==='internacao'
     ? document.getElementById('internacao-render').innerHTML
     : which==='sadt'
     ? document.getElementById('sadt-render').innerHTML
     : document.getElementById('opme-render').innerHTML;
+  // Adicionar carimbo de assinatura quando guia registrada
+  const sigBlock = guiaRegistrada ? naBuildSignatureBlock() : '';
   const w=window.open('','_blank');
   w.document.write(`<html><head><title>Guia ${which.toUpperCase()} – NEUROAUTH</title>
     <style>
@@ -3520,7 +3722,7 @@ function printGuia(which){
         .na-print-header.oficial{background:#e6f5ed;color:#14532d;border-bottom:2px solid #1e7a4a}
       }
     </style>
-    </head><body>${naGetPrintHeader(which)}${guiaRegistrada?'':'<div class=\"na-print-wm\"></div>'}${html}</body></html>`);
+    </head><body>${naGetPrintHeader(which)}${guiaRegistrada?'':'<div class=\"na-print-wm\"></div>'}${html}${sigBlock}</body></html>`);
   w.document.close();
   setTimeout(()=>w.print(),600);
 }
@@ -3860,6 +4062,8 @@ async function confirmedSend(){
       guiaRegistrada    = true;
       envioConfirmadoEm = new Date().toISOString();
       envioUserEmail    = naGetSessionField('email') || '';
+      // Salvar histórico operacional para sugestões futuras
+      if(typeof naSaveCurrentToHistory==='function') naSaveCurrentToHistory();
       // Limpar SSoT — próxima guia começa fresh
       window.__NA_STATE__ = {payload: null, compliance: null, ts: null, dirty: true};
       window.__NA_LAST_COMPLIANCE__ = null;
