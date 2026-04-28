@@ -2030,12 +2030,11 @@ const SURGICAL_PROFILES = {
   "Angiografia cerebral diagnóstica":{
     sp_id:"SP009",regiao:"vascular cerebral",categoria:"endovascular_diagnostico",
     procedimentos:[
-      {codigo:"4.06.01.01-0",descricao:"Arteriografia cerebral (4 vasos)",tipo:"essencial"},
-      {codigo:"4.06.01.09-6",descricao:"Estudo complementar de vasos cervicais",tipo:"essencial"},
-      {codigo:"4.06.01.10-0",descricao:"Estudo seletivo de vasos extra e intracranianos",tipo:"essencial"},
-      {codigo:"4.06.01.15-0",descricao:"Cateterismo seletivo arterial adicional",tipo:"opcional"},
-      {codigo:"ANEST_GERAL",descricao:"Anestesia geral / sedação",tipo:"essencial"},
-      {codigo:"SALA_HEMO",descricao:"Uso de sala de hemodinâmica",tipo:"essencial"}
+      {codigo:"4.06.01.01-0",descricao:"Arteriografia cerebral (4 vasos)",tipo:"essencial",qtd:4},
+      {codigo:"4.06.01.09-6",descricao:"Estudo complementar de vasos cervicais",tipo:"essencial",qtd:4},
+      {codigo:"4.06.01.10-0",descricao:"Estudo seletivo de vasos extra e intracranianos",tipo:"essencial",qtd:3},
+      {codigo:"ANEST_GERAL",descricao:"Anestesia geral / sedação",tipo:"opcional",qtd:1},
+      {codigo:"SALA_HEMO",descricao:"Uso de sala de hemodinâmica",tipo:"essencial",qtd:1}
     ],
     opmes:[
       {nome:"Introdutor valvulado 5Fr x 11cm",tipo:"essencial",qtd:1},
