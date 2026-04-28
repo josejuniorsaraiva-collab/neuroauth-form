@@ -1112,16 +1112,11 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div class="field"><label>CID secundário</label>
         <input id="cid_secundario_internacao" type="text" placeholder="Ex: G45.9"/></div>
       <div class="field full"><label>Indicação clínica / justificativa de internação <span class="req">*</span></label>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
-          <label for="semanas_tratamento_conservador" style="font-size:12px;color:#475569;font-weight:600">Semanas de tto conservador:</label>
-          <input id="semanas_tratamento_conservador" type="number" min="0" max="52" placeholder="ex: 8"
-            style="width:80px;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px"/>
-          <button type="button"
-            onclick="window.gerarJustificativaClinica()"
-            style="background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600">
-            ✨ Gerar justificativa
-          </button>
-        </div>
+        <button type="button"
+          onclick="window.gerarJustificativaClinica()"
+          style="margin-bottom:6px;background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600">
+          ✨ Gerar justificativa
+        </button>
         <textarea id="indicacao_clinica_internacao" rows="3"
           placeholder="Ex: Paciente interna para procedimento neurovascular minimamente invasivo — embolização de aneurisma cerebral via cateterismo…"
           oninput="document.getElementById('indicacao_clinica').value=this.value"></textarea></div>
