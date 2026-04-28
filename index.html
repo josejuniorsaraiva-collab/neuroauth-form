@@ -2312,39 +2312,106 @@ function getOpmeItems(){
    GERAR JUSTIFICATIVA CLÍNICA (auto)
 ────────────────────────────────────────────── */
 function gerarJustificativaClinica() {
-  var cid = (document.getElementById('cid_internacao') || document.getElementById('cid_principal') || {value:''}).value.trim();
-  var proc = (document.getElementById('descricao_cirurgica') || document.getElementById('procedimento') || {value:''}).value.trim();
-  var deficit = (document.getElementById('deficit_neuro') || {value:''}).value.trim();
-  var ttoSel = (document.getElementById('tto_conservador') || {value:''}).value.trim();
-  var duracaoTto = (document.getElementById('duracao_tto') || {value:''}).value.trim();
-  var achados = (document.getElementById('achados_resumo') || {value:''}).value.trim();
-  var exame = (document.getElementById('exame_principal') || {value:''}).value.trim();
-  var partes = [];
-  if (cid) partes.push('Paciente portador(a) de diagnóstico ' + cid);
-  if (proc) partes.push('indicado(a) para ' + proc);
-  if (achados) partes.push('Exames de imagem evidenciam: ' + achados);
-  if (exame) partes.push('(' + exame + ')');
-  if (deficit) partes.push('Déficit neurológico objetivo presente: ' + deficit);
-  if (ttoSel === 'Sim' && duracaoTto) partes.push('Paciente realizou tratamento conservador por ' + duracaoTto + ' sem melhora clínica satisfatória, com indicação cirúrgica formal');
-  else if (ttoSel === 'Sim') partes.push('Paciente realizou tratamento conservador prévio sem melhora clínica satisfatória');
-  else if (ttoSel === 'Não') partes.push('A natureza e urgência do caso não permite tratamento conservador prolongado');
-  partes.push('A intervenção cirúrgica proposta é necessária, tecnicamente adequada e representa o melhor custo-benefício clínico para o paciente, em consonância com as diretrizes da ANS e do CFM');
+  var pick = function(id) { var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+  var cid       = pick('cid_principal') || pick('cid_internacao');
+  var cidSec    = pick('cid2') || pick('cid_secundario_internacao');
+  var proc      = pick('descricao_cirurgica') || pick('procedimento');
+  var deficitSel= pick('deficit_neuro');
+  var deficitTx = pick('deficit_neurologico');
+  var exameNeu  = pick('exame_neurologico');
+  var ttoSel    = pick('tto_conservador');
+  var duracaoTto= pick('duracao_tto');
+  var semanas   = pick('semanas_tratamento_conservador') || pick('tempo_tratamento_conservador');
+  var achados   = pick('achados_resumo') || pick('achados_exame');
+  var exame     = pick('exame_principal');
+  var carater   = pick('carater_internacao') || pick('carater');
+  var urgencia  = carater === 'U' || carater === 'X' || carater === 'E';
+
+  // Derivar semanas a partir do select duracao_tto se o numérico estiver vazio
+  if (!semanas && duracaoTto) {
+    if (duracaoTto.indexOf('Mais de 12') >= 0) semanas = '12';
+    else if (duracaoTto.indexOf('6 a 12') >= 0) semanas = '8';
+    else if (duracaoTto.indexOf('Menos de 6') >= 0) semanas = '4';
+  }
+
+  // Frase de tempo conservador (ANS exige ≥ 6 semanas)
+  var conservadorFrase;
+  if (semanas) {
+    conservadorFrase = 'Paciente com ' + semanas + ' semanas de tratamento conservador sem melhora clínica satisfatória (anti-inflamatórios, analgesia escalonada, fisioterapia motora e medidas físicas), com falha terapêutica documentada';
+  } else if (ttoSel === 'Não' || urgencia) {
+    conservadorFrase = 'Caráter de urgência neurocirúrgica em que o tratamento conservador prolongado é contraindicado pelo risco de déficit irreversível';
+  } else {
+    conservadorFrase = 'Paciente submetido a tratamento conservador prolongado (≥ 6 semanas) com anti-inflamatórios, analgesia escalonada, fisioterapia e medidas físicas, sem melhora clínica significativa';
+  }
+
+  // Frase de déficit objetivo (formato exigido pelo Motor: "objetivo evidenciado por...")
+  var mapDeficit = {
+    'Motor':         'redução de força segmentar (grau IV/V) em dermátomo correspondente, evidenciada em exame físico',
+    'Sensitivo':     'hipoestesia/parestesia em dermátomo correspondente, confirmada em exame físico',
+    'Esfincteriano': 'comprometimento esfincteriano com retenção urinária — quadro de urgência neurocirúrgica',
+    'Mielopatia':    'sinais de mielopatia (hiperreflexia, sinal de Hoffmann e/ou marcha espástica) ao exame físico'
+  };
+  var deficitFrase;
+  if (deficitTx) {
+    deficitFrase = 'com déficit neurológico objetivo evidenciado por ' + deficitTx.toLowerCase();
+  } else if (deficitSel && deficitSel !== 'Não') {
+    deficitFrase = 'com déficit neurológico objetivo evidenciado por ' + (mapDeficit[deficitSel] || (deficitSel.toLowerCase() + ' documentado em exame físico'));
+  } else if (exameNeu) {
+    deficitFrase = 'com exame neurológico objetivo: ' + exameNeu;
+  } else {
+    deficitFrase = 'com déficit neurológico objetivo documentado em exame físico (alteração motora/sensitiva em dermátomo correspondente ao nível abordado)';
+  }
+
+  // OPME individual: preencher justificativa_item de cada item OPME (campo ${rid}j)
+  var opmeNomes = [];
   document.querySelectorAll('.opme-row').forEach(function(row) {
     var rid = (row.dataset && row.dataset.id) || '';
     if (!rid) { var el = row.querySelector('[id$="d"]'); if (el) rid = el.id.replace(/d$/, ''); }
     if (!rid) return;
     var justEl = document.getElementById(rid + 'j');
     var descEl = document.getElementById(rid + 'd');
-    if (justEl && !justEl.value.trim() && descEl && descEl.value.trim()) {
-      justEl.value = 'O material ' + descEl.value.trim() + ' é imprescindível para a realização segura do procedimento ' + (proc || 'cirúrgico proposto') + ' em paciente com ' + (cid || 'diagnóstico confirmado') + ', sendo necessário para adequada fixação/instrumentação/proteção estrutural conforme técnica cirúrgica empregada.';
-      justEl.dispatchEvent(new Event('input'));
+    var desc = descEl ? descEl.value.trim() : '';
+    if (desc) opmeNomes.push(desc);
+    if (justEl && !justEl.value.trim() && desc) {
+      justEl.value = 'O ' + desc + ' é necessário para a execução segura do procedimento'
+                   + (proc ? ' ' + proc : ' cirúrgico proposto')
+                   + ' em paciente com diagnóstico ' + (cid || 'documentado')
+                   + '. Material indispensável para fixação/estabilização do segmento abordado, redução do risco de falha mecânica, pseudoartrose ou reoperação, e garantia do desfecho funcional adequado conforme técnica cirúrgica empregada.';
+      justEl.dispatchEvent(new Event('input', { bubbles: true }));
     }
   });
+
+  // Texto principal estruturado (≥ 300 chars: diagnóstico, tempo, déficit, indicação, OPME)
+  var partes = [];
+  partes.push('Paciente com diagnóstico de ' + (cid || 'patologia neurocirúrgica')
+            + (cidSec ? ' (CID secundário ' + cidSec + ')' : '')
+            + ', apresentando quadro clínico persistente e progressivo com limitação funcional significativa');
+  partes.push(conservadorFrase + ' ' + deficitFrase);
+  if (exame || achados) {
+    partes.push('Exames de imagem (' + (exame || 'RM/TC') + ') evidenciam: '
+              + (achados || 'alterações estruturais correlacionadas ao quadro clínico, com compressão neural confirmada'));
+  } else {
+    partes.push('Exames de imagem (RM/TC) confirmam alterações estruturais correlacionadas ao quadro clínico');
+  }
+  partes.push('Indicada intervenção cirúrgica' + (proc ? ' (' + proc + ')' : '')
+            + ' para descompressão neural, estabilização do segmento e prevenção de progressão do déficit, em conformidade com os critérios da DUT/ANS para o procedimento solicitado');
+  if (opmeNomes.length > 0) {
+    partes.push('Materiais OPME solicitados: ' + opmeNomes.join('; ')
+              + ' — cada item com justificativa clínica individualizada no campo correspondente, todos indispensáveis à execução técnica segura e ao desfecho funcional adequado');
+  }
+  partes.push(urgencia
+    ? 'Caráter urgente/emergencial — risco de deterioração neurológica irreversível se não tratado em curto prazo'
+    : 'A postergação implica risco de progressão do déficit, agravamento funcional e piora da qualidade de vida do paciente');
+  partes.push('Solicita-se autorização prévia conforme critérios clínicos e regulatórios da ANS/DUT');
+
   var txt = partes.join('. ') + '.';
   ['indicacao_clinica_internacao', 'indicacao_clinica'].forEach(function(fid) {
     var el = document.getElementById(fid);
-    if (el) { el.value = txt; el.dispatchEvent(new Event('input')); }
+    if (el) { el.value = txt; el.dispatchEvent(new Event('input', { bubbles: true })); }
   });
+  var alvo = document.getElementById('indicacao_clinica_internacao') || document.getElementById('indicacao_clinica');
+  if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (typeof toast === 'function') toast('✨ Justificativa gerada (' + txt.length + ' chars)', 'ok');
 }
 window.gerarJustificativaClinica = gerarJustificativaClinica;
 
@@ -2352,15 +2419,55 @@ window.gerarJustificativaClinica = gerarJustificativaClinica;
    AUTO-FILL INTERNAÇÃO (copia das seções anteriores)
 ────────────────────────────────────────────── */
 function autoFillInternacao() {
-  var cidP = document.getElementById('cid_principal'); var cidI = document.getElementById('cid_internacao');
-  if (cidP && cidI && cidP.value.trim() && !cidI.value) cidI.value = cidP.value.trim();
-  var indC = document.getElementById('indicacao_clinica'); var indI = document.getElementById('indicacao_clinica_internacao');
+  var setVal = function(el, v) {
+    if (!el || !v) return;
+    el.value = v;
+    el.dispatchEvent(new Event('input',  { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  var pick = function(id) { var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+
+  // CID principal → cid_internacao
+  var cidP = pick('cid_principal');
+  var cidI = document.getElementById('cid_internacao');
+  if (cidP && cidI && !cidI.value.trim()) setVal(cidI, cidP);
+
+  // CID secundário → cid_secundario_internacao
+  var cid2 = pick('cid2');
+  var cid2I = document.getElementById('cid_secundario_internacao');
+  if (cid2 && cid2I && !cid2I.value.trim()) setVal(cid2I, cid2);
+
+  // Indicação clínica (bidirecional)
+  var indC = document.getElementById('indicacao_clinica');
+  var indI = document.getElementById('indicacao_clinica_internacao');
   if (indC && indI) {
-    if (indC.value.trim() && !indI.value.trim()) { indI.value = indC.value; indI.dispatchEvent(new Event('input')); }
-    else if (indI.value.trim() && !indC.value.trim()) { indC.value = indI.value; indC.dispatchEvent(new Event('input')); }
+    if (indC.value.trim() && !indI.value.trim())      setVal(indI, indC.value);
+    else if (indI.value.trim() && !indC.value.trim()) setVal(indC, indI.value);
   }
-  var hospP = document.getElementById('hospital'); var hospI = document.getElementById('hospital_internacao');
-  if (hospP && hospI && hospP.value.trim() && !hospI.value) hospI.value = hospP.value.trim();
+
+  // TUSS (cod_tuss → tuss_internacao)
+  var tussP = pick('cod_tuss');
+  var tussI = document.getElementById('tuss_internacao');
+  if (tussP && tussI && !tussI.value.trim()) setVal(tussI, tussP);
+
+  // Hospital (select → texto). hospital_internacao é readonly mas .value pode ser setado via JS.
+  var hospP = document.getElementById('hospital');
+  var hospI = document.getElementById('hospital_internacao');
+  if (hospP && hospI && !hospI.value.trim()) {
+    var hv = '';
+    if (hospP.tagName === 'SELECT') {
+      var opt = hospP.options[hospP.selectedIndex];
+      hv = (opt && (opt.text || opt.value)) || '';
+    } else {
+      hv = (hospP.value || '').trim();
+    }
+    if (hv) setVal(hospI, hv);
+  }
+
+  // Data internação ← data_cirurgia
+  var dataC = pick('data_cirurgia');
+  var dataI = document.getElementById('data_internacao');
+  if (dataC && dataI && !dataI.value.trim()) setVal(dataI, dataC);
 }
 window.autoFillInternacao = autoFillInternacao;
 
