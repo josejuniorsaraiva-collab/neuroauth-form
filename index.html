@@ -178,6 +178,11 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
 /* OPME ROWS */
 .opme-row{display:grid;grid-template-columns:2fr 1fr 60px 60px auto;gap:7px;align-items:end;
   padding:9px 10px;background:var(--s1);border-radius:7px;border:1px solid var(--s2);margin-bottom:6px}
+.opme-row .opme-just-row{grid-column:1 / -1;margin-top:6px}
+.opme-row .opme-just-row textarea{width:100%;min-height:54px;font-size:12px;padding:6px 8px;
+  border:1px solid var(--s2);border-radius:6px;resize:vertical;font-family:inherit}
+.opme-row .opme-just-row textarea.err{border-color:var(--r1);background:#fef2f2}
+.opme-row .opme-just-row label{font-size:11px;color:#475569;font-weight:600;display:block;margin-bottom:3px}
 .del{background:var(--rp);color:var(--r1);border:1px solid #fca5a5;border-radius:6px;
   padding:7px 9px;cursor:pointer;font-size:13px;font-weight:700}
 .del:hover{background:#fee2e2}
@@ -2216,7 +2221,7 @@ function autoProc(){
     if(el)el.classList.add('af');
   });
   document.getElementById('opmeRows').innerHTML='';
-  (d.opme||[]).forEach(o=>addOpme(o.d,o.q,o.u,o.e));
+  (d.opme||[]).forEach(o=>addOpme(o.d,o.q,o.u,o.e,o.j||d.jopme||''));
   if(d.opme&&d.opme.length){
     sv('necessita_opme','Sim');
     sv('empresa_opme',d.opme[0].e||'');
@@ -2251,22 +2256,28 @@ function qf(id){
    OPME ROWS
 ────────────────────────────────────────────── */
 let opmeN=0;
-function addOpme(desc='',qtd=1,un='un',emp=''){
+function addOpme(desc='',qtd=1,un='un',emp='',just=''){
   opmeN++;const id='or'+opmeN;
   const row=document.createElement('div');
   row.className='opme-row';row.id=id;
+  const escAttr=s=>String(s||'').replace(/"/g,'&quot;');
+  const escTxt=s=>String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   row.innerHTML=`
     <div class="field"><label>Descrição</label>
-      <input type="text" id="${id}d" value="${desc}" placeholder="Ex: Cage lombar PLIF"/></div>
+      <input type="text" id="${id}d" value="${escAttr(desc)}" placeholder="Ex: Cage lombar PLIF"/></div>
     <div class="field"><label>Fabricante</label>
-      <input type="text" id="${id}e" value="${emp}" placeholder="Ex: Medtronic"/></div>
+      <input type="text" id="${id}e" value="${escAttr(emp)}" placeholder="Ex: Medtronic"/></div>
     <div class="field"><label>Qtd</label>
       <input type="number" id="${id}q" value="${qtd}" min="1" max="99"/></div>
     <div class="field"><label>Un</label>
       <select id="${id}u">
         ${['un','par','sis','cx','fr'].map(u=>`<option ${u===un?'selected':''}>${u}</option>`).join('')}
       </select></div>
-    <button type="button" class="del" onclick="document.getElementById('${id}').remove()">✕</button>`;
+    <button type="button" class="del" onclick="document.getElementById('${id}').remove()">✕</button>
+    <div class="opme-just-row">
+      <label for="${id}j">Justificativa individual <span class="req">*</span></label>
+      <textarea id="${id}j" rows="2" placeholder="Indicação clínica do item, vínculo com o procedimento e risco se não autorizado.">${escTxt(just)}</textarea>
+    </div>`;
   document.getElementById('opmeRows').appendChild(row);
 }
 
@@ -2283,7 +2294,9 @@ function getOpmeItems(){
       descricao:el.value,
       empresa:document.getElementById(b+'e')?.value||'',
       qtd:Number(document.getElementById(b+'q')?.value)||1,
-      unidade:document.getElementById(b+'u')?.value||'un'
+      unidade:document.getElementById(b+'u')?.value||'un',
+      justificativa_item:document.getElementById(b+'j')?.value||'',
+      _rowId:b
     });
   });
   return items;
@@ -2436,9 +2449,10 @@ function validate(){
   if(COLUNA_PROCS.includes(d.procedimento)&&!d.niveis_anatomicos){
     errs.push('Níveis anatômicos (obrigatório para procedimentos de coluna)');mark('niveis_anatomicos')}
 
-  // Conditional: OPME=Sim → pelo menos 1 item + justificativa
+  // Conditional: OPME=Sim → pelo menos 1 item + justificativa global + justificativa por item
   if(d.necessita_opme==='Sim'){
-    const items=getOpmeItems().filter(o=>o.descricao.trim());
+    const allItems=getOpmeItems();
+    const items=allItems.filter(o=>o.descricao.trim());
     if(items.length===0){
       errs.push('Ao menos 1 item OPME (quando OPME = Sim)');
       document.getElementById('opmeRows').style.outline='2px solid var(--r1)';
@@ -2446,6 +2460,17 @@ function validate(){
     }
     if(!d.justificativa_opme.trim()){
       errs.push('Justificativa da OPME');mark('justificativa_opme')}
+    // Validação individual: cada item preenchido precisa de justificativa_item
+    allItems.forEach(o=>{
+      if(o.descricao.trim() && !String(o.justificativa_item||'').trim()){
+        const ta=document.getElementById(o._rowId+'j');
+        if(ta){
+          ta.classList.add('err');
+          setTimeout(()=>ta.classList.remove('err'),5000);
+        }
+        errs.push('Justificativa individual do item OPME "'+o.descricao.trim().slice(0,40)+'"');
+      }
+    });
   }
 
   return errs;
@@ -2516,6 +2541,7 @@ function normalizeOpmeItem(o){
     referencia : safeStr(o.referencia||o.ref||o.reference||''),
     nomeFornecedor : safeStr(o.nomeFornecedor||o.nome_fornecedor||o.empresa||o.fabricante||''),
     observacao : safeStr(o.observacao||o.obs||o.observation||o.unidade||o.unit||''),
+    justificativa_item : safeStr(o.justificativa_item||o.justificativa||o.justification||o.just||''),
     tipo    : safeStr(o.tipo||'automatico')
   };
 }
@@ -3100,7 +3126,8 @@ function renderOPME(d){
           <td colspan="2" style="font-size:8px;color:#555">${desc?('Reg. ANVISA: '+(item.anvisa||'')):''}</td>
           <td colspan="3" style="font-size:8px;color:#555">${desc?('Ref. fabricante: '+(item.fabricante||'')):''}</td>
           <td colspan="3" style="font-size:8px;color:#555">${desc?('Nº AF: '+(item.af||'')):''}</td>
-        </tr>`;
+        </tr>
+        ${desc&&item&&item.justificativa_item?`<tr><td></td><td colspan="8" style="font-size:8px;color:#222;padding:2px 4px;background:#f8fafc;border-top:1px dashed #cbd5e1"><strong>Justificativa:</strong> ${String(item.justificativa_item).replace(/</g,'&lt;')}</td></tr>`:''}`;
   }).join('');
   return `
 <div class="guia-wrap" style="margin-top:10px">
@@ -4254,6 +4281,7 @@ function showResultScreen(decideData, shadowV2){
   var tier = 'nogo';
   if(cls==='GO'||cls==='APROVADO') tier = 'go';
   else if(cls==='GO_COM_RESSALVAS'||cls==='AUTORIZADO_COM_RESSALVAS') tier = 'ressalvas';
+  else if(cls==='PENDENCIA_PREENCHIMENTO'||cls==='PENDENCIA'||cls==='PENDENTE') tier = 'pendencia';
 
   // v4: Reclassificar NO_GO documental → pendencia
   var isDocPendencia = false;
@@ -5281,6 +5309,31 @@ function nrGoToField(tabIdx, fieldId){
       setTimeout(function(){ el.style.boxShadow = ''; }, 3000);
     }
   }, 200);
+  // Após "Corrigir agora", oferecer botão flutuante de reanálise
+  renderReanalisarButton();
+}
+
+/* ── Botão flutuante "Reanalisar caso" — aparece após "Corrigir agora" ── */
+function renderReanalisarButton(){
+  var existing = document.getElementById('na-reanalisar-btn');
+  if(existing) existing.remove();
+  var btn = document.createElement('button');
+  btn.id = 'na-reanalisar-btn';
+  btn.type = 'button';
+  btn.textContent = '🔄 Reanalisar caso';
+  btn.style.cssText = 'position:fixed;bottom:88px;right:24px;z-index:9999;background:#1d4ed8;color:#fff;'
+    + 'padding:12px 22px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:14px;'
+    + 'box-shadow:0 6px 18px rgba(29,78,216,.35);transition:transform .15s,box-shadow .15s';
+  btn.onmouseover = function(){ btn.style.transform='translateY(-1px)'; btn.style.boxShadow='0 8px 22px rgba(29,78,216,.45)'; };
+  btn.onmouseout  = function(){ btn.style.transform='';                btn.style.boxShadow='0 6px 18px rgba(29,78,216,.35)'; };
+  btn.onclick = function(){
+    var el = document.getElementById('na-reanalisar-btn');
+    if(el) el.remove();
+    if(typeof nrReaudit === 'function') nrReaudit();
+    else if(typeof confirmedSend === 'function') confirmedSend();
+  };
+  document.body.appendChild(btn);
+  if(typeof naLog==='function') naLog('reanalisar_btn_shown');
 }
 
 function nrActionSave(){
