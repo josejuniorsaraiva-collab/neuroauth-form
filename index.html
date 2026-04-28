@@ -1112,11 +1112,16 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div class="field"><label>CID secundário</label>
         <input id="cid_secundario_internacao" type="text" placeholder="Ex: G45.9"/></div>
       <div class="field full"><label>Indicação clínica / justificativa de internação <span class="req">*</span></label>
-        <button type="button"
-          onclick="window.gerarJustificativaClinica()"
-          style="margin-bottom:6px;background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600">
-          ✨ Gerar justificativa
-        </button>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+          <label for="semanas_tratamento_conservador" style="font-size:12px;color:#475569;font-weight:600">Semanas de tto conservador:</label>
+          <input id="semanas_tratamento_conservador" type="number" min="0" max="52" placeholder="ex: 8"
+            style="width:80px;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px"/>
+          <button type="button"
+            onclick="window.gerarJustificativaClinica()"
+            style="background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600">
+            ✨ Gerar justificativa
+          </button>
+        </div>
         <textarea id="indicacao_clinica_internacao" rows="3"
           placeholder="Ex: Paciente interna para procedimento neurovascular minimamente invasivo — embolização de aneurisma cerebral via cateterismo…"
           oninput="document.getElementById('indicacao_clinica').value=this.value"></textarea></div>
@@ -2312,45 +2317,39 @@ function getOpmeItems(){
    GERAR JUSTIFICATIVA CLÍNICA (auto)
 ────────────────────────────────────────────── */
 function gerarJustificativaClinica() {
-  const cid = (document.getElementById('cid_principal') || document.getElementById('cid_internacao'))?.value?.trim() || '';
-  const procedimento = document.querySelector('[id*="descricao_proc"], [id*="tuss_desc"]')?.value?.trim()
-    || document.getElementById('descricao_cirurgica')?.value?.trim()
-    || document.getElementById('procedimento')?.value?.trim()
-    || '';
-  const exame = document.getElementById('exame_principal')?.value?.trim() || '';
-  const achados = document.getElementById('achados_resumo')?.value?.trim() || '';
-  const deficit = document.getElementById('deficit_neuro')?.value?.trim() || 'Déficit neurológico funcional documentado';
-  const conservador = document.getElementById('duracao_tto')?.value?.trim() || '';
-  const carater = document.getElementById('carater_internacao')?.value || document.getElementById('carater')?.value || '';
-  const urgencia = carater === 'U' || carater === 'X' || carater === 'E';
-
-  const opmeItems = [];
-  document.querySelectorAll('.opme-row').forEach(row => {
-    const desc = row.querySelector('[id$="d"]')?.value?.trim();
-    if (desc) opmeItems.push(desc);
+  var cid = (document.getElementById('cid_internacao') || document.getElementById('cid_principal') || {value:''}).value.trim();
+  var proc = (document.getElementById('descricao_cirurgica') || document.getElementById('procedimento') || {value:''}).value.trim();
+  var deficit = (document.getElementById('deficit_neuro') || {value:''}).value.trim();
+  var ttoSel = (document.getElementById('tto_conservador') || {value:''}).value.trim();
+  var duracaoTto = (document.getElementById('duracao_tto') || {value:''}).value.trim();
+  var achados = (document.getElementById('achados_resumo') || {value:''}).value.trim();
+  var exame = (document.getElementById('exame_principal') || {value:''}).value.trim();
+  var partes = [];
+  if (cid) partes.push('Paciente portador(a) de diagnóstico ' + cid);
+  if (proc) partes.push('indicado(a) para ' + proc);
+  if (achados) partes.push('Exames de imagem evidenciam: ' + achados);
+  if (exame) partes.push('(' + exame + ')');
+  if (deficit) partes.push('Déficit neurológico objetivo presente: ' + deficit);
+  if (ttoSel === 'Sim' && duracaoTto) partes.push('Paciente realizou tratamento conservador por ' + duracaoTto + ' sem melhora clínica satisfatória, com indicação cirúrgica formal');
+  else if (ttoSel === 'Sim') partes.push('Paciente realizou tratamento conservador prévio sem melhora clínica satisfatória');
+  else if (ttoSel === 'Não') partes.push('A natureza e urgência do caso não permite tratamento conservador prolongado');
+  partes.push('A intervenção cirúrgica proposta é necessária, tecnicamente adequada e representa o melhor custo-benefício clínico para o paciente, em consonância com as diretrizes da ANS e do CFM');
+  document.querySelectorAll('.opme-row').forEach(function(row) {
+    var rid = (row.dataset && row.dataset.id) || '';
+    if (!rid) { var el = row.querySelector('[id$="d"]'); if (el) rid = el.id.replace(/d$/, ''); }
+    if (!rid) return;
+    var justEl = document.getElementById(rid + 'j');
+    var descEl = document.getElementById(rid + 'd');
+    if (justEl && !justEl.value.trim() && descEl && descEl.value.trim()) {
+      justEl.value = 'O material ' + descEl.value.trim() + ' é imprescindível para a realização segura do procedimento ' + (proc || 'cirúrgico proposto') + ' em paciente com ' + (cid || 'diagnóstico confirmado') + ', sendo necessário para adequada fixação/instrumentação/proteção estrutural conforme técnica cirúrgica empregada.';
+      justEl.dispatchEvent(new Event('input'));
+    }
   });
-
-  const textoBase = [
-    `Paciente com diagnóstico de ${cid || 'patologia degenerativa/estrutural'}, apresentando quadro clínico persistente e refratário ao tratamento conservador${conservador ? ` por ${conservador}` : ', conforme documentação clínica'}, com limitação funcional significativa.`,
-    deficit ? `Apresenta ${deficit.toLowerCase()}.` : '',
-    exame ? `Exames de imagem evidenciam: ${exame}${achados ? `. ${achados}` : ''}.` : '',
-    `A indicação cirúrgica decorre da correlação clínico-radiológica entre os sintomas, exame físico e achados complementares, sendo necessária a intervenção para descompressão${procedimento ? ` via ${procedimento}` : ''}, prevenção de piora neurológica e recuperação funcional do paciente.`,
-    opmeItems.length > 0
-      ? `Os materiais OPME solicitados (${opmeItems.join(', ')}) são indispensáveis para execução segura da técnica cirúrgica proposta, estabilização adequada do segmento abordado e redução do risco de falha mecânica, reoperação ou desfecho funcional desfavorável.`
-      : 'Os materiais OPME solicitados são compatíveis com a técnica cirúrgica proposta e necessários para execução segura do procedimento.',
-    urgencia
-      ? 'Caráter de atendimento urgente/emergencial, com risco de deterioração neurológica irreversível se não tratado em curto prazo.'
-      : 'A postergação do procedimento implica risco de progressão do quadro, agravamento do déficit funcional e piora da qualidade de vida do paciente.',
-    'Solicita-se autorização prévia para realização do procedimento, considerando os critérios clínicos e regulatórios estabelecidos pela ANS/DUT para este tipo de intervenção.'
-  ].filter(Boolean).join(' ');
-
-  const campo = document.getElementById('indicacao_clinica_internacao') || document.getElementById('indicacao_clinica');
-  if (campo) {
-    campo.value = textoBase;
-    campo.dispatchEvent(new Event('input', { bubbles: true }));
-    campo.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    if (typeof toast === 'function') toast('✨ Justificativa gerada','ok');
-  }
+  var txt = partes.join('. ') + '.';
+  ['indicacao_clinica_internacao', 'indicacao_clinica'].forEach(function(fid) {
+    var el = document.getElementById(fid);
+    if (el) { el.value = txt; el.dispatchEvent(new Event('input')); }
+  });
 }
 window.gerarJustificativaClinica = gerarJustificativaClinica;
 
@@ -2358,27 +2357,15 @@ window.gerarJustificativaClinica = gerarJustificativaClinica;
    AUTO-FILL INTERNAÇÃO (copia das seções anteriores)
 ────────────────────────────────────────────── */
 function autoFillInternacao() {
-  const cidPrincipal = document.getElementById('cid_principal')?.value?.trim();
-  const cidInternacao = document.getElementById('cid_internacao');
-  if (cidPrincipal && cidInternacao && !cidInternacao.value) cidInternacao.value = cidPrincipal;
-
-  const indicacaoClinica = document.getElementById('indicacao_clinica')?.value?.trim();
-  const indicacaoInternacao = document.getElementById('indicacao_clinica_internacao');
-  if (indicacaoClinica && indicacaoInternacao && !indicacaoInternacao.value) {
-    indicacaoInternacao.value = indicacaoClinica;
+  var cidP = document.getElementById('cid_principal'); var cidI = document.getElementById('cid_internacao');
+  if (cidP && cidI && cidP.value.trim() && !cidI.value) cidI.value = cidP.value.trim();
+  var indC = document.getElementById('indicacao_clinica'); var indI = document.getElementById('indicacao_clinica_internacao');
+  if (indC && indI) {
+    if (indC.value.trim() && !indI.value.trim()) { indI.value = indC.value; indI.dispatchEvent(new Event('input')); }
+    else if (indI.value.trim() && !indC.value.trim()) { indC.value = indI.value; indC.dispatchEvent(new Event('input')); }
   }
-
-  const tussPrincipal = document.getElementById('cod_tuss')?.value?.trim();
-  const tussInternacao = document.getElementById('tuss_internacao');
-  if (tussPrincipal && tussInternacao && !tussInternacao.readOnly && !tussInternacao.value) {
-    tussInternacao.value = tussPrincipal;
-  }
-
-  const hospitalPrincipal = document.getElementById('hospital')?.value?.trim();
-  const hospitalInternacao = document.getElementById('hospital_internacao');
-  if (hospitalPrincipal && hospitalInternacao && !hospitalInternacao.readOnly && !hospitalInternacao.value) {
-    hospitalInternacao.value = hospitalPrincipal;
-  }
+  var hospP = document.getElementById('hospital'); var hospI = document.getElementById('hospital_internacao');
+  if (hospP && hospI && hospP.value.trim() && !hospI.value) hospI.value = hospP.value.trim();
 }
 window.autoFillInternacao = autoFillInternacao;
 
