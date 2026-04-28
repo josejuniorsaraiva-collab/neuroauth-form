@@ -1107,6 +1107,11 @@ textarea{min-height:90px;resize:vertical;line-height:1.5}
       <div class="field"><label>CID secundário</label>
         <input id="cid_secundario_internacao" type="text" placeholder="Ex: G45.9"/></div>
       <div class="field full"><label>Indicação clínica / justificativa de internação <span class="req">*</span></label>
+        <button type="button"
+          onclick="window.gerarJustificativaClinica()"
+          style="margin-bottom:6px;background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600">
+          ✨ Gerar justificativa
+        </button>
         <textarea id="indicacao_clinica_internacao" rows="3"
           placeholder="Ex: Paciente interna para procedimento neurovascular minimamente invasivo — embolização de aneurisma cerebral via cateterismo…"
           oninput="document.getElementById('indicacao_clinica').value=this.value"></textarea></div>
@@ -2102,6 +2107,7 @@ function goTab(n){
   document.getElementById('btnPrev').disabled=n===0;
   document.getElementById('btnPrev').style.opacity=n===0?'.4':'1';
   document.getElementById('btnNext').style.display=n===6?'none':'';
+  if(n===4)autoFillInternacao();
   if(n===6)buildMiniRev();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -2235,7 +2241,7 @@ function qf(id){
    OPME ROWS
 ────────────────────────────────────────────── */
 let opmeN=0;
-function addOpme(desc='',qtd=1,un='un',emp=''){
+function addOpme(desc='',qtd=1,un='un',emp='',just=''){
   opmeN++;const id='or'+opmeN;
   const row=document.createElement('div');
   row.className='opme-row';row.id=id;
@@ -2250,7 +2256,10 @@ function addOpme(desc='',qtd=1,un='un',emp=''){
       <select id="${id}u">
         ${['un','par','sis','cx','fr'].map(u=>`<option ${u===un?'selected':''}>${u}</option>`).join('')}
       </select></div>
-    <button type="button" class="del" onclick="document.getElementById('${id}').remove()">✕</button>`;
+    <button type="button" class="del" onclick="document.getElementById('${id}').remove()">✕</button>
+    <div class="field" style="grid-column:1/-1;margin-top:6px"><label>Justificativa do item <span class="hint">(específica para este material)</span></label>
+      <textarea id="${id}j" name="justificativa_item_opme[]" rows="2"
+        placeholder="Ex: Cage necessário para restauração da altura discal e fusão intersomática segura.">${just}</textarea></div>`;
   document.getElementById('opmeRows').appendChild(row);
 }
 
@@ -2267,11 +2276,90 @@ function getOpmeItems(){
       descricao:el.value,
       empresa:document.getElementById(b+'e')?.value||'',
       qtd:Number(document.getElementById(b+'q')?.value)||1,
-      unidade:document.getElementById(b+'u')?.value||'un'
+      unidade:document.getElementById(b+'u')?.value||'un',
+      justificativa_individual:document.getElementById(b+'j')?.value?.trim()||''
     });
   });
   return items;
 }
+
+/* ──────────────────────────────────────────────
+   GERAR JUSTIFICATIVA CLÍNICA (auto)
+────────────────────────────────────────────── */
+function gerarJustificativaClinica() {
+  const cid = (document.getElementById('cid_principal') || document.getElementById('cid_internacao'))?.value?.trim() || '';
+  const procedimento = document.querySelector('[id*="descricao_proc"], [id*="tuss_desc"]')?.value?.trim()
+    || document.getElementById('descricao_cirurgica')?.value?.trim()
+    || document.getElementById('procedimento')?.value?.trim()
+    || '';
+  const exame = document.getElementById('exame_principal')?.value?.trim() || '';
+  const achados = document.getElementById('achados_resumo')?.value?.trim() || '';
+  const deficit = document.getElementById('deficit_neuro')?.value?.trim() || 'Déficit neurológico funcional documentado';
+  const conservador = document.getElementById('duracao_tto')?.value?.trim() || '';
+  const carater = document.getElementById('carater_internacao')?.value || document.getElementById('carater')?.value || '';
+  const urgencia = carater === 'U' || carater === 'X' || carater === 'E';
+
+  const opmeItems = [];
+  document.querySelectorAll('.opme-row').forEach(row => {
+    const desc = row.querySelector('[id$="d"]')?.value?.trim();
+    if (desc) opmeItems.push(desc);
+  });
+
+  const textoBase = [
+    `Paciente com diagnóstico de ${cid || 'patologia degenerativa/estrutural'}, apresentando quadro clínico persistente e refratário ao tratamento conservador${conservador ? ` por ${conservador}` : ', conforme documentação clínica'}, com limitação funcional significativa.`,
+    deficit ? `Apresenta ${deficit.toLowerCase()}.` : '',
+    exame ? `Exames de imagem evidenciam: ${exame}${achados ? `. ${achados}` : ''}.` : '',
+    `A indicação cirúrgica decorre da correlação clínico-radiológica entre os sintomas, exame físico e achados complementares, sendo necessária a intervenção para descompressão${procedimento ? ` via ${procedimento}` : ''}, prevenção de piora neurológica e recuperação funcional do paciente.`,
+    opmeItems.length > 0
+      ? `Os materiais OPME solicitados (${opmeItems.join(', ')}) são indispensáveis para execução segura da técnica cirúrgica proposta, estabilização adequada do segmento abordado e redução do risco de falha mecânica, reoperação ou desfecho funcional desfavorável.`
+      : 'Os materiais OPME solicitados são compatíveis com a técnica cirúrgica proposta e necessários para execução segura do procedimento.',
+    urgencia
+      ? 'Caráter de atendimento urgente/emergencial, com risco de deterioração neurológica irreversível se não tratado em curto prazo.'
+      : 'A postergação do procedimento implica risco de progressão do quadro, agravamento do déficit funcional e piora da qualidade de vida do paciente.',
+    'Solicita-se autorização prévia para realização do procedimento, considerando os critérios clínicos e regulatórios estabelecidos pela ANS/DUT para este tipo de intervenção.'
+  ].filter(Boolean).join(' ');
+
+  const campo = document.getElementById('indicacao_clinica_internacao') || document.getElementById('indicacao_clinica');
+  if (campo) {
+    campo.value = textoBase;
+    campo.dispatchEvent(new Event('input', { bubbles: true }));
+    campo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (typeof toast === 'function') toast('✨ Justificativa gerada','ok');
+  }
+}
+window.gerarJustificativaClinica = gerarJustificativaClinica;
+
+/* ──────────────────────────────────────────────
+   AUTO-FILL INTERNAÇÃO (copia das seções anteriores)
+────────────────────────────────────────────── */
+function autoFillInternacao() {
+  // CID
+  const cidPrincipal = document.getElementById('cid_principal')?.value?.trim();
+  const cidInternacao = document.getElementById('cid_internacao');
+  if (cidPrincipal && cidInternacao && !cidInternacao.value) cidInternacao.value = cidPrincipal;
+
+  // Indicação clínica
+  const indicacaoClinica = document.getElementById('indicacao_clinica')?.value?.trim();
+  const indicacaoInternacao = document.getElementById('indicacao_clinica_internacao');
+  if (indicacaoClinica && indicacaoInternacao && !indicacaoInternacao.value) {
+    indicacaoInternacao.value = indicacaoClinica;
+  }
+
+  // TUSS
+  const tussPrincipal = document.getElementById('cod_tuss')?.value?.trim();
+  const tussInternacao = document.getElementById('tuss_internacao');
+  if (tussPrincipal && tussInternacao && !tussInternacao.readOnly && !tussInternacao.value) {
+    tussInternacao.value = tussPrincipal;
+  }
+
+  // Hospital
+  const hospitalPrincipal = document.getElementById('hospital')?.value?.trim();
+  const hospitalInternacao = document.getElementById('hospital_internacao');
+  if (hospitalPrincipal && hospitalInternacao && !hospitalInternacao.readOnly && !hospitalInternacao.value) {
+    hospitalInternacao.value = hospitalPrincipal;
+  }
+}
+window.autoFillInternacao = autoFillInternacao;
 
 /* ──────────────────────────────────────────────
    COLLECT DATA
@@ -2500,7 +2588,8 @@ function normalizeOpmeItem(o){
     referencia : safeStr(o.referencia||o.ref||o.reference||''),
     nomeFornecedor : safeStr(o.nomeFornecedor||o.nome_fornecedor||o.empresa||o.fabricante||''),
     observacao : safeStr(o.observacao||o.obs||o.observation||o.unidade||o.unit||''),
-    tipo    : safeStr(o.tipo||'automatico')
+    tipo    : safeStr(o.tipo||'automatico'),
+    justificativa_individual : safeStr(o.justificativa_individual||o.justificativa_item||o.justificativa||'')
   };
 }
 
@@ -3882,6 +3971,7 @@ async function confirmedSend(){
       return;
     }
     console.log('[NEUROAUTH] JWT detectado, iniciando /decide');
+    console.log('[NEUROAUTH] payload /decide OPME:', JSON.stringify(payload.opme_items || payload.opme || [], null, 2));
     naLog('decide_start', {external_trace_id: externalTraceId});
 
     // ── FASE 2: Motor clínico /decide (obrigatório) ──
