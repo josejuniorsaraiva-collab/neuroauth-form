@@ -2036,6 +2036,14 @@ const SURGICAL_PROFILES = {
       {codigo:"ANEST_GERAL",descricao:"Anestesia geral / sedação",tipo:"opcional",qtd:1},
       {codigo:"SALA_HEMO",descricao:"Uso de sala de hemodinâmica",tipo:"essencial",qtd:1}
     ],
+    cbhpm_procedimentos:[
+      {codigo:"0030911095",descricao:"Cat. e e estudo cineangiograf. da aorta e/ou seus ramos",tipo:"essencial",qtd:3,tabela:"22"},
+      {codigo:"0040810020",descricao:"Teste de oclusao de arteria carotida ou vertebral",tipo:"essencial",qtd:2,tabela:"22"},
+      {codigo:"0040812022",descricao:"Angiografia por puncao",tipo:"essencial",qtd:1,tabela:"22"},
+      {codigo:"0040812030",descricao:"Angiografia por cateterismo nao seletivo de grande vaso",tipo:"essencial",qtd:1,tabela:"22"},
+      {codigo:"0040812049",descricao:"Angiog. por cat. seletivo de ramo primario - por vaso",tipo:"essencial",qtd:3,tabela:"22"},
+      {codigo:"0040812057",descricao:"Angiog. p/ cat. superselet. ramo secund. ou distal - p/ vaso",tipo:"essencial",qtd:3,tabela:"22"}
+    ],
     opmes:[
       {nome:"Introdutor valvulado 5Fr x 11cm",tipo:"essencial",qtd:1},
       {nome:"Fio guia hidrofílico 0.035 x 180cm",tipo:"essencial",qtd:1},
@@ -3571,7 +3579,11 @@ function populateSidebar(d){
   if(profile.regras&&profile.regras.length){
     ph+=`<div class="sb-rule">⛔ Regras: ${profile.regras.join(' | ')}</div>`;
   }
-  profile.procedimentos.forEach((p,i)=>{
+  var convenioEl = document.getElementById('convenio');
+  var isUnimed = convenioEl && /unimed/i.test(convenioEl.value);
+  var procList = (isUnimed && profile.cbhpm_procedimentos) ? profile.cbhpm_procedimentos : profile.procedimentos;
+  window.__NA_PROC_LIST__ = procList;
+  procList.forEach((p,i)=>{
     const isFav=favProcs.some(f=>f.codigo===p.codigo);
     ph+=`<div class="sb-item ${p.tipo}">
       <input type="checkbox" class="sb-cb" id="sp_proc_${i}" ${p.tipo==='essencial'?'checked':''} onchange="updateGuiaFromSidebar()">
@@ -3758,7 +3770,7 @@ function getSelectedProcs(){
       if(cb.id.includes('_m'))return;
       if(cb.checked){
         const idx=parseInt(cb.id.replace('sp_proc_',''));
-        if(!isNaN(idx)&&profile.procedimentos[idx]){const qtdEl=document.getElementById('sp_proc_'+idx+'_qtd');const qtd=qtdEl?Math.max(1,parseInt(qtdEl.value)||1):(profile.procedimentos[idx].qtd||1);items.push({...profile.procedimentos[idx],qtd});}
+        const _procList=window.__NA_PROC_LIST__||profile.procedimentos;if(!isNaN(idx)&&_procList[idx]){const qtdEl=document.getElementById('sp_proc_'+idx+'_qtd');const qtd=qtdEl?Math.max(1,parseInt(qtdEl.value)||1):(_procList[idx].qtd||1);items.push({..._procList[idx],qtd});}
       }
     });
   }
