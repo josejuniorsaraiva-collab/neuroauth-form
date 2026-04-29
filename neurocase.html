@@ -18,6 +18,8 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
+var NEUROCASE_TOKEN = "NC_07be4694676a5f879bff70d5535d44653569ba4d";
+var NEUROCASE_ENDPOINT = "https://script.google.com/macros/s/COLE_A_URL_AQUI/exec";
 const { useState, useCallback } = React;
 
 const SUBAREAS = ["Coluna","Tumor","Vascular","Trauma","Hidrocefalia","Funcional","Base de Crânio","Periférico","Dor","Outro"];
@@ -184,6 +186,49 @@ function StatusBadge({t}){
   return <span style={{background:bg,color:col,padding:"5px 14px",borderRadius:99,fontSize:13,fontWeight:700}}>{label}</span>;
 }
 
+function buildMarkdown(f, analise) {
+  var agora = new Date().toISOString().slice(0,10);
+  var slug = (f.diagnostico||'caso').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').slice(0,40);
+  var filename = agora + '_' + slug + '.md';
+  var cat = f.subarea || 'Sem_categoria';
+  var tags = [f.subarea, f.diagnostico].filter(Boolean).map(function(t){return t.toLowerCase().replace(/\s+/g,'-');});
+  var md = '---\n';
+  md += 'titulo: ' + (f.diagnostico||'Caso sem título') + '\n';
+  md += 'data: ' + agora + '\n';
+  md += 'categoria: ' + cat + '\n';
+  md += 'tags: [' + tags.join(', ') + ']\n';
+  md += 'status: ' + (f.status_academico||'Não avaliado') + '\n';
+  md += 'idade: ' + (f.idade||'?') + '\n';
+  md += 'sexo: ' + (f.sexo||'?') + '\n';
+  md += '---\n\n';
+  md += '# ' + (f.diagnostico||'Caso clínico') + '\n\n';
+  md += '## Dados do Caso\n';
+  md += '- **Subárea:** ' + (f.subarea||'?') + '\n';
+  md += '- **Diagnóstico:** ' + (f.diagnostico||'?') + '\n';
+  if (f.diagnosticos_sec) md += '- **Diagnósticos secundários:** ' + f.diagnosticos_sec + '\n';
+  md += '\n## Pré-operatório\n';
+  md += '- **Queixa:** ' + (f.queixa||'?') + '\n';
+  md += '- **Tempo de sintomas:** ' + (f.tempo_sintomas||'?') + '\n';
+  md += '- **Déficit neurológico:** ' + (f.deficit||'?') + '\n';
+  md += '- **Exame de imagem:** ' + (f.exame_imagem||'?') + '\n';
+  md += '- **Indicação:** ' + (f.indicacao||'?') + '\n';
+  md += '\n## Intraoperatório\n';
+  md += '- **Procedimento:** ' + (f.procedimento||'?') + '\n';
+  md += '- **Via de acesso:** ' + (f.via_acesso||'?') + '\n';
+  md += '- **Intercorrências:** ' + (f.intercorrencias ? 'Sim — ' + f.intercorrencias_desc : 'Não') + '\n';
+  md += '\n## Pós-operatório\n';
+  md += '- **Estado neurológico:** ' + (f.estado_neuro||'?') + '\n';
+  md += '- **Complicações:** ' + (f.complicacoes||'?') + '\n';
+  md += '- **Internação:** ' + (f.tempo_internacao||'?') + '\n';
+  md += '- **Alta:** ' + (f.condicao_alta||'?') + '\n';
+  md += '\n## Acadêmico\n';
+  md += '- **Ponto-chave:** ' + (f.ponto_chave||'?') + '\n';
+  md += '- **O que ensina:** ' + (f.o_que_ensina||'?') + '\n';
+  md += '- **Potencial:** ' + (f.potencial||'?') + '\n';
+  if (analise) { md += '\n## Análise IA\n\n' + analise + '\n'; }
+  return {filename: filename, content: md, categoria: cat};
+}
+
 function calcScore(f){
   const campos=["idade","sexo","diagnostico","procedimento","img_tipo","img_achado","indicacao"];
   const n=campos.filter(c=>f[c]&&f[c].trim&&f[c].trim()).length;
@@ -234,6 +279,40 @@ function App(){
   function novoCase(){
     setForm(emptyForm);setResposta("");setPrompt("");setParsed(null);
     setView("form");setTab("id");
+  }
+  function enviarBiblioteca(){
+    var sc = calcScore(form);
+    if(sc.label==="BAIXA CONFIANÇA"){
+      alert('🔴 Preencha pelo menos os campos críticos (score MODERADA ou ALTA) antes de enviar para a biblioteca.');
+      return;
+    }
+    var md = buildMarkdown(form, resposta);
+    var btn = document.getElementById('btn-biblioteca');
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Enviando...'; }
+    fetch(NEUROCASE_ENDPOINT, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        token: NEUROCASE_TOKEN,
+        filename: md.filename,
+        content: md.content,
+        categoria: md.categoria
+      })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(res.ok){
+        alert('✅ Caso enviado para a biblioteca!\nArquivo: ' + md.filename);
+      } else {
+        alert('❌ Erro ao enviar: ' + (res.error||'desconhecido'));
+      }
+    })
+    .catch(function(e){
+      alert('❌ Falha de conexão: ' + e.message);
+    })
+    .finally(function(){
+      if(btn){ btn.disabled=false; btn.textContent='📤 Enviar para Biblioteca'; }
+    });
   }
   const tabIdx=TABS.findIndex(t=>t.id===tab);
 
@@ -479,6 +558,10 @@ function App(){
                 + Novo Caso
               </button>
             </div>
+            <button id="btn-biblioteca" onClick={enviarBiblioteca}
+              style={{marginTop:8,width:"100%",padding:"12px",borderRadius:10,border:"none",background:"#059669",color:"#fff",cursor:"pointer",fontSize:14,fontWeight:700}}>
+              📤 Enviar para Biblioteca
+            </button>
           </>
         )}
       </div>
