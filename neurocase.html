@@ -34,7 +34,8 @@ const emptyForm = {
   queixa:"",tempo_sintomas:"",deficit:"",exame_imagem:"",indicacao:"",
   data_cirurgia:"",procedimento:"",via_acesso:"",equipe:"",intercorrencias:"nao",intercorrencias_desc:"",
   estado_neuro:"",complicacoes:"",tempo_internacao:"",condicao_alta:"",
-  ponto_chave:"",o_que_ensina:"",potencial:""
+  ponto_chave:"",o_que_ensina:"",potencial:"",
+  r1_urgencia:"",r1_correlacao:"",r1_conservador:""
 };
 const ACCENT = "#0f4c81";
 
@@ -87,6 +88,11 @@ Déficit neurológico: ${f.deficit||"não informado"}
 Imagem: ${f.exame_imagem||"não informado"}
 Indicação: ${f.indicacao||"não informado"}
 
+INTERPRETAÇÃO R1
+Urgência: ${f.r1_urgencia||"não informado"}
+Correlação clínico-radiológica: ${f.r1_correlacao||"não informado"}
+Conservador prévio: ${f.r1_conservador||"não informado"}
+
 INTRAOPERATÓRIO
 Data: ${f.data_cirurgia||"?"} | Procedimento: ${f.procedimento||"?"}
 Via: ${f.via_acesso||"?"} | Equipe: ${f.equipe||"?"}
@@ -129,7 +135,7 @@ Gere a saída EXATAMENTE neste formato (use esses títulos exatos):
 ## 8. STATUS FINAL
 [Incompleto / Adequado para arquivo / Adequado para discussão / Adequado para aula / Adequado para publicação]
 
-REGRAS: nunca inventar dados. Se faltar → colocar em Pendências. Linguagem médica técnica.`;
+REGRAS: nunca inventar dados. Se faltar → colocar em Pendências. Linguagem médica técnica. Considere que os dados podem ter sido preenchidos por equipe não especializada. Identifique inconsistências clínicas entre exame, déficit e indicação. Se houver incoerência, destacar claramente em 'PENDÊNCIAS'. Priorizar raciocínio clínico de nível especialista. Evitar generalidades.`;
 }
 
 function parseResult(text){
@@ -160,6 +166,14 @@ function StatusBadge({t}){
   return <span style={{background:bg,color:col,padding:"5px 14px",borderRadius:99,fontSize:13,fontWeight:700}}>{label}</span>;
 }
 
+function calcScore(f){
+  const campos=["idade","sexo","diagnostico","procedimento","exame_imagem","indicacao"];
+  const n=campos.filter(c=>f[c]&&f[c].trim&&f[c].trim()).length;
+  if(n<=2)return{label:"BAIXA CONFIANÇA",color:"#dc2626",bg:"#fee2e2",icon:"🔴"};
+  if(n<=4)return{label:"MODERADA CONFIANÇA",color:"#d97706",bg:"#fef3c7",icon:"🟡"};
+  return{label:"ALTA CONFIANÇA",color:"#16a34a",bg:"#dcfce7",icon:"🟢"};
+}
+
 function App(){
   const [tab,setTab]=useState("id");
   const [form,setForm]=useState(emptyForm);
@@ -172,6 +186,17 @@ function App(){
   const set=k=>v=>setForm(f=>({...f,[k]:v}));
 
   function gerar(){
+    var camposCriticos={"idade":"Idade","sexo":"Sexo","diagnostico":"Diagnóstico principal","procedimento":"Procedimento realizado","exame_imagem":"Exame de imagem","indicacao":"Indicação cirúrgica"};
+    var faltando=[];
+    for(var id in camposCriticos){if(!form[id]||!form[id].trim())faltando.push(camposCriticos[id]);}
+    if(faltando.length>0){alert("🔴 CAMPOS OBRIGATÓRIOS AUSENTES:\n\n• "+faltando.join("\n• ")+"\n\nPreencha antes de gerar a análise.");return;}
+    var alertasAmarelos=[];
+    var deficit=(form.deficit||"").trim();
+    var indicacao=(form.indicacao||"").trim();
+    var tempo=(form.tempo_sintomas||"").trim();
+    if(deficit&&indicacao&&deficit.toLowerCase().includes("sem déficit")&&indicacao.toLowerCase().includes("urgência")){alertasAmarelos.push("Paciente sem déficit neurológico mas indicação marcada como urgência — verifique coerência clínica");}
+    if(tempo&&parseInt(tempo)>60&&indicacao.toLowerCase().includes("aguda")){alertasAmarelos.push("Tempo de sintomas longo mas indicação marcada como aguda — possível inconsistência");}
+    if(alertasAmarelos.length>0){var continuar=window.confirm("🟡 ALERTAS CLÍNICOS:\n\n• "+alertasAmarelos.join("\n• ")+"\n\nDeseja continuar mesmo assim?");if(!continuar)return;}
     setPrompt(buildPrompt(form));
     setView("prompt");
   }
@@ -201,6 +226,7 @@ function App(){
           <div style={{flex:1}}>
             <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>NEUROCASE</div>
             <div style={{fontSize:12,opacity:0.75}}>Sistema Acadêmico de Registro Neurocirúrgico</div>
+            {(()=>{const sc=calcScore(form);return<span style={{display:"inline-flex",alignItems:"center",gap:5,padding:"2px 10px",borderRadius:20,fontWeight:700,fontSize:10,background:"rgba(255,255,255,0.18)",color:"#fff",marginTop:3}}><span>{sc.icon}</span><span>{sc.label}</span></span>})()}
           </div>
           {view!=="form"&&(
             <button onClick={()=>setView("form")} style={{background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",padding:"7px 16px",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600}}>
@@ -254,6 +280,20 @@ function App(){
                   <Field label="Déficit Neurológico"><Tex value={form.deficit} onChange={set("deficit")} placeholder="Ex: Fraqueza grau IV em flexores do pé direito, hipoestesia L5" rows={2}/></Field>
                   <Field label="Achado Principal de Imagem" req><Tex value={form.exame_imagem} onChange={set("exame_imagem")} placeholder="Ex: RM lombossacra — protrusão discal L4-L5 com compressão radicular direita" rows={2}/></Field>
                   <Field label="Indicação Cirúrgica" req><Tex value={form.indicacao} onChange={set("indicacao")} placeholder="Ex: Falha ao tratamento conservador por 6 meses + déficit motor progressivo" rows={2}/></Field>
+                  <details style={{marginTop:8,border:"1px dashed #93c5fd",borderRadius:8,padding:"8px 12px"}}>
+                    <summary style={{cursor:"pointer",color:"#1d4ed8",fontSize:12,fontWeight:600,userSelect:"none"}}>🔍 Interpretação R1 (opcional)</summary>
+                    <div style={{marginTop:10,display:"grid",gap:10}}>
+                      <Field label="Grau de urgência">
+                        <Sel value={form.r1_urgencia} onChange={set("r1_urgencia")} options={["Eletivo","Urgência relativa","Urgência absoluta","Emergência"]} placeholder="Selecione"/>
+                      </Field>
+                      <Field label="Correlação clínico-radiológica">
+                        <Sel value={form.r1_correlacao} onChange={set("r1_correlacao")} options={["Adequada — imagem explica o quadro","Parcial — imagem não explica completamente","Discordante — imagem não explica o quadro"]} placeholder="Selecione"/>
+                      </Field>
+                      <Field label="Tratamento conservador prévio">
+                        <Sel value={form.r1_conservador} onChange={set("r1_conservador")} options={["Não realizado","Realizado — sem melhora","Realizado — melhora parcial","Contraindicado"]} placeholder="Selecione"/>
+                      </Field>
+                    </div>
+                  </details>
                 </>
               )}
 
