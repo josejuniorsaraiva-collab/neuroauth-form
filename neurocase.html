@@ -32,6 +32,7 @@ const TABS = [
 const emptyForm = {
   id:"",idade:"",sexo:"",data:"",subarea:"",diagnostico:"",diagnosticos_sec:"",
   queixa:"",tempo_sintomas:"",deficit:"",exame_imagem:"",indicacao:"",
+  img_tipo:"",img_nivel:"",img_achado:"",img_grau:"",img_correlacao:"",img_laudo:"",
   data_cirurgia:"",procedimento:"",via_acesso:"",equipe:"",intercorrencias:"nao",intercorrencias_desc:"",
   estado_neuro:"",complicacoes:"",tempo_internacao:"",condicao_alta:"",
   ponto_chave:"",o_que_ensina:"",potencial:"",
@@ -70,6 +71,23 @@ function Sel({value,onChange,options,placeholder}){
       {options.map(o=><option key={o} value={o}>{o}</option>)}
     </select>
   );
+}
+
+function buildExameImagem(f){
+  var tipo=(f.img_tipo||"").trim();
+  var nivel=(f.img_nivel||"").trim();
+  var achado=(f.img_achado||"").trim();
+  var grau=(f.img_grau||"").trim();
+  var correl=(f.img_correlacao||"").trim();
+  var laudo=(f.img_laudo||"").trim();
+  var partes=[];
+  if(tipo)partes.push(tipo);
+  if(nivel)partes.push("— "+nivel);
+  if(achado)partes.push("— "+achado);
+  if(grau)partes.push("— Compressão: "+grau);
+  if(correl)partes.push("— "+correl);
+  if(laudo)partes.push("Laudo: "+laudo);
+  return partes.join(" ")||"";
 }
 
 function buildPrompt(f){
@@ -167,7 +185,7 @@ function StatusBadge({t}){
 }
 
 function calcScore(f){
-  const campos=["idade","sexo","diagnostico","procedimento","exame_imagem","indicacao"];
+  const campos=["idade","sexo","diagnostico","procedimento","img_tipo","img_achado","indicacao"];
   const n=campos.filter(c=>f[c]&&f[c].trim&&f[c].trim()).length;
   if(n<=2)return{label:"BAIXA CONFIANÇA",color:"#dc2626",bg:"#fee2e2",icon:"🔴"};
   if(n<=4)return{label:"MODERADA CONFIANÇA",color:"#d97706",bg:"#fef3c7",icon:"🟡"};
@@ -186,9 +204,11 @@ function App(){
   const set=k=>v=>setForm(f=>({...f,[k]:v}));
 
   function gerar(){
+    // Compor exame_imagem a partir dos sub-campos estruturados
+    var formData=Object.assign({},form,{exame_imagem:buildExameImagem(form)});
     var camposCriticos={"idade":"Idade","sexo":"Sexo","diagnostico":"Diagnóstico principal","procedimento":"Procedimento realizado","exame_imagem":"Exame de imagem","indicacao":"Indicação cirúrgica"};
     var faltando=[];
-    for(var id in camposCriticos){if(!form[id]||!form[id].trim())faltando.push(camposCriticos[id]);}
+    for(var id in camposCriticos){if(!formData[id]||!formData[id].trim())faltando.push(camposCriticos[id]);}
     if(faltando.length>0){alert("🔴 CAMPOS OBRIGATÓRIOS AUSENTES:\n\n• "+faltando.join("\n• ")+"\n\nPreencha antes de gerar a análise.");return;}
     var alertasAmarelos=[];
     var deficit=(form.deficit||"").trim();
@@ -197,7 +217,7 @@ function App(){
     if(deficit&&indicacao&&deficit.toLowerCase().includes("sem déficit")&&indicacao.toLowerCase().includes("urgência")){alertasAmarelos.push("Paciente sem déficit neurológico mas indicação marcada como urgência — verifique coerência clínica");}
     if(tempo&&parseInt(tempo)>60&&indicacao.toLowerCase().includes("aguda")){alertasAmarelos.push("Tempo de sintomas longo mas indicação marcada como aguda — possível inconsistência");}
     if(alertasAmarelos.length>0){var continuar=window.confirm("🟡 ALERTAS CLÍNICOS:\n\n• "+alertasAmarelos.join("\n• ")+"\n\nDeseja continuar mesmo assim?");if(!continuar)return;}
-    setPrompt(buildPrompt(form));
+    setPrompt(buildPrompt(formData));
     setView("prompt");
   }
   function analisar(){
@@ -278,7 +298,30 @@ function App(){
                   <Field label="Queixa Principal" req><Inp value={form.queixa} onChange={set("queixa")} placeholder="Ex: Dor lombar com irradiação para MMII há 6 meses"/></Field>
                   <Field label="Tempo de Sintomas" req><Inp value={form.tempo_sintomas} onChange={set("tempo_sintomas")} placeholder="Ex: 6 meses"/></Field>
                   <Field label="Déficit Neurológico"><Tex value={form.deficit} onChange={set("deficit")} placeholder="Ex: Fraqueza grau IV em flexores do pé direito, hipoestesia L5" rows={2}/></Field>
-                  <Field label="Achado Principal de Imagem" req><Tex value={form.exame_imagem} onChange={set("exame_imagem")} placeholder="Ex: RM lombossacra — protrusão discal L4-L5 com compressão radicular direita" rows={2}/></Field>
+                  {/* BLOCO IMAGEM ESTRUTURADO */}
+                  <div style={{border:"1px solid #bfdbfe",borderRadius:10,padding:12,background:"#eff6ff",marginBottom:8}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"#1d4ed8",marginBottom:10}}>🖼️ Exame de Imagem</div>
+                    <div style={{display:"grid",gap:8}}>
+                      <Field label="Tipo de Exame" req>
+                        <Sel value={form.img_tipo} onChange={set("img_tipo")} options={["RM (Ressonância Magnética)","TC (Tomografia Computadorizada)","Angiografia","Angio-TC","Angio-RM","Rx simples","PET-CT","Ultrassom","Outro"]} placeholder="Selecione"/>
+                      </Field>
+                      <Field label="Localização / Nível">
+                        <Inp value={form.img_nivel} onChange={set("img_nivel")} placeholder="Ex: L4-L5, C5-C6, frontal direito, cerebelo..."/>
+                      </Field>
+                      <Field label="Achado Principal">
+                        <Inp value={form.img_achado} onChange={set("img_achado")} placeholder="Ex: protrusão discal, meningioma, aneurisma sacular..."/>
+                      </Field>
+                      <Field label="Grau de Compressão / Estenose">
+                        <Sel value={form.img_grau} onChange={set("img_grau")} options={["Leve (<33%)","Moderado (33–66%)","Grave (>66%)","Crítico / Oclusão total","Não aplicável"]} placeholder="Selecione"/>
+                      </Field>
+                      <Field label="Correlação com Clínica">
+                        <Sel value={form.img_correlacao} onChange={set("img_correlacao")} options={["Adequada — imagem explica o quadro clínico","Parcial — imagem explica parte do quadro","Discordante — imagem não explica o quadro","Inconclusiva — aguarda complementação"]} placeholder="Selecione"/>
+                      </Field>
+                      <Field label="Laudo / Observações adicionais">
+                        <Tex value={form.img_laudo} onChange={set("img_laudo")} placeholder="Cole trecho do laudo ou observação relevante..." rows={2}/>
+                      </Field>
+                    </div>
+                  </div>
                   <Field label="Indicação Cirúrgica" req><Tex value={form.indicacao} onChange={set("indicacao")} placeholder="Ex: Falha ao tratamento conservador por 6 meses + déficit motor progressivo" rows={2}/></Field>
                   <details style={{marginTop:8,border:"1px dashed #93c5fd",borderRadius:8,padding:"8px 12px"}}>
                     <summary style={{cursor:"pointer",color:"#1d4ed8",fontSize:12,fontWeight:600,userSelect:"none"}}>🔍 Interpretação R1 (opcional)</summary>
