@@ -291,7 +291,7 @@ function App(){
     if(btn){ btn.disabled=true; btn.textContent='⏳ Enviando...'; }
     fetch(NEUROCASE_ENDPOINT, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
       body: JSON.stringify({
         token: NEUROCASE_TOKEN,
         filename: md.filename,
