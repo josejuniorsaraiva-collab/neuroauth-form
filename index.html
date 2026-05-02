@@ -1324,6 +1324,15 @@ async function naHandleLogin(response){
     perfil._jwt=_jwt; // armazena JWT no perfil para naGetSessionField('_jwt')
     const sess={email,name,picture:picture||'',perfil,expires:Date.now()+NA_SESSION_TTL};
     sessionStorage.setItem('na_session',JSON.stringify(sess));
+    // ── JWT persistence — chaves canônicas lidas por outros módulos ──
+    // control_hub.html (TOKEN_KEY = 'na_jwt'), painel_operacional_v2 e snippets diag. usam 'na_jwt_tmp'.
+    if(_jwt){
+      try{
+        localStorage.setItem('na_jwt', _jwt);                              // control_hub.html
+        localStorage.setItem('na_hub_jwt', _jwt);                          // legacy alias
+        sessionStorage.setItem('na_jwt_tmp', JSON.stringify({jwt:_jwt}));  // painel_operacional_v2 + diag
+      }catch(storeErr){ console.warn('[NEUROAUTH] persist JWT falhou:', storeErr); }
+    }
     naRenderPresala(perfil,sess);
   }catch(err){
     if(sa) sa.innerHTML=`<div class="na-loading">
@@ -1647,6 +1656,10 @@ function naLogout(){
   sessionStorage.removeItem('na_session');
   sessionStorage.removeItem('na_lgpd_log');
   sessionStorage.removeItem('neuroauth_draft');
+  // limpa JWTs persistidos no login (chaves canônicas)
+  sessionStorage.removeItem('na_jwt_tmp');
+  localStorage.removeItem('na_jwt');
+  localStorage.removeItem('na_hub_jwt');
   try{
     if(typeof google!=='undefined'&&google.accounts)
       google.accounts.id.disableAutoSelect();
