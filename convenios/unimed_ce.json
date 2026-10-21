@@ -50,8 +50,7 @@
     "aceita_autorizacao_verbal": false,
     "exige_senha_autorizacao": true,
     "canais_envio": ["portal_web", "make_webhook"],
-    "url_portal": "https://www.unimedce.com.br",
-    "webhook_make": "https://hook.us2.make.com/yerhrppm26aylw9jj2efmapq6ny8jlif"
+    "url_portal": "https://www.unimedce.com.br"
   },
 
   "comportamento_pos_autorizacao": {
