@@ -18,8 +18,9 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
-var NEUROCASE_TOKEN = "NC_07be4694676a5f879bff70d5535d44653569ba4d";
-var NEUROCASE_ENDPOINT = "https://script.google.com/macros/s/AKfycbyTaTIWpa_NHmTBPrWuJZoFsPASbm2HSdFCOUlIQahgdbmp7Xim81SGvpmdfGyNxVEZ/exec";
+var NA_BACKEND_URL = "https://neuroauth-auth.onrender.com";
+/* Envio à biblioteca via backend autenticado: login do NEUROAUTH (mesmo domínio). */
+function ncJwt(){ try{ return localStorage.getItem('na_jwt') || ''; }catch(e){ return ''; } }
 const { useState, useCallback } = React;
 
 const SUBAREAS = ["Coluna","Tumor","Vascular","Trauma","Hidrocefalia","Funcional","Base de Crânio","Periférico","Dor","Outro"];
@@ -286,20 +287,29 @@ function App(){
       alert('🔴 Preencha pelo menos os campos críticos (score MODERADA ou ALTA) antes de enviar para a biblioteca.');
       return;
     }
+    var jwt = ncJwt();
+    if(!jwt){
+      alert('🔒 Entre no NEUROAUTH para enviar casos à biblioteca.');
+      window.open('/index.html', '_blank');
+      return;
+    }
     var md = buildMarkdown(form, resposta);
     var btn = document.getElementById('btn-biblioteca');
     if(btn){ btn.disabled=true; btn.textContent='⏳ Enviando...'; }
-    fetch(NEUROCASE_ENDPOINT, {
+    fetch(NA_BACKEND_URL + '/relay/neurocase', {
       method: 'POST',
-      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt},
       body: JSON.stringify({
-        token: NEUROCASE_TOKEN,
         filename: md.filename,
         content: md.content,
         categoria: md.categoria
       })
     })
-    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if(r.status === 401){ throw new Error('sessão expirada — entre novamente no NEUROAUTH.'); }
+      if(r.status === 403){ throw new Error('seu usuário não tem permissão para enviar casos ao NEUROCASE.'); }
+      return r.json();
+    })
     .then(function(res){
       if(res.ok){
         alert('✅ Caso enviado para a biblioteca!\nArquivo: ' + md.filename);
